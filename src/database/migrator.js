@@ -71,7 +71,9 @@ export const runMigrations = async () => {
     const pendingFiles = allFiles.filter((file) => !appliedSet.has(file));
 
     if (pendingFiles.length === 0) {
-      console.log(`✅ [MIGRATIONS] Database schema is up to date (${appliedSet.size} migrations applied).`);
+      console.log(
+        `✅ [MIGRATIONS] Database schema is up to date (${appliedSet.size} migrations applied).`
+      );
       return { total: allFiles.length, applied: appliedSet.size, executed: [] };
     }
 

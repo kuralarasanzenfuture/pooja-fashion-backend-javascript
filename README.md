@@ -87,11 +87,14 @@ npm test
 ```
 
 ### 6. Database Auto-Creation & Migrations
+
 When running `npm start` or `npm run dev`, the server automatically:
+
 1. Auto-creates the database if it doesn't exist (`ensureDatabaseExists`).
 2. Tracks and applies all unapplied SQL migrations transactionally (`runMigrations`).
 
 You can also run migrations manually via CLI:
+
 ```bash
 # Run all pending migrations
 npm run migrate
@@ -99,7 +102,6 @@ npm run migrate
 # Check status of all migrations (applied vs pending)
 npm run migrate:status
 ```
-
 
 ---
 

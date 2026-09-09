@@ -6,10 +6,12 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import swaggerUi from 'swagger-ui-express';
 
 import env from './config/env.js';
 import corsOptions from './config/cors.js';
 import routes from './routes/index.js';
+import swaggerSpec from './docs/swagger.js';
 import { notFoundHandler } from './middlewares/notFound.middleware.js';
 import { errorHandler } from './middlewares/error.middleware.js';
 
@@ -36,6 +38,9 @@ const rootUploadsPath = path.join(__dirname, '..', 'uploads');
 app.use('/uploads', express.static(srcUploadsPath));
 app.use('/uploads', express.static(rootUploadsPath));
 app.use('/assets', express.static(srcUploadsPath));
+
+// Interactive Swagger API Documentation
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use('/api', routes);
 

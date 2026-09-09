@@ -1,0 +1,155 @@
+{
+  "info": {
+    "_postman_id": "pooja-fashion-companies-collection",
+    "name": "Pooja Fashion - Companies API",
+    "description": "Comprehensive API collection for managing Companies in Pooja Fashion ERP/POS system.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Create Company",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"company_code\": \"PFS001\",\n  \"company_name\": \"Pooja Fashion Shop\",\n  \"legal_name\": \"Pooja Fashion Shop Private Limited\",\n  \"display_name\": \"Pooja Fashion\",\n  \"business_type\": \"Retail\",\n  \"industry_type\": \"Fashion & Garments\",\n  \"registration_number\": \"U18109TN2024PTC123456\",\n  \"email\": \"contact@poojafashion.com\",\n  \"phone\": \"04344-245678\",\n  \"mobile\": \"+919876543210\",\n  \"website\": \"https://www.poojafashion.com\",\n  \"logo_url\": \"https://www.poojafashion.com/logo.png\",\n  \"default_currency\": \"INR\",\n  \"country_code\": \"IN\",\n  \"timezone\": \"Asia/Kolkata\",\n  \"financial_year_start_month\": 4,\n  \"status\": \"active\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/companies",
+          "host": ["{{baseUrl}}"],
+          "path": ["companies"]
+        },
+        "description": "Creates a new company record."
+      }
+    },
+    {
+      "name": "2. Get Companies (Paginated & Filtered)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/companies?page=1&limit=10&status=active&sortBy=created_at&sortOrder=desc",
+          "host": ["{{baseUrl}}"],
+          "path": ["companies"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            },
+            {
+              "key": "status",
+              "value": "active"
+            },
+            {
+              "key": "sortBy",
+              "value": "created_at"
+            },
+            {
+              "key": "sortOrder",
+              "value": "desc"
+            },
+            {
+              "key": "search",
+              "value": "Pooja",
+              "disabled": true
+            }
+          ]
+        },
+        "description": "Lists companies with pagination, status filter, and keyword search."
+      }
+    },
+    {
+      "name": "3. Get Company By ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/companies/{{companyId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["companies", "{{companyId}}"]
+        },
+        "description": "Retrieves full company profile by primary numeric ID."
+      }
+    },
+    {
+      "name": "4. Get Company By Code",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/companies/code/{{companyCode}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["companies", "code", "{{companyCode}}"]
+        },
+        "description": "Retrieves full company profile by unique company_code."
+      }
+    },
+    {
+      "name": "5. Update Company",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"company_name\": \"Pooja Fashion Retail Ltd\",\n  \"display_name\": \"Pooja Fashion Main\",\n  \"phone\": \"04344-245999\",\n  \"mobile\": \"+919876500000\",\n  \"status\": \"active\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/companies/{{companyId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["companies", "{{companyId}}"]
+        },
+        "description": "Updates company fields for the given company ID."
+      }
+    },
+    {
+      "name": "6. Update Company Status",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"inactive\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/companies/{{companyId}}/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["companies", "{{companyId}}", "status"]
+        },
+        "description": "Updates company lifecycle status ('active', 'inactive', 'suspended')."
+      }
+    },
+    {
+      "name": "7. Delete Company",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/companies/{{companyId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["companies", "{{companyId}}"]
+        },
+        "description": "Deletes a company record by primary ID."
+      }
+    }
+  ]
+}

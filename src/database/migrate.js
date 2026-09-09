@@ -20,7 +20,9 @@ const main = async () => {
       const status = await getMigrationStatus();
       console.log('\n📊 Migration Status:');
       console.table(status.migrations);
-      console.log(`Summary: ${status.applied} applied, ${status.pending} pending of ${status.total} total.`);
+      console.log(
+        `Summary: ${status.applied} applied, ${status.pending} pending of ${status.total} total.`
+      );
     } else {
       const result = await runMigrations();
       console.log(`\nMigration completed: ${result.executed.length} new migrations executed.`);

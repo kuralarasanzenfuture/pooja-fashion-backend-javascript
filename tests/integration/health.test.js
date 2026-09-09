@@ -21,4 +21,9 @@ describe('Health Check API', () => {
     expect(res.body.success).toBe(false);
     expect(res.body.message).toBe('Route not found');
   });
+
+  it('GET /api/docs/ should serve interactive Swagger documentation', async () => {
+    const res = await request(app).get('/api/docs/');
+    expect([200, 301]).toContain(res.status);
+  });
 });

@@ -56,7 +56,10 @@ export const ensureDatabaseExists = async (config = databaseConfig) => {
           continue;
         }
 
-        console.warn(`⚠️ Could not auto-check/create PostgreSQL database "${targetDb}":`, err.message);
+        console.warn(
+          `⚠️ Could not auto-check/create PostgreSQL database "${targetDb}":`,
+          err.message
+        );
         break;
       }
     }
