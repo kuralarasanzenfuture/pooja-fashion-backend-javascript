@@ -1,0 +1,268 @@
+{
+  "info": {
+    "_postman_id": "pooja-fashion-banks-modular-collection",
+    "name": "Pooja Fashion - Banks, Identifiers & Company Banks API",
+    "description": "Comprehensive API collection for Banks master, Bank Identifiers, and Company Bank Accounts.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Banks Master",
+      "item": [
+        {
+          "name": "1. Create Bank",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bank_code\": \"HDFC\",\n  \"bank_name\": \"HDFC Bank\",\n  \"short_name\": \"HDFC\",\n  \"legal_name\": \"HDFC Bank Limited\",\n  \"bank_type\": \"commercial\",\n  \"country_code\": \"IN\",\n  \"is_active\": true,\n  \"is_verified\": true,\n  \"display_order\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/banks",
+              "host": ["{{baseUrl}}"],
+              "path": ["banks"]
+            }
+          }
+        },
+        {
+          "name": "2. Get Banks (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/banks?page=1&limit=10&bank_type=commercial&is_active=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["banks"]
+            }
+          }
+        },
+        {
+          "name": "3. Get Bank by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/banks/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["banks", "1"]
+            }
+          }
+        },
+        {
+          "name": "4. Get Bank by Code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/banks/code/HDFC",
+              "host": ["{{baseUrl}}"],
+              "path": ["banks", "code", "HDFC"]
+            }
+          }
+        },
+        {
+          "name": "5. Update Bank",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"short_name\": \"HDFC Ltd\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/banks/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["banks", "1"]
+            }
+          }
+        },
+        {
+          "name": "6. Delete Bank",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/banks/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["banks", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bank Identifiers",
+      "item": [
+        {
+          "name": "1. Create Bank Identifier",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bank_id\": 1,\n  \"identifier_type\": \"ifsc\",\n  \"identifier_value\": \"HDFC0001234\",\n  \"branch_name\": \"Hosur Main Branch\",\n  \"city\": \"Hosur\",\n  \"state\": \"Tamil Nadu\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/bank-identifiers",
+              "host": ["{{baseUrl}}"],
+              "path": ["bank-identifiers"]
+            }
+          }
+        },
+        {
+          "name": "2. Get Identifiers (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/bank-identifiers?page=1&limit=10&bank_id=1&identifier_type=ifsc",
+              "host": ["{{baseUrl}}"],
+              "path": ["bank-identifiers"]
+            }
+          }
+        },
+        {
+          "name": "3. Get Identifiers by Bank ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/bank-identifiers/bank/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["bank-identifiers", "bank", "1"]
+            }
+          }
+        },
+        {
+          "name": "4. Lookup Identifier by Value (IFSC)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/bank-identifiers/value/HDFC0001234",
+              "host": ["{{baseUrl}}"],
+              "path": ["bank-identifiers", "value", "HDFC0001234"]
+            }
+          }
+        },
+        {
+          "name": "5. Delete Bank Identifier",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/bank-identifiers/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["bank-identifiers", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Company Banks",
+      "item": [
+        {
+          "name": "1. Create Company Bank Account",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company_id\": 1,\n  \"bank_id\": 1,\n  \"account_name\": \"Pooja Fashion Main Operating Account\",\n  \"account_number\": \"50200012345678\",\n  \"account_type\": \"current\",\n  \"branch_name\": \"Hosur Main Branch\",\n  \"branch_code\": \"1234\",\n  \"ifsc_code\": \"HDFC0001234\",\n  \"opening_balance\": 50000,\n  \"current_balance\": 50000,\n  \"is_primary\": true,\n  \"is_active\": true,\n  \"notes\": \"Primary account\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/company-banks",
+              "host": ["{{baseUrl}}"],
+              "path": ["company-banks"]
+            }
+          }
+        },
+        {
+          "name": "2. Get Company Banks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/company-banks?page=1&limit=10&company_id=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["company-banks"]
+            }
+          }
+        },
+        {
+          "name": "3. Get Company Bank by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/company-banks/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["company-banks", "1"]
+            }
+          }
+        },
+        {
+          "name": "4. Get All Bank Accounts for Company",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/company-banks/company/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["company-banks", "company", "1"]
+            }
+          }
+        },
+        {
+          "name": "5. Update Company Bank Account",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"account_name\": \"Pooja Fashion Retail Account\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/company-banks/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["company-banks", "1"]
+            }
+          }
+        },
+        {
+          "name": "6. Set Account as Primary",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/company-banks/1/primary",
+              "host": ["{{baseUrl}}"],
+              "path": ["company-banks", "1", "primary"]
+            }
+          }
+        },
+        {
+          "name": "7. Delete Company Bank Account",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/company-banks/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["company-banks", "1"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    }
+  ]
+}

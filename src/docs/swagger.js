@@ -33,6 +33,14 @@ export const swaggerSpec = {
       description: 'Company tax and regulatory registration operations',
     },
     {
+      name: 'Banks',
+      description: 'Bank master entity operations',
+    },
+    {
+      name: 'Bank Identifiers',
+      description: 'Bank branch routing identifiers (IFSC, SWIFT, MICR)',
+    },
+    {
       name: 'Company Banks',
       description: 'Corporate bank accounts and treasury management operations',
     },
@@ -1325,6 +1333,250 @@ export const swaggerSpec = {
           200: { description: 'Company bank account set as primary successfully' },
           404: { description: 'Company bank account not found' },
         },
+      },
+    },
+    '/banks': {
+      get: {
+        tags: ['Banks'],
+        summary: 'Get paginated list of banks',
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } },
+          {
+            name: 'bank_type',
+            in: 'query',
+            schema: {
+              type: 'string',
+              enum: [
+                'commercial',
+                'cooperative',
+                'regional_rural',
+                'small_finance',
+                'payments',
+                'foreign',
+                'other',
+              ],
+            },
+          },
+          { name: 'country_code', in: 'query', schema: { type: 'string', default: 'IN' } },
+          { name: 'is_active', in: 'query', schema: { type: 'boolean' } },
+          { name: 'is_verified', in: 'query', schema: { type: 'boolean' } },
+          { name: 'search', in: 'query', schema: { type: 'string' } },
+          {
+            name: 'sortBy',
+            in: 'query',
+            schema: {
+              type: 'string',
+              enum: [
+                'id',
+                'bank_code',
+                'bank_name',
+                'short_name',
+                'bank_type',
+                'display_order',
+                'created_at',
+              ],
+              default: 'display_order',
+            },
+          },
+          { name: 'sortOrder', in: 'query', schema: { type: 'string', enum: ['asc', 'desc'], default: 'asc' } },
+        ],
+        responses: { 200: { description: 'List of banks retrieved successfully' } },
+      },
+      post: {
+        tags: ['Banks'],
+        summary: 'Create a new bank master record',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['bank_code', 'bank_name'],
+                properties: {
+                  bank_code: { type: 'string', example: 'HDFC' },
+                  bank_name: { type: 'string', example: 'HDFC Bank' },
+                  short_name: { type: 'string', example: 'HDFC' },
+                  legal_name: { type: 'string', example: 'HDFC Bank Limited' },
+                  bank_type: {
+                    type: 'string',
+                    enum: [
+                      'commercial',
+                      'cooperative',
+                      'regional_rural',
+                      'small_finance',
+                      'payments',
+                      'foreign',
+                      'other',
+                    ],
+                    example: 'commercial',
+                  },
+                  logo_url: { type: 'string' },
+                  website_url: { type: 'string', example: 'https://www.hdfcbank.com' },
+                  country_code: { type: 'string', default: 'IN' },
+                  is_active: { type: 'boolean', default: true },
+                  is_verified: { type: 'boolean', default: true },
+                  display_order: { type: 'integer', default: 1 },
+                },
+              },
+            },
+          },
+        },
+        responses: { 201: { description: 'Bank created successfully' }, 400: { description: 'Validation error' } },
+      },
+    },
+    '/banks/{id}': {
+      get: {
+        tags: ['Banks'],
+        summary: 'Get bank by ID',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: { description: 'Bank retrieved successfully' }, 404: { description: 'Bank not found' } },
+      },
+      put: {
+        tags: ['Banks'],
+        summary: 'Update bank by ID',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object' } } },
+        },
+        responses: { 200: { description: 'Bank updated successfully' }, 404: { description: 'Bank not found' } },
+      },
+      delete: {
+        tags: ['Banks'],
+        summary: 'Delete bank by ID',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: { description: 'Bank deleted successfully' }, 404: { description: 'Bank not found' } },
+      },
+    },
+    '/banks/code/{bankCode}': {
+      get: {
+        tags: ['Banks'],
+        summary: 'Get bank by bank code',
+        parameters: [{ name: 'bankCode', in: 'path', required: true, schema: { type: 'string', example: 'HDFC' } }],
+        responses: { 200: { description: 'Bank retrieved successfully' }, 404: { description: 'Bank not found' } },
+      },
+    },
+    '/banks/{id}/status': {
+      patch: {
+        tags: ['Banks'],
+        summary: 'Update bank status',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { type: 'object', required: ['is_active'], properties: { is_active: { type: 'boolean' } } },
+            },
+          },
+        },
+        responses: { 200: { description: 'Status updated' }, 404: { description: 'Bank not found' } },
+      },
+    },
+    '/bank-identifiers': {
+      get: {
+        tags: ['Bank Identifiers'],
+        summary: 'Get paginated list of bank identifiers',
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } },
+          { name: 'bank_id', in: 'query', schema: { type: 'integer' } },
+          {
+            name: 'identifier_type',
+            in: 'query',
+            schema: {
+              type: 'string',
+              enum: ['ifsc', 'micr', 'swift', 'bank_code', 'routing_number', 'other'],
+            },
+          },
+          { name: 'city', in: 'query', schema: { type: 'string' } },
+          { name: 'state', in: 'query', schema: { type: 'string' } },
+          { name: 'is_active', in: 'query', schema: { type: 'boolean' } },
+          { name: 'search', in: 'query', schema: { type: 'string' } },
+        ],
+        responses: { 200: { description: 'List of bank identifiers retrieved successfully' } },
+      },
+      post: {
+        tags: ['Bank Identifiers'],
+        summary: 'Create a new bank identifier',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['bank_id', 'identifier_type', 'identifier_value'],
+                properties: {
+                  bank_id: { type: 'integer', example: 1 },
+                  identifier_type: {
+                    type: 'string',
+                    enum: ['ifsc', 'micr', 'swift', 'bank_code', 'routing_number', 'other'],
+                    example: 'ifsc',
+                  },
+                  identifier_value: { type: 'string', example: 'HDFC0001234' },
+                  branch_name: { type: 'string', example: 'Hosur Main Branch' },
+                  city: { type: 'string', example: 'Hosur' },
+                  state: { type: 'string', example: 'Tamil Nadu' },
+                  is_active: { type: 'boolean', default: true },
+                },
+              },
+            },
+          },
+        },
+        responses: { 201: { description: 'Identifier created' }, 400: { description: 'Validation error' } },
+      },
+    },
+    '/bank-identifiers/{id}': {
+      get: {
+        tags: ['Bank Identifiers'],
+        summary: 'Get bank identifier by ID',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: { description: 'Identifier retrieved successfully' }, 404: { description: 'Not found' } },
+      },
+      put: {
+        tags: ['Bank Identifiers'],
+        summary: 'Update bank identifier by ID',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { 200: { description: 'Identifier updated' }, 404: { description: 'Not found' } },
+      },
+      delete: {
+        tags: ['Bank Identifiers'],
+        summary: 'Delete bank identifier by ID',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: { description: 'Identifier deleted' }, 404: { description: 'Not found' } },
+      },
+    },
+    '/bank-identifiers/bank/{bankId}': {
+      get: {
+        tags: ['Bank Identifiers'],
+        summary: 'Get all identifiers for a bank',
+        parameters: [{ name: 'bankId', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: { description: 'Identifiers retrieved' }, 404: { description: 'Bank not found' } },
+      },
+    },
+    '/bank-identifiers/value/{identifierValue}': {
+      get: {
+        tags: ['Bank Identifiers'],
+        summary: 'Lookup bank branch by identifier code (e.g. IFSC)',
+        parameters: [{ name: 'identifierValue', in: 'path', required: true, schema: { type: 'string', example: 'HDFC0001234' } }],
+        responses: { 200: { description: 'Identifier retrieved' }, 404: { description: 'Not found' } },
+      },
+    },
+    '/bank-identifiers/{id}/status': {
+      patch: {
+        tags: ['Bank Identifiers'],
+        summary: 'Update bank identifier status',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { type: 'object', required: ['is_active'], properties: { is_active: { type: 'boolean' } } },
+            },
+          },
+        },
+        responses: { 200: { description: 'Status updated' }, 404: { description: 'Not found' } },
       },
     },
   },
