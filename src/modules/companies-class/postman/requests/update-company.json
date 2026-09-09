@@ -1,0 +1,22 @@
+{
+  "name": "Update Company",
+  "request": {
+    "method": "PUT",
+    "header": [
+      {
+        "key": "Content-Type",
+        "value": "application/json"
+      }
+    ],
+    "body": {
+      "mode": "raw",
+      "raw": "{\n  \"company_name\": \"Pooja Fashion Retail Ltd\",\n  \"display_name\": \"Pooja Fashion Main\",\n  \"phone\": \"04344-245999\",\n  \"mobile\": \"+919876500000\",\n  \"status\": \"active\"\n}"
+    },
+    "url": {
+      "raw": "{{baseUrl}}/companies/{{companyId}}",
+      "host": ["{{baseUrl}}"],
+      "path": ["companies", "{{companyId}}"]
+    },
+    "description": "Update company fields for an existing company record."
+  }
+}

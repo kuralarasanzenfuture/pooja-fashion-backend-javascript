@@ -1,0 +1,40 @@
+{
+  "name": "Get Companies",
+  "request": {
+    "method": "GET",
+    "header": [],
+    "url": {
+      "raw": "{{baseUrl}}/companies?page=1&limit=10&status=active&sortBy=created_at&sortOrder=desc",
+      "host": ["{{baseUrl}}"],
+      "path": ["companies"],
+      "query": [
+        {
+          "key": "page",
+          "value": "1"
+        },
+        {
+          "key": "limit",
+          "value": "10"
+        },
+        {
+          "key": "status",
+          "value": "active"
+        },
+        {
+          "key": "sortBy",
+          "value": "created_at"
+        },
+        {
+          "key": "sortOrder",
+          "value": "desc"
+        },
+        {
+          "key": "search",
+          "value": "Pooja",
+          "disabled": true
+        }
+      ]
+    },
+    "description": "Retrieve paginated list of companies with optional filtering and search."
+  }
+}

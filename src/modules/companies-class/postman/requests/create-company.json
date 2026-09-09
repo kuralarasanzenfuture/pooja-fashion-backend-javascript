@@ -1,0 +1,22 @@
+{
+  "name": "Create Company",
+  "request": {
+    "method": "POST",
+    "header": [
+      {
+        "key": "Content-Type",
+        "value": "application/json"
+      }
+    ],
+    "body": {
+      "mode": "raw",
+      "raw": "{\n  \"company_code\": \"PFS001\",\n  \"company_name\": \"Pooja Fashion Shop\",\n  \"legal_name\": \"Pooja Fashion Shop Private Limited\",\n  \"display_name\": \"Pooja Fashion\",\n  \"business_type\": \"Retail\",\n  \"industry_type\": \"Fashion & Garments\",\n  \"registration_number\": \"U18109TN2024PTC123456\",\n  \"email\": \"contact@poojafashion.com\",\n  \"phone\": \"04344-245678\",\n  \"mobile\": \"+919876543210\",\n  \"website\": \"https://www.poojafashion.com\",\n  \"logo_url\": \"https://www.poojafashion.com/logo.png\",\n  \"default_currency\": \"INR\",\n  \"country_code\": \"IN\",\n  \"timezone\": \"Asia/Kolkata\",\n  \"financial_year_start_month\": 4,\n  \"status\": \"active\"\n}"
+    },
+    "url": {
+      "raw": "{{baseUrl}}/companies",
+      "host": ["{{baseUrl}}"],
+      "path": ["companies"]
+    },
+    "description": "Create a new company record in the system."
+  }
+}

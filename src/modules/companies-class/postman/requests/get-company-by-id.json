@@ -1,0 +1,13 @@
+{
+  "name": "Get Company By ID",
+  "request": {
+    "method": "GET",
+    "header": [],
+    "url": {
+      "raw": "{{baseUrl}}/companies/{{companyId}}",
+      "host": ["{{baseUrl}}"],
+      "path": ["companies", "{{companyId}}"]
+    },
+    "description": "Retrieve specific company details by its unique primary ID."
+  }
+}
