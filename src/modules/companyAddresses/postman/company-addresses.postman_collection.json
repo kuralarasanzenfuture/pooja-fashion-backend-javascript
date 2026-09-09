@@ -1,0 +1,178 @@
+{
+  "info": {
+    "_postman_id": "pooja-fashion-company-addresses-collection",
+    "name": "Pooja Fashion - Company Addresses API",
+    "description": "Comprehensive API collection for managing Company Addresses in Pooja Fashion ERP/POS system.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Create Company Address",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"company_id\": 1,\n  \"address_type\": \"registered\",\n  \"address_line_1\": \"123 Textile Market Road\",\n  \"address_line_2\": \"Suite 400\",\n  \"city\": \"Hosur\",\n  \"district\": \"Krishnagiri\",\n  \"state\": \"Tamil Nadu\",\n  \"postal_code\": \"635109\",\n  \"country\": \"India\",\n  \"landmark\": \"Near Old Bus Stand\",\n  \"is_primary\": true,\n  \"is_active\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/company-addresses",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-addresses"]
+        },
+        "description": "Creates a new company address record."
+      }
+    },
+    {
+      "name": "2. Get Company Addresses (Paginated & Filtered)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/company-addresses?page=1&limit=10&company_id=1&address_type=registered&is_active=true&sortBy=created_at&sortOrder=desc",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-addresses"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            },
+            {
+              "key": "company_id",
+              "value": "1"
+            },
+            {
+              "key": "address_type",
+              "value": "registered"
+            },
+            {
+              "key": "is_active",
+              "value": "true"
+            },
+            {
+              "key": "sortBy",
+              "value": "created_at"
+            },
+            {
+              "key": "sortOrder",
+              "value": "desc"
+            }
+          ]
+        },
+        "description": "Retrieves paginated company addresses with filters."
+      }
+    },
+    {
+      "name": "3. Get Address by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/company-addresses/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-addresses", "1"]
+        },
+        "description": "Fetches a company address by its primary ID."
+      }
+    },
+    {
+      "name": "4. Get All Addresses for Company",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/company-addresses/company/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-addresses", "company", "1"]
+        },
+        "description": "Fetches all addresses registered under a specific company ID."
+      }
+    },
+    {
+      "name": "5. Update Address",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"address_type\": \"head_office\",\n  \"address_line_1\": \"456 Commercial Street\",\n  \"address_line_2\": \"Opposite City Centre\",\n  \"city\": \"Hosur\",\n  \"district\": \"Krishnagiri\",\n  \"state\": \"Tamil Nadu\",\n  \"postal_code\": \"635109\",\n  \"landmark\": \"Near Clock Tower\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/company-addresses/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-addresses", "1"]
+        },
+        "description": "Updates details of an existing company address."
+      }
+    },
+    {
+      "name": "6. Update Address Status",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"is_active\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/company-addresses/1/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-addresses", "1", "status"]
+        },
+        "description": "Updates the active status flag of an address."
+      }
+    },
+    {
+      "name": "7. Set Address as Primary",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/company-addresses/1/primary",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-addresses", "1", "primary"]
+        },
+        "description": "Marks an address as primary and resets other addresses of the company."
+      }
+    },
+    {
+      "name": "8. Delete Address",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/company-addresses/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-addresses", "1"]
+        },
+        "description": "Deletes a company address record."
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    }
+  ]
+}

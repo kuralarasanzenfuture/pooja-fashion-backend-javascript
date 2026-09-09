@@ -21,6 +21,10 @@ export const swaggerSpec = {
       description: 'Corporate and business entity operations',
     },
     {
+      name: 'Company Addresses',
+      description: 'Company addresses management operations',
+    },
+    {
       name: 'System',
       description: 'System health and diagnostics',
     },
@@ -249,6 +253,261 @@ export const swaggerSpec = {
         responses: {
           200: { description: 'Company status updated successfully' },
           404: { description: 'Company not found' },
+        },
+      },
+    },
+    '/company-addresses': {
+      get: {
+        tags: ['Company Addresses'],
+        summary: 'Get paginated list of company addresses',
+        parameters: [
+          {
+            name: 'page',
+            in: 'query',
+            description: 'Page number (starts at 1)',
+            schema: { type: 'integer', default: 1 },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            description: 'Items per page (max 100)',
+            schema: { type: 'integer', default: 10 },
+          },
+          {
+            name: 'company_id',
+            in: 'query',
+            description: 'Filter by Company ID',
+            schema: { type: 'integer' },
+          },
+          {
+            name: 'address_type',
+            in: 'query',
+            description: 'Filter by address type',
+            schema: {
+              type: 'string',
+              enum: ['registered', 'head_office', 'billing', 'warehouse', 'other'],
+            },
+          },
+          {
+            name: 'is_primary',
+            in: 'query',
+            description: 'Filter by primary address flag',
+            schema: { type: 'boolean' },
+          },
+          {
+            name: 'is_active',
+            in: 'query',
+            description: 'Filter by active status',
+            schema: { type: 'boolean' },
+          },
+          {
+            name: 'search',
+            in: 'query',
+            description: 'Search address lines, city, state, or company name',
+            schema: { type: 'string' },
+          },
+          {
+            name: 'sortBy',
+            in: 'query',
+            schema: {
+              type: 'string',
+              enum: ['id', 'company_id', 'address_type', 'city', 'state', 'created_at', 'is_primary', 'is_active'],
+              default: 'created_at',
+            },
+          },
+          {
+            name: 'sortOrder',
+            in: 'query',
+            schema: { type: 'string', enum: ['asc', 'desc'], default: 'desc' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'List of company addresses retrieved successfully',
+          },
+        },
+      },
+      post: {
+        tags: ['Company Addresses'],
+        summary: 'Create a new company address',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['company_id', 'address_type', 'address_line_1'],
+                properties: {
+                  company_id: { type: 'integer', example: 1 },
+                  address_type: {
+                    type: 'string',
+                    enum: ['registered', 'head_office', 'billing', 'warehouse', 'other'],
+                    example: 'registered',
+                  },
+                  address_line_1: { type: 'string', example: '123 Textile Market Road' },
+                  address_line_2: { type: 'string', example: 'Suite 400' },
+                  city: { type: 'string', example: 'Hosur' },
+                  district: { type: 'string', example: 'Krishnagiri' },
+                  state: { type: 'string', example: 'Tamil Nadu' },
+                  postal_code: { type: 'string', example: '635109' },
+                  country: { type: 'string', example: 'India', default: 'India' },
+                  landmark: { type: 'string', example: 'Near Old Bus Stand' },
+                  is_primary: { type: 'boolean', default: false },
+                  is_active: { type: 'boolean', default: true },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: { description: 'Company address created successfully' },
+          400: { description: 'Validation error' },
+          404: { description: 'Company not found' },
+        },
+      },
+    },
+    '/company-addresses/{id}': {
+      get: {
+        tags: ['Company Addresses'],
+        summary: 'Get company address by ID',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        responses: {
+          200: { description: 'Company address retrieved successfully' },
+          404: { description: 'Company address not found' },
+        },
+      },
+      put: {
+        tags: ['Company Addresses'],
+        summary: 'Update company address by ID',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  company_id: { type: 'integer' },
+                  address_type: {
+                    type: 'string',
+                    enum: ['registered', 'head_office', 'billing', 'warehouse', 'other'],
+                  },
+                  address_line_1: { type: 'string' },
+                  address_line_2: { type: 'string' },
+                  city: { type: 'string' },
+                  district: { type: 'string' },
+                  state: { type: 'string' },
+                  postal_code: { type: 'string' },
+                  country: { type: 'string' },
+                  landmark: { type: 'string' },
+                  is_primary: { type: 'boolean' },
+                  is_active: { type: 'boolean' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Company address updated successfully' },
+          404: { description: 'Company address not found' },
+        },
+      },
+      delete: {
+        tags: ['Company Addresses'],
+        summary: 'Delete company address by ID',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        responses: {
+          200: { description: 'Company address deleted successfully' },
+          404: { description: 'Company address not found' },
+        },
+      },
+    },
+    '/company-addresses/company/{companyId}': {
+      get: {
+        tags: ['Company Addresses'],
+        summary: 'Get all addresses for a specific company',
+        parameters: [
+          {
+            name: 'companyId',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        responses: {
+          200: { description: 'Company addresses retrieved successfully' },
+          404: { description: 'Company not found' },
+        },
+      },
+    },
+    '/company-addresses/{id}/status': {
+      patch: {
+        tags: ['Company Addresses'],
+        summary: 'Update company address active status',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['is_active'],
+                properties: {
+                  is_active: { type: 'boolean', example: false },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Company address status updated successfully' },
+          404: { description: 'Company address not found' },
+        },
+      },
+    },
+    '/company-addresses/{id}/primary': {
+      patch: {
+        tags: ['Company Addresses'],
+        summary: 'Set company address as primary',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        responses: {
+          200: { description: 'Company address set as primary successfully' },
+          404: { description: 'Company address not found' },
         },
       },
     },
