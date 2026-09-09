@@ -78,7 +78,35 @@ Content-Type: application/json
 }
 ```
 
-## 7. DELETE /api/banks/:id (Delete Bank)
+## 7. POST /api/banks/:id/logo (Upload / Replace Bank Logo)
+
+Upload logo files directly via multipart/form-data. Allowed keys: `logo`, `logo_light`, `logo_dark`.
+Files are stored automatically in `src/uploads/banks/<bank_slug>/` named after the bank name/slug, and previous physical files are automatically deleted upon replacement.
+
+```http
+POST http://localhost:5000/api/banks/1/logo
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="logo"; filename="hdfc-bank.png"
+Content-Type: image/png
+
+<binary data>
+------WebKitFormBoundary--
+```
+
+## 8. DELETE /api/banks/:id/logo (Delete Bank Logo Files)
+
+Deletes physical image files from the bank's upload folder and resets the database URL fields to `null`.
+Optional query parameter `type`: `logo` | `logo_light` | `logo_dark` | `all` (default is `all`).
+
+```http
+DELETE http://localhost:5000/api/banks/1/logo?type=all
+```
+
+## 9. DELETE /api/banks/:id (Delete Bank)
+
+Removes the bank record from the database AND automatically deletes all physical logo files and the bank's upload folder from disk.
 
 ```http
 DELETE http://localhost:5000/api/banks/1

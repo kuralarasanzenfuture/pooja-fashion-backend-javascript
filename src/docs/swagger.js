@@ -1420,6 +1420,31 @@ export const swaggerSpec = {
                 },
               },
             },
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                required: ['bank_code', 'bank_name'],
+                properties: {
+                  bank_code: { type: 'string', example: 'HDFC' },
+                  bank_name: { type: 'string', example: 'HDFC Bank' },
+                  short_name: { type: 'string', example: 'HDFC' },
+                  legal_name: { type: 'string', example: 'HDFC Bank Limited' },
+                  bank_type: {
+                    type: 'string',
+                    enum: ['commercial', 'cooperative', 'regional_rural', 'small_finance', 'payments', 'foreign', 'other'],
+                    example: 'commercial',
+                  },
+                  website_url: { type: 'string', example: 'https://www.hdfcbank.com' },
+                  country_code: { type: 'string', default: 'IN' },
+                  is_active: { type: 'boolean', default: true },
+                  is_verified: { type: 'boolean', default: true },
+                  display_order: { type: 'integer', default: 1 },
+                  logo: { type: 'string', format: 'binary', description: 'Primary bank logo image' },
+                  logo_light: { type: 'string', format: 'binary', description: 'Light mode logo image' },
+                  logo_dark: { type: 'string', format: 'binary', description: 'Dark mode logo image' },
+                },
+              },
+            },
           },
         },
         responses: { 201: { description: 'Bank created successfully' }, 400: { description: 'Validation error' } },
@@ -1438,7 +1463,29 @@ export const swaggerSpec = {
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
         requestBody: {
           required: true,
-          content: { 'application/json': { schema: { type: 'object' } } },
+          content: {
+            'application/json': { schema: { type: 'object' } },
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  bank_code: { type: 'string' },
+                  bank_name: { type: 'string' },
+                  short_name: { type: 'string' },
+                  legal_name: { type: 'string' },
+                  bank_type: { type: 'string' },
+                  website_url: { type: 'string' },
+                  country_code: { type: 'string' },
+                  is_active: { type: 'boolean' },
+                  is_verified: { type: 'boolean' },
+                  display_order: { type: 'integer' },
+                  logo: { type: 'string', format: 'binary', description: 'Primary bank logo image' },
+                  logo_light: { type: 'string', format: 'binary', description: 'Light mode logo image' },
+                  logo_dark: { type: 'string', format: 'binary', description: 'Dark mode logo image' },
+                },
+              },
+            },
+          },
         },
         responses: { 200: { description: 'Bank updated successfully' }, 404: { description: 'Bank not found' } },
       },
@@ -1447,6 +1494,51 @@ export const swaggerSpec = {
         summary: 'Delete bank by ID',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
         responses: { 200: { description: 'Bank deleted successfully' }, 404: { description: 'Bank not found' } },
+      },
+    },
+    '/banks/{id}/logo': {
+      post: {
+        tags: ['Banks'],
+        summary: 'Upload or update bank logo images',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  logo: { type: 'string', format: 'binary', description: 'Primary bank logo image' },
+                  logo_light: { type: 'string', format: 'binary', description: 'Light theme logo image' },
+                  logo_dark: { type: 'string', format: 'binary', description: 'Dark theme logo image' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Bank logo uploaded successfully' },
+          400: { description: 'No file uploaded or invalid file format' },
+          404: { description: 'Bank not found' },
+        },
+      },
+      delete: {
+        tags: ['Banks'],
+        summary: 'Delete bank logo files from storage and reset URLs to null',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+          {
+            name: 'type',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['logo', 'logo_light', 'logo_dark', 'all'], default: 'all' },
+            description: 'Which logo variant to delete (logo, logo_light, logo_dark, or all)',
+          },
+        ],
+        responses: {
+          200: { description: 'Bank logo deleted successfully' },
+          404: { description: 'Bank not found' },
+        },
       },
     },
     '/banks/code/{bankCode}': {

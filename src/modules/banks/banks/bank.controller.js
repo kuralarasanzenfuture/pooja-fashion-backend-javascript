@@ -39,10 +39,11 @@ export const getByCode = async (req, res, next) => {
 
 /**
  * POST /api/banks
+ * Supports JSON or multipart/form-data with logo files
  */
 export const create = async (req, res, next) => {
   try {
-    const bank = await bankService.createBank(req.body);
+    const bank = await bankService.createBank(req.body, req.files, req.bankUploadSlug);
     return sendCreated(res, bank, 'Bank created successfully');
   } catch (error) {
     return next(error);
@@ -51,11 +52,39 @@ export const create = async (req, res, next) => {
 
 /**
  * PUT /api/banks/:id
+ * Supports JSON or multipart/form-data with logo replacement files
  */
 export const update = async (req, res, next) => {
   try {
-    const bank = await bankService.updateBank(req.params.id, req.body);
+    const bank = await bankService.updateBank(req.params.id, req.body, req.files, req.bankUploadSlug);
     return sendSuccess(res, bank, 'Bank updated successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * POST /api/banks/:id/logo
+ * Dedicated endpoint for uploading or updating bank logos
+ */
+export const uploadLogo = async (req, res, next) => {
+  try {
+    const bank = await bankService.uploadBankLogo(req.params.id, req.files, req.bankUploadSlug);
+    return sendSuccess(res, bank, 'Bank logo uploaded successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * DELETE /api/banks/:id/logo
+ * Dedicated endpoint for removing bank logos from disk and database
+ */
+export const deleteLogo = async (req, res, next) => {
+  try {
+    const type = req.query.type || 'all';
+    const bank = await bankService.deleteBankLogo(req.params.id, type);
+    return sendSuccess(res, bank, 'Bank logo deleted successfully');
   } catch (error) {
     return next(error);
   }
@@ -91,6 +120,8 @@ export default {
   getByCode,
   create,
   update,
+  uploadLogo,
+  deleteLogo,
   updateStatus,
   deleteBank,
 };

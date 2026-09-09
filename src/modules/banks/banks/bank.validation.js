@@ -31,16 +31,48 @@ export const createBankSchema = z.object({
   logo_dark_url: z.string().trim().nullable().optional(),
   website_url: z.string().trim().nullable().optional(),
   country_code: z.string().trim().length(2, 'Country code must be 2 characters').default('IN'),
-  is_active: z.boolean().default(true),
-  is_verified: z.boolean().default(false),
+  is_active: z
+    .preprocess((val) => {
+      if (val === 'true' || val === true || val === 1 || val === '1') return true;
+      if (val === 'false' || val === false || val === 0 || val === '0') return false;
+      return val;
+    }, z.boolean())
+    .default(true),
+  is_verified: z
+    .preprocess((val) => {
+      if (val === 'true' || val === true || val === 1 || val === '1') return true;
+      if (val === 'false' || val === false || val === 0 || val === '0') return false;
+      return val;
+    }, z.boolean())
+    .default(false),
   display_order: z.coerce.number().int().min(0, 'Display order must be >= 0').default(0),
-  metadata: z.record(z.any()).nullable().optional(),
+  metadata: z
+    .preprocess((val) => {
+      if (typeof val === 'string') {
+        try {
+          return JSON.parse(val);
+        } catch {
+          return val;
+        }
+      }
+      return val;
+    }, z.record(z.any()))
+    .nullable()
+    .optional(),
 });
 
 export const updateBankSchema = createBankSchema.partial();
 
 export const updateStatusSchema = z.object({
-  is_active: z.boolean({ required_error: 'is_active is required' }),
+  is_active: z.preprocess((val) => {
+    if (val === 'true' || val === true || val === 1 || val === '1') return true;
+    if (val === 'false' || val === false || val === 0 || val === '0') return false;
+    return val;
+  }, z.boolean({ required_error: 'is_active is required' })),
+});
+
+export const deleteLogoQuerySchema = z.object({
+  type: z.enum(['logo', 'logo_light', 'logo_dark', 'all']).default('all').optional(),
 });
 
 export const bankIdParamSchema = z.object({
@@ -94,4 +126,5 @@ export default {
   bankIdParamSchema,
   bankCodeParamSchema,
   getBanksQuerySchema,
+  deleteLogoQuerySchema,
 };
