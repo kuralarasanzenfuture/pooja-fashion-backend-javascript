@@ -5,7 +5,7 @@ dotenv.config();
 
 import app from './app.js';
 import env from './config/env.js';
-import { connectDatabase } from './database/connection.js';
+import { connectDatabase, runMigrations } from './database/index.js';
 
 const PORT = Number(env.PORT || 5000);
 
@@ -16,8 +16,9 @@ const startServer = async () => {
     try {
       await connectDatabase();
       console.log('✅ Database connection initialized');
+      await runMigrations();
     } catch (databaseError) {
-      console.warn('⚠️ Database initialization skipped:', databaseError.message);
+      console.warn('⚠️ Database initialization / migration skipped:', databaseError.message);
     }
 
     const server = http.createServer(app);
