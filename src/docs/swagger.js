@@ -33,6 +33,10 @@ export const swaggerSpec = {
       description: 'Company tax and regulatory registration operations',
     },
     {
+      name: 'Company Banks',
+      description: 'Corporate bank accounts and treasury management operations',
+    },
+    {
       name: 'System',
       description: 'System health and diagnostics',
     },
@@ -1038,6 +1042,288 @@ export const swaggerSpec = {
         responses: {
           200: { description: 'Company tax detail set as primary successfully' },
           404: { description: 'Company tax detail not found' },
+        },
+      },
+    },
+    '/company-banks': {
+      get: {
+        tags: ['Company Banks'],
+        summary: 'Get paginated list of company bank accounts',
+        parameters: [
+          {
+            name: 'page',
+            in: 'query',
+            description: 'Page number (starts at 1)',
+            schema: { type: 'integer', default: 1 },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            description: 'Items per page (max 100)',
+            schema: { type: 'integer', default: 10 },
+          },
+          {
+            name: 'company_id',
+            in: 'query',
+            description: 'Filter by Company ID',
+            schema: { type: 'integer' },
+          },
+          {
+            name: 'account_type',
+            in: 'query',
+            description: 'Filter by account type',
+            schema: {
+              type: 'string',
+              enum: ['savings', 'current', 'cash_credit', 'overdraft', 'other'],
+            },
+          },
+          {
+            name: 'is_primary',
+            in: 'query',
+            description: 'Filter by primary account flag',
+            schema: { type: 'boolean' },
+          },
+          {
+            name: 'is_active',
+            in: 'query',
+            description: 'Filter by active status',
+            schema: { type: 'boolean' },
+          },
+          {
+            name: 'search',
+            in: 'query',
+            description: 'Search bank name, account number, holder, IFSC, or company',
+            schema: { type: 'string' },
+          },
+          {
+            name: 'sortBy',
+            in: 'query',
+            schema: {
+              type: 'string',
+              enum: [
+                'id',
+                'company_id',
+                'bank_name',
+                'branch_name',
+                'account_holder_name',
+                'account_number',
+                'account_type',
+                'opening_balance',
+                'current_balance',
+                'created_at',
+                'is_primary',
+                'is_active',
+              ],
+              default: 'created_at',
+            },
+          },
+          {
+            name: 'sortOrder',
+            in: 'query',
+            schema: { type: 'string', enum: ['asc', 'desc'], default: 'desc' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'List of company bank accounts retrieved successfully',
+          },
+        },
+      },
+      post: {
+        tags: ['Company Banks'],
+        summary: 'Create a new company bank account',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: [
+                  'company_id',
+                  'bank_name',
+                  'account_holder_name',
+                  'account_number',
+                ],
+                properties: {
+                  company_id: { type: 'integer', example: 1 },
+                  bank_name: { type: 'string', example: 'HDFC Bank' },
+                  branch_name: { type: 'string', example: 'Hosur Main Branch' },
+                  account_holder_name: {
+                    type: 'string',
+                    example: 'Pooja Fashion Shop Private Limited',
+                  },
+                  account_number: { type: 'string', example: '50200012345678' },
+                  account_type: {
+                    type: 'string',
+                    enum: ['savings', 'current', 'cash_credit', 'overdraft', 'other'],
+                    example: 'current',
+                  },
+                  ifsc_code: { type: 'string', example: 'HDFC0001234' },
+                  micr_code: { type: 'string', example: '635240002' },
+                  swift_code: { type: 'string', example: 'HDFCINBB' },
+                  bank_code: { type: 'string', example: 'HDFC' },
+                  branch_code: { type: 'string', example: '1234' },
+                  opening_balance: { type: 'number', example: 50000 },
+                  current_balance: { type: 'number', example: 50000 },
+                  is_primary: { type: 'boolean', default: false },
+                  is_active: { type: 'boolean', default: true },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: { description: 'Company bank account created successfully' },
+          400: { description: 'Validation error' },
+          404: { description: 'Company not found' },
+        },
+      },
+    },
+    '/company-banks/{id}': {
+      get: {
+        tags: ['Company Banks'],
+        summary: 'Get company bank account by ID',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        responses: {
+          200: { description: 'Company bank account retrieved successfully' },
+          404: { description: 'Company bank account not found' },
+        },
+      },
+      put: {
+        tags: ['Company Banks'],
+        summary: 'Update company bank account by ID',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  company_id: { type: 'integer' },
+                  bank_name: { type: 'string' },
+                  branch_name: { type: 'string' },
+                  account_holder_name: { type: 'string' },
+                  account_number: { type: 'string' },
+                  account_type: {
+                    type: 'string',
+                    enum: ['savings', 'current', 'cash_credit', 'overdraft', 'other'],
+                  },
+                  ifsc_code: { type: 'string' },
+                  micr_code: { type: 'string' },
+                  swift_code: { type: 'string' },
+                  bank_code: { type: 'string' },
+                  branch_code: { type: 'string' },
+                  opening_balance: { type: 'number' },
+                  current_balance: { type: 'number' },
+                  is_primary: { type: 'boolean' },
+                  is_active: { type: 'boolean' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Company bank account updated successfully' },
+          404: { description: 'Company bank account not found' },
+        },
+      },
+      delete: {
+        tags: ['Company Banks'],
+        summary: 'Delete company bank account by ID',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        responses: {
+          200: { description: 'Company bank account deleted successfully' },
+          404: { description: 'Company bank account not found' },
+        },
+      },
+    },
+    '/company-banks/company/{companyId}': {
+      get: {
+        tags: ['Company Banks'],
+        summary: 'Get all bank accounts for a specific company',
+        parameters: [
+          {
+            name: 'companyId',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        responses: {
+          200: { description: 'Company bank accounts retrieved successfully' },
+          404: { description: 'Company not found' },
+        },
+      },
+    },
+    '/company-banks/{id}/status': {
+      patch: {
+        tags: ['Company Banks'],
+        summary: 'Update company bank account active status',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['is_active'],
+                properties: {
+                  is_active: { type: 'boolean', example: false },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Company bank account status updated successfully' },
+          404: { description: 'Company bank account not found' },
+        },
+      },
+    },
+    '/company-banks/{id}/primary': {
+      patch: {
+        tags: ['Company Banks'],
+        summary: 'Set company bank account as primary',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        responses: {
+          200: { description: 'Company bank account set as primary successfully' },
+          404: { description: 'Company bank account not found' },
         },
       },
     },

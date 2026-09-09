@@ -3,6 +3,7 @@ import companyRoutes from '../modules/companies/company.routes.js';
 import companyAddressRoutes from '../modules/companyAddresses/companyAddress.routes.js';
 import companyContactRoutes from '../modules/companyContacts/companyContact.routes.js';
 import companyTaxDetailRoutes from '../modules/companyTaxDetails/companyTaxDetail.routes.js';
+import companyBankRoutes from '../modules/companyBanks/companyBank.routes.js';
 
 const router = Router();
 
@@ -17,5 +18,6 @@ router.use('/companies', companyRoutes);
 router.use('/company-addresses', companyAddressRoutes);
 router.use('/company-contacts', companyContactRoutes);
 router.use('/company-tax-details', companyTaxDetailRoutes);
+router.use('/company-banks', companyBankRoutes);
 
 export default router;

@@ -1,0 +1,178 @@
+{
+  "info": {
+    "_postman_id": "pooja-fashion-company-banks-collection",
+    "name": "Pooja Fashion - Company Banks API",
+    "description": "Comprehensive API collection for managing Company Bank Accounts in Pooja Fashion ERP/POS system.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Create Company Bank Account",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"company_id\": 1,\n  \"bank_name\": \"HDFC Bank\",\n  \"branch_name\": \"Hosur Main Branch\",\n  \"account_holder_name\": \"Pooja Fashion Shop Private Limited\",\n  \"account_number\": \"50200012345678\",\n  \"account_type\": \"current\",\n  \"ifsc_code\": \"HDFC0001234\",\n  \"micr_code\": \"635240002\",\n  \"swift_code\": \"HDFCINBB\",\n  \"bank_code\": \"HDFC\",\n  \"branch_code\": \"1234\",\n  \"opening_balance\": 50000,\n  \"current_balance\": 50000,\n  \"is_primary\": true,\n  \"is_active\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/company-banks",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-banks"]
+        },
+        "description": "Creates a new company bank account record."
+      }
+    },
+    {
+      "name": "2. Get Company Banks (Paginated & Filtered)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/company-banks?page=1&limit=10&company_id=1&account_type=current&is_active=true&sortBy=created_at&sortOrder=desc",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-banks"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            },
+            {
+              "key": "company_id",
+              "value": "1"
+            },
+            {
+              "key": "account_type",
+              "value": "current"
+            },
+            {
+              "key": "is_active",
+              "value": "true"
+            },
+            {
+              "key": "sortBy",
+              "value": "created_at"
+            },
+            {
+              "key": "sortOrder",
+              "value": "desc"
+            }
+          ]
+        },
+        "description": "Retrieves paginated company bank accounts with filters."
+      }
+    },
+    {
+      "name": "3. Get Bank by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/company-banks/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-banks", "1"]
+        },
+        "description": "Fetches a company bank account record by its primary ID."
+      }
+    },
+    {
+      "name": "4. Get All Banks for Company",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/company-banks/company/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-banks", "company", "1"]
+        },
+        "description": "Fetches all bank accounts registered under a specific company ID."
+      }
+    },
+    {
+      "name": "5. Update Bank Account",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"branch_name\": \"Hosur Commercial Branch\",\n  \"branch_code\": \"1235\",\n  \"current_balance\": 75000\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/company-banks/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-banks", "1"]
+        },
+        "description": "Updates details of an existing company bank account."
+      }
+    },
+    {
+      "name": "6. Update Bank Status",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"is_active\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/company-banks/1/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-banks", "1", "status"]
+        },
+        "description": "Updates the active status flag of a bank account."
+      }
+    },
+    {
+      "name": "7. Set Bank as Primary",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/company-banks/1/primary",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-banks", "1", "primary"]
+        },
+        "description": "Marks a bank account as primary and resets other bank accounts of the company."
+      }
+    },
+    {
+      "name": "8. Delete Bank Account",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/company-banks/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-banks", "1"]
+        },
+        "description": "Deletes a company bank account record."
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    }
+  ]
+}
