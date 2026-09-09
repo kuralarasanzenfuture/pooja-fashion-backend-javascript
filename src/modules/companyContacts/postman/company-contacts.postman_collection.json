@@ -1,0 +1,178 @@
+{
+  "info": {
+    "_postman_id": "pooja-fashion-company-contacts-collection",
+    "name": "Pooja Fashion - Company Contacts API",
+    "description": "Comprehensive API collection for managing Company Contacts in Pooja Fashion ERP/POS system.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Create Company Contact",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"company_id\": 1,\n  \"contact_type\": \"manager\",\n  \"contact_name\": \"Rajesh Kumar\",\n  \"designation\": \"General Manager\",\n  \"email\": \"rajesh.kumar@poojafashion.com\",\n  \"phone\": \"04344-245678\",\n  \"mobile\": \"+919876543210\",\n  \"is_primary\": true,\n  \"is_active\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/company-contacts",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-contacts"]
+        },
+        "description": "Creates a new company contact record."
+      }
+    },
+    {
+      "name": "2. Get Company Contacts (Paginated & Filtered)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/company-contacts?page=1&limit=10&company_id=1&contact_type=manager&is_active=true&sortBy=created_at&sortOrder=desc",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-contacts"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            },
+            {
+              "key": "company_id",
+              "value": "1"
+            },
+            {
+              "key": "contact_type",
+              "value": "manager"
+            },
+            {
+              "key": "is_active",
+              "value": "true"
+            },
+            {
+              "key": "sortBy",
+              "value": "created_at"
+            },
+            {
+              "key": "sortOrder",
+              "value": "desc"
+            }
+          ]
+        },
+        "description": "Retrieves paginated company contacts with filters."
+      }
+    },
+    {
+      "name": "3. Get Contact by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/company-contacts/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-contacts", "1"]
+        },
+        "description": "Fetches a company contact by its primary ID."
+      }
+    },
+    {
+      "name": "4. Get All Contacts for Company",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/company-contacts/company/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-contacts", "company", "1"]
+        },
+        "description": "Fetches all contacts registered under a specific company ID."
+      }
+    },
+    {
+      "name": "5. Update Contact",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contact_name\": \"Rajesh K.\",\n  \"designation\": \"Senior General Manager\",\n  \"email\": \"rajesh.k@poojafashion.com\",\n  \"mobile\": \"+919876543211\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/company-contacts/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-contacts", "1"]
+        },
+        "description": "Updates details of an existing company contact."
+      }
+    },
+    {
+      "name": "6. Update Contact Status",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"is_active\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/company-contacts/1/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-contacts", "1", "status"]
+        },
+        "description": "Updates the active status flag of a contact."
+      }
+    },
+    {
+      "name": "7. Set Contact as Primary",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/company-contacts/1/primary",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-contacts", "1", "primary"]
+        },
+        "description": "Marks a contact as primary and resets other contacts of the company."
+      }
+    },
+    {
+      "name": "8. Delete Contact",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/company-contacts/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-contacts", "1"]
+        },
+        "description": "Deletes a company contact record."
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    }
+  ]
+}

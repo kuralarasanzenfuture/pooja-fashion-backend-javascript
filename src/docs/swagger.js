@@ -25,6 +25,10 @@ export const swaggerSpec = {
       description: 'Company addresses management operations',
     },
     {
+      name: 'Company Contacts',
+      description: 'Company contacts management operations',
+    },
+    {
       name: 'System',
       description: 'System health and diagnostics',
     },
@@ -508,6 +512,265 @@ export const swaggerSpec = {
         responses: {
           200: { description: 'Company address set as primary successfully' },
           404: { description: 'Company address not found' },
+        },
+      },
+    },
+    '/company-contacts': {
+      get: {
+        tags: ['Company Contacts'],
+        summary: 'Get paginated list of company contacts',
+        parameters: [
+          {
+            name: 'page',
+            in: 'query',
+            description: 'Page number (starts at 1)',
+            schema: { type: 'integer', default: 1 },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            description: 'Items per page (max 100)',
+            schema: { type: 'integer', default: 10 },
+          },
+          {
+            name: 'company_id',
+            in: 'query',
+            description: 'Filter by Company ID',
+            schema: { type: 'integer' },
+          },
+          {
+            name: 'contact_type',
+            in: 'query',
+            description: 'Filter by contact type',
+            schema: {
+              type: 'string',
+              enum: ['owner', 'manager', 'accountant', 'sales', 'support', 'other'],
+            },
+          },
+          {
+            name: 'is_primary',
+            in: 'query',
+            description: 'Filter by primary contact flag',
+            schema: { type: 'boolean' },
+          },
+          {
+            name: 'is_active',
+            in: 'query',
+            description: 'Filter by active status',
+            schema: { type: 'boolean' },
+          },
+          {
+            name: 'search',
+            in: 'query',
+            description: 'Search name, email, phone, mobile, designation, or company',
+            schema: { type: 'string' },
+          },
+          {
+            name: 'sortBy',
+            in: 'query',
+            schema: {
+              type: 'string',
+              enum: [
+                'id',
+                'company_id',
+                'contact_type',
+                'contact_name',
+                'designation',
+                'email',
+                'created_at',
+                'is_primary',
+                'is_active',
+              ],
+              default: 'created_at',
+            },
+          },
+          {
+            name: 'sortOrder',
+            in: 'query',
+            schema: { type: 'string', enum: ['asc', 'desc'], default: 'desc' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'List of company contacts retrieved successfully',
+          },
+        },
+      },
+      post: {
+        tags: ['Company Contacts'],
+        summary: 'Create a new company contact',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['company_id', 'contact_type', 'contact_name'],
+                properties: {
+                  company_id: { type: 'integer', example: 1 },
+                  contact_type: {
+                    type: 'string',
+                    enum: ['owner', 'manager', 'accountant', 'sales', 'support', 'other'],
+                    example: 'manager',
+                  },
+                  contact_name: { type: 'string', example: 'Rajesh Kumar' },
+                  designation: { type: 'string', example: 'General Manager' },
+                  email: { type: 'string', example: 'rajesh.kumar@poojafashion.com' },
+                  phone: { type: 'string', example: '04344-245678' },
+                  mobile: { type: 'string', example: '+919876543210' },
+                  is_primary: { type: 'boolean', default: false },
+                  is_active: { type: 'boolean', default: true },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: { description: 'Company contact created successfully' },
+          400: { description: 'Validation error' },
+          404: { description: 'Company not found' },
+        },
+      },
+    },
+    '/company-contacts/{id}': {
+      get: {
+        tags: ['Company Contacts'],
+        summary: 'Get company contact by ID',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        responses: {
+          200: { description: 'Company contact retrieved successfully' },
+          404: { description: 'Company contact not found' },
+        },
+      },
+      put: {
+        tags: ['Company Contacts'],
+        summary: 'Update company contact by ID',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  company_id: { type: 'integer' },
+                  contact_type: {
+                    type: 'string',
+                    enum: ['owner', 'manager', 'accountant', 'sales', 'support', 'other'],
+                  },
+                  contact_name: { type: 'string' },
+                  designation: { type: 'string' },
+                  email: { type: 'string' },
+                  phone: { type: 'string' },
+                  mobile: { type: 'string' },
+                  is_primary: { type: 'boolean' },
+                  is_active: { type: 'boolean' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Company contact updated successfully' },
+          404: { description: 'Company contact not found' },
+        },
+      },
+      delete: {
+        tags: ['Company Contacts'],
+        summary: 'Delete company contact by ID',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        responses: {
+          200: { description: 'Company contact deleted successfully' },
+          404: { description: 'Company contact not found' },
+        },
+      },
+    },
+    '/company-contacts/company/{companyId}': {
+      get: {
+        tags: ['Company Contacts'],
+        summary: 'Get all contacts for a specific company',
+        parameters: [
+          {
+            name: 'companyId',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        responses: {
+          200: { description: 'Company contacts retrieved successfully' },
+          404: { description: 'Company not found' },
+        },
+      },
+    },
+    '/company-contacts/{id}/status': {
+      patch: {
+        tags: ['Company Contacts'],
+        summary: 'Update company contact active status',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['is_active'],
+                properties: {
+                  is_active: { type: 'boolean', example: false },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Company contact status updated successfully' },
+          404: { description: 'Company contact not found' },
+        },
+      },
+    },
+    '/company-contacts/{id}/primary': {
+      patch: {
+        tags: ['Company Contacts'],
+        summary: 'Set company contact as primary',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        responses: {
+          200: { description: 'Company contact set as primary successfully' },
+          404: { description: 'Company contact not found' },
         },
       },
     },
