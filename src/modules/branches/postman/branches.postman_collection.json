@@ -1,0 +1,329 @@
+{
+  "info": {
+    "_postman_id": "pooja-fashion-branches-modular-collection",
+    "name": "Pooja Fashion - Branches, Addresses & Contacts API",
+    "description": "Comprehensive API collection for Branches master, Branch Addresses, and Branch Contacts with professional auto-generated branch code support.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Branches Master",
+      "item": [
+        {
+          "name": "1. Create Branch (Auto-Generated Code)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company_id\": 1,\n  \"branch_name\": \"Hosur Main Branch\",\n  \"branch_type\": \"store\",\n  \"email\": \"hosur@poojafashion.com\",\n  \"phone\": \"+91 4344 223344\",\n  \"mobile\": \"+91 9876543210\",\n  \"manager_name\": \"Kuralarasan\",\n  \"opening_date\": \"2024-01-15\",\n  \"is_main_branch\": true,\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/branches",
+              "host": ["{{baseUrl}}"],
+              "path": ["branches"]
+            }
+          }
+        },
+        {
+          "name": "2. Get Branches (Paginated & Filtered)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/branches?page=1&limit=10&company_id=1&branch_type=store&status=active",
+              "host": ["{{baseUrl}}"],
+              "path": ["branches"]
+            }
+          }
+        },
+        {
+          "name": "3. Get Branch by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/branches/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["branches", "1"]
+            }
+          }
+        },
+        {
+          "name": "4. Get Branches by Company ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/branches/company/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["branches", "company", "1"]
+            }
+          }
+        },
+        {
+          "name": "5. Get Branch by Code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/branches/code/1/PFS-B01",
+              "host": ["{{baseUrl}}"],
+              "path": ["branches", "code", "1", "PFS-B01"]
+            }
+          }
+        },
+        {
+          "name": "6. Update Branch",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branch_name\": \"Hosur Central Flagship Store\",\n  \"manager_name\": \"Kuralarasan Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/branches/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["branches", "1"]
+            }
+          }
+        },
+        {
+          "name": "7. Update Branch Status",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"inactive\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/branches/1/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["branches", "1", "status"]
+            }
+          }
+        },
+        {
+          "name": "8. Set Branch as Main",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/branches/1/main",
+              "host": ["{{baseUrl}}"],
+              "path": ["branches", "1", "main"]
+            }
+          }
+        },
+        {
+          "name": "9. Delete Branch",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/branches/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["branches", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Branch Addresses",
+      "item": [
+        {
+          "name": "1. Create Branch Address",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branch_id\": 1,\n  \"address_line_1\": \"123 MG Road\",\n  \"address_line_2\": \"Opposite Bus Stand\",\n  \"city\": \"Hosur\",\n  \"district\": \"Krishnagiri\",\n  \"state\": \"Tamil Nadu\",\n  \"postal_code\": \"635109\",\n  \"country\": \"India\",\n  \"is_primary\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/branch-addresses",
+              "host": ["{{baseUrl}}"],
+              "path": ["branch-addresses"]
+            }
+          }
+        },
+        {
+          "name": "2. Get Branch Addresses (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/branch-addresses?page=1&limit=10&branch_id=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["branch-addresses"]
+            }
+          }
+        },
+        {
+          "name": "3. Get Branch Address by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/branch-addresses/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["branch-addresses", "1"]
+            }
+          }
+        },
+        {
+          "name": "4. Get Addresses for a Branch",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/branch-addresses/branch/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["branch-addresses", "branch", "1"]
+            }
+          }
+        },
+        {
+          "name": "5. Update Branch Address",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"landmark\": \"Near New Shopping Complex\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/branch-addresses/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["branch-addresses", "1"]
+            }
+          }
+        },
+        {
+          "name": "6. Set Address as Primary",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/branch-addresses/1/primary",
+              "host": ["{{baseUrl}}"],
+              "path": ["branch-addresses", "1", "primary"]
+            }
+          }
+        },
+        {
+          "name": "7. Delete Branch Address",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/branch-addresses/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["branch-addresses", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Branch Contacts",
+      "item": [
+        {
+          "name": "1. Create Branch Contact",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branch_id\": 1,\n  \"contact_name\": \"Ramesh Kumar\",\n  \"designation\": \"Store Manager\",\n  \"email\": \"ramesh@poojafashion.com\",\n  \"phone\": \"+91 4344 223344\",\n  \"mobile\": \"+91 9876543211\",\n  \"is_primary\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/branch-contacts",
+              "host": ["{{baseUrl}}"],
+              "path": ["branch-contacts"]
+            }
+          }
+        },
+        {
+          "name": "2. Get Branch Contacts (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/branch-contacts?page=1&limit=10&branch_id=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["branch-contacts"]
+            }
+          }
+        },
+        {
+          "name": "3. Get Branch Contact by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/branch-contacts/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["branch-contacts", "1"]
+            }
+          }
+        },
+        {
+          "name": "4. Get Contacts for a Branch",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/branch-contacts/branch/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["branch-contacts", "branch", "1"]
+            }
+          }
+        },
+        {
+          "name": "5. Update Branch Contact",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"designation\": \"Senior Store Manager\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/branch-contacts/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["branch-contacts", "1"]
+            }
+          }
+        },
+        {
+          "name": "6. Set Contact as Primary",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/branch-contacts/1/primary",
+              "host": ["{{baseUrl}}"],
+              "path": ["branch-contacts", "1", "primary"]
+            }
+          }
+        },
+        {
+          "name": "7. Delete Branch Contact",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/branch-contacts/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["branch-contacts", "1"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

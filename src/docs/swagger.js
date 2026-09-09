@@ -45,6 +45,18 @@ export const swaggerSpec = {
       description: 'Corporate bank accounts and treasury management operations',
     },
     {
+      name: 'Branches',
+      description: 'Branch master entity operations and auto-code generation',
+    },
+    {
+      name: 'Branch Addresses',
+      description: 'Branch physical and postal address management operations',
+    },
+    {
+      name: 'Branch Contacts',
+      description: 'Branch staff and manager contact management operations',
+    },
+    {
       name: 'System',
       description: 'System health and diagnostics',
     },
@@ -1669,6 +1681,324 @@ export const swaggerSpec = {
           },
         },
         responses: { 200: { description: 'Status updated' }, 404: { description: 'Not found' } },
+      },
+    },
+    '/branches': {
+      get: {
+        tags: ['Branches'],
+        summary: 'Get paginated list of branches',
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } },
+          { name: 'company_id', in: 'query', schema: { type: 'integer' } },
+          {
+            name: 'branch_type',
+            in: 'query',
+            schema: {
+              type: 'string',
+              enum: ['head_office', 'store', 'warehouse', 'office', 'showroom', 'other'],
+            },
+          },
+          { name: 'status', in: 'query', schema: { type: 'string', enum: ['active', 'inactive', 'closed'] } },
+          { name: 'is_main_branch', in: 'query', schema: { type: 'boolean' } },
+          { name: 'search', in: 'query', schema: { type: 'string' } },
+        ],
+        responses: { 200: { description: 'List of branches retrieved successfully' } },
+      },
+      post: {
+        tags: ['Branches'],
+        summary: 'Create a new branch (auto-generates branch code if omitted)',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['company_id', 'branch_name'],
+                properties: {
+                  company_id: { type: 'integer', example: 1 },
+                  branch_code: { type: 'string', example: 'PFS-B01', description: 'Optional. Auto-generated if omitted.' },
+                  branch_name: { type: 'string', example: 'Hosur Main Branch' },
+                  branch_type: {
+                    type: 'string',
+                    enum: ['head_office', 'store', 'warehouse', 'office', 'showroom', 'other'],
+                    default: 'store',
+                  },
+                  email: { type: 'string', example: 'hosur@poojafashion.com' },
+                  phone: { type: 'string', example: '+91 4344 223344' },
+                  mobile: { type: 'string', example: '+91 9876543210' },
+                  manager_name: { type: 'string', example: 'Kuralarasan' },
+                  opening_date: { type: 'string', format: 'date', example: '2024-01-15' },
+                  is_main_branch: { type: 'boolean', default: false },
+                  status: { type: 'string', enum: ['active', 'inactive', 'closed'], default: 'active' },
+                },
+              },
+            },
+          },
+        },
+        responses: { 201: { description: 'Branch created successfully' }, 400: { description: 'Validation error' } },
+      },
+    },
+    '/branches/{id}': {
+      get: {
+        tags: ['Branches'],
+        summary: 'Get branch by ID',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: { description: 'Branch retrieved successfully' }, 404: { description: 'Branch not found' } },
+      },
+      put: {
+        tags: ['Branches'],
+        summary: 'Update branch by ID',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { 200: { description: 'Branch updated successfully' }, 404: { description: 'Branch not found' } },
+      },
+      delete: {
+        tags: ['Branches'],
+        summary: 'Delete branch by ID',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: { description: 'Branch deleted successfully' }, 404: { description: 'Branch not found' } },
+      },
+    },
+    '/branches/company/{companyId}': {
+      get: {
+        tags: ['Branches'],
+        summary: 'Get all branches for a company',
+        parameters: [{ name: 'companyId', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: { description: 'Branches retrieved successfully' }, 404: { description: 'Company not found' } },
+      },
+    },
+    '/branches/code/{companyId}/{branchCode}': {
+      get: {
+        tags: ['Branches'],
+        summary: 'Get branch by company ID and branch code',
+        parameters: [
+          { name: 'companyId', in: 'path', required: true, schema: { type: 'integer' } },
+          { name: 'branchCode', in: 'path', required: true, schema: { type: 'string', example: 'PFS-B01' } },
+        ],
+        responses: { 200: { description: 'Branch retrieved successfully' }, 404: { description: 'Branch not found' } },
+      },
+    },
+    '/branches/{id}/status': {
+      patch: {
+        tags: ['Branches'],
+        summary: 'Update branch status',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['status'],
+                properties: { status: { type: 'string', enum: ['active', 'inactive', 'closed'] } },
+              },
+            },
+          },
+        },
+        responses: { 200: { description: 'Status updated' }, 404: { description: 'Branch not found' } },
+      },
+    },
+    '/branches/{id}/main': {
+      patch: {
+        tags: ['Branches'],
+        summary: 'Set branch as main branch for the company',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: { description: 'Branch set as main branch' }, 404: { description: 'Branch not found' } },
+      },
+    },
+    '/branch-addresses': {
+      get: {
+        tags: ['Branch Addresses'],
+        summary: 'Get paginated list of branch addresses',
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } },
+          { name: 'branch_id', in: 'query', schema: { type: 'integer' } },
+          { name: 'city', in: 'query', schema: { type: 'string' } },
+          { name: 'state', in: 'query', schema: { type: 'string' } },
+          { name: 'is_primary', in: 'query', schema: { type: 'boolean' } },
+          { name: 'is_active', in: 'query', schema: { type: 'boolean' } },
+          { name: 'search', in: 'query', schema: { type: 'string' } },
+        ],
+        responses: { 200: { description: 'List of branch addresses retrieved successfully' } },
+      },
+      post: {
+        tags: ['Branch Addresses'],
+        summary: 'Create a new branch address',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['branch_id', 'address_line_1'],
+                properties: {
+                  branch_id: { type: 'integer', example: 1 },
+                  address_line_1: { type: 'string', example: '123 MG Road' },
+                  address_line_2: { type: 'string', example: 'Opposite Bus Stand' },
+                  city: { type: 'string', example: 'Hosur' },
+                  district: { type: 'string', example: 'Krishnagiri' },
+                  state: { type: 'string', example: 'Tamil Nadu' },
+                  postal_code: { type: 'string', example: '635109' },
+                  country: { type: 'string', default: 'India' },
+                  landmark: { type: 'string', example: 'Near Clock Tower' },
+                  is_primary: { type: 'boolean', default: true },
+                  is_active: { type: 'boolean', default: true },
+                },
+              },
+            },
+          },
+        },
+        responses: { 201: { description: 'Branch address created' }, 400: { description: 'Validation error' } },
+      },
+    },
+    '/branch-addresses/{id}': {
+      get: {
+        tags: ['Branch Addresses'],
+        summary: 'Get branch address by ID',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: { description: 'Branch address retrieved successfully' }, 404: { description: 'Not found' } },
+      },
+      put: {
+        tags: ['Branch Addresses'],
+        summary: 'Update branch address by ID',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { 200: { description: 'Branch address updated' }, 404: { description: 'Not found' } },
+      },
+      delete: {
+        tags: ['Branch Addresses'],
+        summary: 'Delete branch address by ID',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: { description: 'Branch address deleted' }, 404: { description: 'Not found' } },
+      },
+    },
+    '/branch-addresses/branch/{branchId}': {
+      get: {
+        tags: ['Branch Addresses'],
+        summary: 'Get all addresses for a branch',
+        parameters: [{ name: 'branchId', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: { description: 'Addresses retrieved' }, 404: { description: 'Branch not found' } },
+      },
+    },
+    '/branch-addresses/{id}/status': {
+      patch: {
+        tags: ['Branch Addresses'],
+        summary: 'Update branch address active status',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { type: 'object', required: ['is_active'], properties: { is_active: { type: 'boolean' } } },
+            },
+          },
+        },
+        responses: { 200: { description: 'Status updated' }, 404: { description: 'Not found' } },
+      },
+    },
+    '/branch-addresses/{id}/primary': {
+      patch: {
+        tags: ['Branch Addresses'],
+        summary: 'Set address as primary for the branch',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: { description: 'Address set as primary' }, 404: { description: 'Not found' } },
+      },
+    },
+    '/branch-contacts': {
+      get: {
+        tags: ['Branch Contacts'],
+        summary: 'Get paginated list of branch contacts',
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } },
+          { name: 'branch_id', in: 'query', schema: { type: 'integer' } },
+          { name: 'designation', in: 'query', schema: { type: 'string' } },
+          { name: 'is_primary', in: 'query', schema: { type: 'boolean' } },
+          { name: 'is_active', in: 'query', schema: { type: 'boolean' } },
+          { name: 'search', in: 'query', schema: { type: 'string' } },
+        ],
+        responses: { 200: { description: 'List of branch contacts retrieved successfully' } },
+      },
+      post: {
+        tags: ['Branch Contacts'],
+        summary: 'Create a new branch contact',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['branch_id', 'contact_name'],
+                properties: {
+                  branch_id: { type: 'integer', example: 1 },
+                  contact_name: { type: 'string', example: 'Ramesh Kumar' },
+                  designation: { type: 'string', example: 'Store Manager' },
+                  email: { type: 'string', example: 'ramesh@poojafashion.com' },
+                  phone: { type: 'string', example: '+91 4344 223344' },
+                  mobile: { type: 'string', example: '+91 9876543211' },
+                  is_primary: { type: 'boolean', default: false },
+                  is_active: { type: 'boolean', default: true },
+                },
+              },
+            },
+          },
+        },
+        responses: { 201: { description: 'Branch contact created' }, 400: { description: 'Validation error' } },
+      },
+    },
+    '/branch-contacts/{id}': {
+      get: {
+        tags: ['Branch Contacts'],
+        summary: 'Get branch contact by ID',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: { description: 'Branch contact retrieved successfully' }, 404: { description: 'Not found' } },
+      },
+      put: {
+        tags: ['Branch Contacts'],
+        summary: 'Update branch contact by ID',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { 200: { description: 'Branch contact updated' }, 404: { description: 'Not found' } },
+      },
+      delete: {
+        tags: ['Branch Contacts'],
+        summary: 'Delete branch contact by ID',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: { description: 'Branch contact deleted' }, 404: { description: 'Not found' } },
+      },
+    },
+    '/branch-contacts/branch/{branchId}': {
+      get: {
+        tags: ['Branch Contacts'],
+        summary: 'Get all contacts for a branch',
+        parameters: [{ name: 'branchId', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: { description: 'Contacts retrieved' }, 404: { description: 'Branch not found' } },
+      },
+    },
+    '/branch-contacts/{id}/status': {
+      patch: {
+        tags: ['Branch Contacts'],
+        summary: 'Update branch contact active status',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { type: 'object', required: ['is_active'], properties: { is_active: { type: 'boolean' } } },
+            },
+          },
+        },
+        responses: { 200: { description: 'Status updated' }, 404: { description: 'Not found' } },
+      },
+    },
+    '/branch-contacts/{id}/primary': {
+      patch: {
+        tags: ['Branch Contacts'],
+        summary: 'Set contact as primary for the branch',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: { description: 'Contact set as primary' }, 404: { description: 'Not found' } },
       },
     },
   },

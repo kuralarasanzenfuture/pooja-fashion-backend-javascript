@@ -6,6 +6,9 @@ import companyTaxDetailRoutes from '../modules/companyTaxDetails/companyTaxDetai
 import bankRoutes from '../modules/banks/banks/bank.routes.js';
 import bankIdentifierRoutes from '../modules/banks/bankIdentifiers/bankIdentifier.routes.js';
 import companyBankRoutes from '../modules/banks/companyBanks/companyBank.routes.js';
+import branchRoutes from '../modules/branches/branches/branch.routes.js';
+import branchAddressRoutes from '../modules/branches/branchAddresses/branchAddress.routes.js';
+import branchContactRoutes from '../modules/branches/branchContacts/branchContact.routes.js';
 
 const router = Router();
 
@@ -23,5 +26,8 @@ router.use('/company-tax-details', companyTaxDetailRoutes);
 router.use('/banks', bankRoutes);
 router.use('/bank-identifiers', bankIdentifierRoutes);
 router.use('/company-banks', companyBankRoutes);
+router.use('/branches', branchRoutes);
+router.use('/branch-addresses', branchAddressRoutes);
+router.use('/branch-contacts', branchContactRoutes);
 
 export default router;
