@@ -1,0 +1,150 @@
+pooja-fashion-backend/
+│
+├── src/
+│   ├── app.js
+│   ├── server.js
+│   │
+│   ├── config/
+│   │   ├── env.js
+│   │   ├── database.js
+│   │   ├── jwt.js
+│   │   ├── cors.js
+│   │   └── app.config.js
+│   │
+│   ├── database/
+│   │   ├── migrations/
+│   │   ├── seeders/
+│   │   ├── connection.js
+│   │   └── index.js
+│   │
+│   ├── middlewares/
+│   │   ├── auth.middleware.js
+│   │   ├── role.middleware.js
+│   │   ├── permission.middleware.js
+│   │   ├── error.middleware.js
+│   │   ├── notFound.middleware.js
+│   │   ├── upload.middleware.js
+│   │   ├── validation.middleware.js
+│   │   └── rateLimit.middleware.js
+│   │
+│   ├── routes/
+│   │   └── index.js
+│   │
+│   ├── modules/
+│   │
+│   │   ├── auth/
+│   │   ├── users/
+│   │   ├── roles/
+│   │   ├── permissions/
+│   │
+│   │   ├── companies/
+│   │   ├── branches/
+│   │
+│   │   ├── employees/
+│   │   ├── employeeShifts/
+│   │   ├── employeeAttendance/
+│   │
+│   │   ├── categories/
+│   │   ├── subcategories/
+│   │   ├── brands/
+│   │   ├── sizes/
+│   │   ├── colors/
+│   │   ├── materials/
+│   │
+│   │   ├── products/
+│   │   ├── productVariants/
+│   │   ├── productBarcodes/
+│   │   ├── productImages/
+│   │
+│   │   ├── suppliers/
+│   │   ├── supplierTransactions/
+│   │
+│   │   ├── customers/
+│   │   ├── customerTransactions/
+│   │
+│   │   ├── purchases/
+│   │   ├── purchaseReturns/
+│   │
+│   │   ├── sales/
+│   │   ├── saleReturns/
+│   │   ├── exchanges/
+│   │
+│   │   ├── inventory/
+│   │   ├── stockLocations/
+│   │   ├── stockBalances/
+│   │   ├── stockMovements/
+│   │   ├── stockAdjustments/
+│   │
+│   │   ├── discounts/
+│   │   ├── taxes/
+│   │
+│   │   ├── expenses/
+│   │   ├── expenseCategories/
+│   │
+│   │   ├── cashRegisters/
+│   │   ├── cashRegisterSessions/
+│   │   ├── cashTransactions/
+│   │
+│   │   ├── barcodeTemplates/
+│   │   ├── barcodePrintJobs/
+│   │
+│   │   ├── reports/
+│   │   ├── dashboard/
+│   │
+│   │   ├── auditLogs/
+│   │   ├── loginHistory/
+│   │   ├── settings/
+│   │   └── numberSequences/
+│   │
+│   ├── shared/
+│   │   ├── constants/
+│   │   │   ├── roles.js
+│   │   │   ├── permissions.js
+│   │   │   ├── status.js
+│   │   │   └── paymentMethods.js
+│   │   │
+│   │   ├── types/
+│   │   │   ├── api.types.js
+│   │   │   └── common.types.js
+│   │   │
+│   │   ├── utils/
+│   │   │   ├── pagination.js
+│   │   │   ├── response.js
+│   │   │   ├── date.js
+│   │   │   ├── currency.js
+│   │   │   ├── number.js
+│   │   │   ├── barcode.js
+│   │   │   └── logger.js
+│   │   │
+│   │   ├── errors/
+│   │   │   ├── AppError.js
+│   │   │   ├── BadRequestError.js
+│   │   │   ├── UnauthorizedError.js
+│   │   │   ├── ForbiddenError.js
+│   │   │   └── NotFoundError.js
+│   │   │
+│   │   └── services/
+│   │       ├── file.service.js
+│   │       ├── pdf.service.js
+│   │       ├── barcode.service.js
+│   │       └── notification.service.js
+│   │
+│   ├── uploads/
+│   │   ├── products/
+│   │   ├── employees/
+│   │   └── documents/
+│   │
+│   └── docs/
+│       └── api/
+│
+├── tests/
+│   ├── unit/
+│   └── integration/
+│
+├── .env
+├── .env.example
+├── .gitignore
+├── package.json
+├── eslint.config.js
+├── prettier.config.js
+└── README.md

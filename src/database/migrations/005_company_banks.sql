@@ -1,0 +1,31 @@
+CREATE TABLE
+    IF NOT EXISTS company_banks (
+        id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        company_id BIGINT NOT NULL,
+        bank_name VARCHAR(150) NOT NULL,
+        branch_name VARCHAR(150),
+        account_holder_name VARCHAR(200) NOT NULL,
+        account_number VARCHAR(100) NOT NULL,
+        account_type VARCHAR(30) NOT NULL DEFAULT 'current' CHECK (
+            account_type IN (
+                'savings',
+                'current',
+                'cash_credit',
+                'overdraft',
+                'other'
+            )
+        ),
+        ifsc_code VARCHAR(20),
+        micr_code VARCHAR(20),
+        swift_code VARCHAR(20),
+        bank_code VARCHAR(50),
+        branch_code VARCHAR(50),
+        opening_balance NUMERIC(18, 2) NOT NULL DEFAULT 0,
+        current_balance NUMERIC(18, 2) NOT NULL DEFAULT 0,
+        is_primary BOOLEAN NOT NULL DEFAULT FALSE,
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_company_banks_company FOREIGN KEY (company_id) REFERENCES companies (id) ON DELETE CASCADE,
+        CONSTRAINT chk_company_bank_balances CHECK (opening_balance >= 0)
+    );

@@ -1,0 +1,98 @@
+# Pooja Fashion Backend - Project Setup
+
+## 1) Install dependencies
+npm install
+
+## 2) Recommended package setup
+# Production dependencies
+npm install express cors dotenv helmet morgan cookie-parser multer bcryptjs jsonwebtoken express-rate-limit zod dayjs uuid pino pino-http node-cron compression http-errors swagger-jsdoc swagger-ui-express pg
+
+# Development dependencies
+npm install -D nodemon eslint prettier jest supertest
+
+## 3) Important rules
+# Use only one of each:
+# - bcryptjs (not bcrypt)
+# - zod (not joi)
+# - pino (not winston)
+# - pg (if using PostgreSQL) or mysql2 (if using MySQL)
+
+## 4) Project scripts
+# package.json scripts should be:
+# "dev": "nodemon src/server.js"
+# "start": "node src/server.js"
+# "test": "jest --runInBand"
+# "lint": "eslint ."
+
+## 5) Sample .env values
+PORT=5000
+NODE_ENV=development
+DATABASE_URL=postgresql://postgres:admin@localhost:5432/pooja_fashion
+JWT_ACCESS_SECRET=your_access_secret_here
+JWT_REFRESH_SECRET=your_refresh_secret_here
+JWT_ACCESS_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+CORS_ORIGIN=http://localhost:5173
+UPLOAD_DIR=./uploads
+MAX_FILE_SIZE=5242880
+LOG_LEVEL=info
+
+## 6) Basic backend stack
+# - Express
+# - PostgreSQL (pg)
+# - Zod validation
+# - JWT auth
+# - Pino logging
+# - Helmet + CORS + rate limiting
+# - Multer for uploads
+# - Dayjs for dates
+# - UUID for IDs
+# - Compression + http-errors
+# - Swagger docs
+# - Jest + Supertest for tests
+
+## 7) Final recommendation
+# Keep this setup clean:
+# 1 database driver
+# 1 validation library
+# 1 logger
+# 1 password hashing library
+
+# Best combination for this project:
+# - pg
+# - zod
+# - pino
+# - bcryptjs
+
+16. Final package categories
+
+Your project will look like this:
+
+| Package              | Purpose                 |
+| -------------------- | ----------------------- |
+| `express`            | Web/API framework       |
+| `mysql2`             | MySQL connection        |
+| `dotenv`             | Environment variables   |
+| `cors`               | Cross-origin requests   |
+| `helmet`             | Security headers        |
+| `morgan`             | HTTP logging            |
+| `pino`               | Application logging     |
+| `pino-http`          | HTTP logging with Pino  |
+| `cookie-parser`      | Read cookies            |
+| `multer`             | File uploads            |
+| `bcryptjs`           | Password hashing        |
+| `jsonwebtoken`       | JWT authentication      |
+| `express-rate-limit` | Rate limiting           |
+| `zod`                | Validation              |
+| `dayjs`              | Date/time               |
+| `uuid`               | UUID generation         |
+| `node-cron`          | Scheduled jobs          |
+| `compression`        | Response compression    |
+| `http-errors`        | HTTP/application errors |
+| `swagger-jsdoc`      | OpenAPI generation      |
+| `swagger-ui-express` | Swagger UI              |
+| `nodemon`            | Development             |
+| `eslint`             | Code quality            |
+| `prettier`           | Formatting              |
+| `jest`               | Testing                 |
+| `supertest`          | API testing             |
