@@ -1,0 +1,178 @@
+{
+  "info": {
+    "_postman_id": "pooja-fashion-company-tax-details-collection",
+    "name": "Pooja Fashion - Company Tax Details API",
+    "description": "Comprehensive API collection for managing Company Tax Details in Pooja Fashion ERP/POS system.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Create Company Tax Detail",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"company_id\": 1,\n  \"gstin\": \"33AABCP1234F1Z5\",\n  \"pan_number\": \"AABCP1234F\",\n  \"tan_number\": \"CHEP12345A\",\n  \"gst_registration_type\": \"regular\",\n  \"gst_state_code\": \"33\",\n  \"tax_registered_name\": \"Pooja Fashion Shop Private Limited\",\n  \"is_primary\": true,\n  \"is_active\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/company-tax-details",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-tax-details"]
+        },
+        "description": "Creates a new company tax detail record."
+      }
+    },
+    {
+      "name": "2. Get Company Tax Details (Paginated & Filtered)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/company-tax-details?page=1&limit=10&company_id=1&gst_registration_type=regular&is_active=true&sortBy=created_at&sortOrder=desc",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-tax-details"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            },
+            {
+              "key": "company_id",
+              "value": "1"
+            },
+            {
+              "key": "gst_registration_type",
+              "value": "regular"
+            },
+            {
+              "key": "is_active",
+              "value": "true"
+            },
+            {
+              "key": "sortBy",
+              "value": "created_at"
+            },
+            {
+              "key": "sortOrder",
+              "value": "desc"
+            }
+          ]
+        },
+        "description": "Retrieves paginated company tax details with filters."
+      }
+    },
+    {
+      "name": "3. Get Tax Detail by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/company-tax-details/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-tax-details", "1"]
+        },
+        "description": "Fetches a company tax detail record by its primary ID."
+      }
+    },
+    {
+      "name": "4. Get All Tax Details for Company",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/company-tax-details/company/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-tax-details", "company", "1"]
+        },
+        "description": "Fetches all tax records registered under a specific company ID."
+      }
+    },
+    {
+      "name": "5. Update Tax Detail",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"gst_registration_type\": \"regular\",\n  \"gstin\": \"33AABCP1234F2Z8\",\n  \"tax_registered_name\": \"Pooja Fashion Retail Private Limited\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/company-tax-details/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-tax-details", "1"]
+        },
+        "description": "Updates details of an existing company tax record."
+      }
+    },
+    {
+      "name": "6. Update Tax Detail Status",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"is_active\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/company-tax-details/1/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-tax-details", "1", "status"]
+        },
+        "description": "Updates the active status flag of a tax detail record."
+      }
+    },
+    {
+      "name": "7. Set Tax Detail as Primary",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/company-tax-details/1/primary",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-tax-details", "1", "primary"]
+        },
+        "description": "Marks a tax record as primary and resets other tax records of the company."
+      }
+    },
+    {
+      "name": "8. Delete Tax Detail",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/company-tax-details/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["company-tax-details", "1"]
+        },
+        "description": "Deletes a company tax detail record."
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    }
+  ]
+}

@@ -29,6 +29,10 @@ export const swaggerSpec = {
       description: 'Company contacts management operations',
     },
     {
+      name: 'Company Tax Details',
+      description: 'Company tax and regulatory registration operations',
+    },
+    {
       name: 'System',
       description: 'System health and diagnostics',
     },
@@ -771,6 +775,269 @@ export const swaggerSpec = {
         responses: {
           200: { description: 'Company contact set as primary successfully' },
           404: { description: 'Company contact not found' },
+        },
+      },
+    },
+    '/company-tax-details': {
+      get: {
+        tags: ['Company Tax Details'],
+        summary: 'Get paginated list of company tax details',
+        parameters: [
+          {
+            name: 'page',
+            in: 'query',
+            description: 'Page number (starts at 1)',
+            schema: { type: 'integer', default: 1 },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            description: 'Items per page (max 100)',
+            schema: { type: 'integer', default: 10 },
+          },
+          {
+            name: 'company_id',
+            in: 'query',
+            description: 'Filter by Company ID',
+            schema: { type: 'integer' },
+          },
+          {
+            name: 'gst_registration_type',
+            in: 'query',
+            description: 'Filter by GST scheme',
+            schema: {
+              type: 'string',
+              enum: ['regular', 'composition', 'unregistered', 'other'],
+            },
+          },
+          {
+            name: 'is_primary',
+            in: 'query',
+            description: 'Filter by primary flag',
+            schema: { type: 'boolean' },
+          },
+          {
+            name: 'is_active',
+            in: 'query',
+            description: 'Filter by active status',
+            schema: { type: 'boolean' },
+          },
+          {
+            name: 'search',
+            in: 'query',
+            description: 'Search GSTIN, PAN, TAN, tax registered name, or company',
+            schema: { type: 'string' },
+          },
+          {
+            name: 'sortBy',
+            in: 'query',
+            schema: {
+              type: 'string',
+              enum: [
+                'id',
+                'company_id',
+                'gstin',
+                'pan_number',
+                'tan_number',
+                'gst_registration_type',
+                'tax_registered_name',
+                'created_at',
+                'is_primary',
+                'is_active',
+              ],
+              default: 'created_at',
+            },
+          },
+          {
+            name: 'sortOrder',
+            in: 'query',
+            schema: { type: 'string', enum: ['asc', 'desc'], default: 'desc' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'List of company tax details retrieved successfully',
+          },
+        },
+      },
+      post: {
+        tags: ['Company Tax Details'],
+        summary: 'Create a new company tax detail record',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['company_id'],
+                properties: {
+                  company_id: { type: 'integer', example: 1 },
+                  gstin: { type: 'string', example: '33AABCP1234F1Z5' },
+                  pan_number: { type: 'string', example: 'AABCP1234F' },
+                  tan_number: { type: 'string', example: 'CHEP12345A' },
+                  gst_registration_type: {
+                    type: 'string',
+                    enum: ['regular', 'composition', 'unregistered', 'other'],
+                    example: 'regular',
+                  },
+                  gst_state_code: { type: 'string', example: '33' },
+                  tax_registered_name: {
+                    type: 'string',
+                    example: 'Pooja Fashion Shop Private Limited',
+                  },
+                  is_primary: { type: 'boolean', default: true },
+                  is_active: { type: 'boolean', default: true },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: { description: 'Company tax detail created successfully' },
+          400: { description: 'Validation error' },
+          404: { description: 'Company not found' },
+        },
+      },
+    },
+    '/company-tax-details/{id}': {
+      get: {
+        tags: ['Company Tax Details'],
+        summary: 'Get company tax detail by ID',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        responses: {
+          200: { description: 'Company tax detail retrieved successfully' },
+          404: { description: 'Company tax detail not found' },
+        },
+      },
+      put: {
+        tags: ['Company Tax Details'],
+        summary: 'Update company tax detail by ID',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  company_id: { type: 'integer' },
+                  gstin: { type: 'string' },
+                  pan_number: { type: 'string' },
+                  tan_number: { type: 'string' },
+                  gst_registration_type: {
+                    type: 'string',
+                    enum: ['regular', 'composition', 'unregistered', 'other'],
+                  },
+                  gst_state_code: { type: 'string' },
+                  tax_registered_name: { type: 'string' },
+                  is_primary: { type: 'boolean' },
+                  is_active: { type: 'boolean' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Company tax detail updated successfully' },
+          404: { description: 'Company tax detail not found' },
+        },
+      },
+      delete: {
+        tags: ['Company Tax Details'],
+        summary: 'Delete company tax detail by ID',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        responses: {
+          200: { description: 'Company tax detail deleted successfully' },
+          404: { description: 'Company tax detail not found' },
+        },
+      },
+    },
+    '/company-tax-details/company/{companyId}': {
+      get: {
+        tags: ['Company Tax Details'],
+        summary: 'Get all tax details for a specific company',
+        parameters: [
+          {
+            name: 'companyId',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        responses: {
+          200: { description: 'Company tax details retrieved successfully' },
+          404: { description: 'Company not found' },
+        },
+      },
+    },
+    '/company-tax-details/{id}/status': {
+      patch: {
+        tags: ['Company Tax Details'],
+        summary: 'Update company tax detail active status',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['is_active'],
+                properties: {
+                  is_active: { type: 'boolean', example: false },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Company tax detail status updated successfully' },
+          404: { description: 'Company tax detail not found' },
+        },
+      },
+    },
+    '/company-tax-details/{id}/primary': {
+      patch: {
+        tags: ['Company Tax Details'],
+        summary: 'Set company tax detail as primary',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'integer' },
+          },
+        ],
+        responses: {
+          200: { description: 'Company tax detail set as primary successfully' },
+          404: { description: 'Company tax detail not found' },
         },
       },
     },
