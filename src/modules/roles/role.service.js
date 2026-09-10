@@ -15,6 +15,7 @@ export const getRoles = async (query) => {
   const companyId = query.company_id ? Number(query.company_id) : null;
   const isActive = query.is_active !== undefined ? query.is_active : null;
   const isSystemRole = query.is_system_role !== undefined ? query.is_system_role : null;
+  const includeGlobal = query.include_global !== undefined ? query.include_global : true;
 
   const { rows, total } = await roleRepository.findAll({
     limit,
@@ -23,6 +24,7 @@ export const getRoles = async (query) => {
     companyId,
     isActive,
     isSystemRole,
+    includeGlobal,
     sortBy: sortBy || 'id',
     sortOrder: sortOrder || 'ASC',
   });
@@ -46,60 +48,94 @@ export const getRoleById = async (id) => {
 };
 
 /**
- * Get role by company ID and role code
+ * Get role by company ID (or global) and role code
  */
 export const getRoleByCode = async (companyId, roleCode) => {
-  const role = await roleRepository.findByCode(companyId, roleCode);
+  const targetCompanyId =
+    companyId === 'global' || companyId === 'null' || !companyId ? null : Number(companyId);
+
+  const role = await roleRepository.findByCode(targetCompanyId, roleCode);
   if (!role) {
-    throw new NotFoundError(`Role '${roleCode}' not found for company ${companyId}`);
+    const scope = targetCompanyId ? `company ${targetCompanyId}` : 'global scope';
+    throw new NotFoundError(`Role '${roleCode}' not found for ${scope}`);
   }
   return toRoleDTO(role);
 };
 
 /**
- * Get all roles for a specific company
+ * Get all roles for a specific company (including global system roles)
  */
-export const getRolesByCompanyId = async (companyId) => {
+export const getRolesByCompanyId = async (companyId, includeGlobal = true) => {
   const company = await companyRepository.findById(companyId);
   if (!company) {
     throw new NotFoundError(`Company with ID ${companyId} not found`);
   }
 
-  const rows = await roleRepository.findByCompanyId(companyId);
+  const rows = await roleRepository.findByCompanyId(companyId, includeGlobal);
   return toRoleListDTO(rows);
 };
 
 /**
- * Create a new role with automatic meaningful role code generation if omitted
+ * Create a new role with automatic meaningful role code generation if omitted.
+ * Enforces global vs company scope constraints:
+ * - is_system_role = true  => global scope (company_id = null)
+ * - is_system_role = false => company-specific (company_id is required)
  */
 export const createRole = async (data) => {
-  const company = await companyRepository.findById(data.company_id);
-  if (!company) {
-    throw new NotFoundError(`Company with ID ${data.company_id} not found`);
-  }
+  const isSystemRole = Boolean(data.is_system_role);
 
-  // Handle role_code: auto-generate if omitted, validate uniqueness if provided
-  if (data.role_code && data.role_code.trim().length > 0) {
-    const codeExists = await roleRepository.existsByCode(data.company_id, data.role_code);
-    if (codeExists) {
-      throw new BadRequestError(
-        `Role code '${data.role_code}' already exists for company ${data.company_id}`
-      );
+  if (isSystemRole) {
+    data.company_id = null;
+
+    if (data.role_code && data.role_code.trim().length > 0) {
+      const codeExists = await roleRepository.existsByCode(null, data.role_code);
+      if (codeExists) {
+        throw new BadRequestError(`Global role code '${data.role_code}' already exists`);
+      }
+    } else {
+      const existingCodes = await roleRepository.findExistingCodesByCompanyId(null);
+      data.role_code = generateRoleCode({
+        roleName: data.role_name,
+        existingCodes,
+      });
+    }
+
+    const nameExists = await roleRepository.existsByName(null, data.role_name);
+    if (nameExists) {
+      throw new BadRequestError(`Global role name '${data.role_name}' already exists`);
     }
   } else {
-    const existingCodes = await roleRepository.findExistingCodesByCompanyId(data.company_id);
-    data.role_code = generateRoleCode({
-      roleName: data.role_name,
-      existingCodes,
-    });
-  }
+    // Custom role: requires valid company
+    if (!data.company_id) {
+      throw new BadRequestError('Company ID is required for company-specific custom roles');
+    }
 
-  // Validate unique role_name per company
-  const nameExists = await roleRepository.existsByName(data.company_id, data.role_name);
-  if (nameExists) {
-    throw new BadRequestError(
-      `Role name '${data.role_name}' already exists for company ${data.company_id}`
-    );
+    const company = await companyRepository.findById(data.company_id);
+    if (!company) {
+      throw new NotFoundError(`Company with ID ${data.company_id} not found`);
+    }
+
+    if (data.role_code && data.role_code.trim().length > 0) {
+      const codeExists = await roleRepository.existsByCode(data.company_id, data.role_code);
+      if (codeExists) {
+        throw new BadRequestError(
+          `Role code '${data.role_code}' already exists for company ${data.company_id}`
+        );
+      }
+    } else {
+      const existingCodes = await roleRepository.findExistingCodesByCompanyId(data.company_id);
+      data.role_code = generateRoleCode({
+        roleName: data.role_name,
+        existingCodes,
+      });
+    }
+
+    const nameExists = await roleRepository.existsByName(data.company_id, data.role_name);
+    if (nameExists) {
+      throw new BadRequestError(
+        `Role name '${data.role_name}' already exists for company ${data.company_id}`
+      );
+    }
   }
 
   const created = await roleRepository.create(data);
@@ -125,18 +161,14 @@ export const updateRole = async (id, data) => {
   if (data.role_code && data.role_code.toUpperCase() !== existing.role_code.toUpperCase()) {
     const codeExists = await roleRepository.existsByCode(existing.company_id, data.role_code, id);
     if (codeExists) {
-      throw new BadRequestError(
-        `Role code '${data.role_code}' already exists for company ${existing.company_id}`
-      );
+      throw new BadRequestError(`Role code '${data.role_code}' already exists in this scope`);
     }
   }
 
   if (data.role_name && data.role_name.toLowerCase() !== existing.role_name.toLowerCase()) {
     const nameExists = await roleRepository.existsByName(existing.company_id, data.role_name, id);
     if (nameExists) {
-      throw new BadRequestError(
-        `Role name '${data.role_name}' already exists for company ${existing.company_id}`
-      );
+      throw new BadRequestError(`Role name '${data.role_name}' already exists in this scope`);
     }
   }
 
@@ -179,20 +211,16 @@ export const deleteRole = async (id) => {
 };
 
 /**
- * Seed default system roles (SUPERADMIN and ADMIN) for a company idempotently
+ * Seed global system roles (SUPERADMIN and ADMIN) idempotently.
+ * Complies with chk_roles_system_scope (is_system_role = true, company_id = null).
  */
-export const seedDefaultCompanyRoles = async (companyId) => {
-  const company = await companyRepository.findById(companyId);
-  if (!company) {
-    throw new NotFoundError(`Company with ID ${companyId} not found`);
-  }
-
+export const seedGlobalSystemRoles = async () => {
   const seededRoles = [];
   for (const defaultRole of DEFAULT_SYSTEM_ROLES) {
-    const existing = await roleRepository.findByCode(companyId, defaultRole.role_code);
+    const existing = await roleRepository.findByCode(null, defaultRole.role_code);
     if (!existing) {
       const created = await roleRepository.create({
-        company_id: companyId,
+        company_id: null,
         role_code: defaultRole.role_code,
         role_name: defaultRole.role_name,
         description: defaultRole.description,
@@ -204,8 +232,20 @@ export const seedDefaultCompanyRoles = async (companyId) => {
       seededRoles.push(toRoleDTO(existing));
     }
   }
-
   return seededRoles;
+};
+
+/**
+ * Ensure default system roles (SUPERADMIN and ADMIN) are seeded and available for a company
+ */
+export const seedDefaultCompanyRoles = async (companyId) => {
+  if (companyId) {
+    const company = await companyRepository.findById(companyId);
+    if (!company) {
+      throw new NotFoundError(`Company with ID ${companyId} not found`);
+    }
+  }
+  return seedGlobalSystemRoles();
 };
 
 export default {
@@ -217,5 +257,6 @@ export default {
   updateRole,
   updateRoleStatus,
   deleteRole,
+  seedGlobalSystemRoles,
   seedDefaultCompanyRoles,
 };

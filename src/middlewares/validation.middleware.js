@@ -6,7 +6,16 @@ export const validate = (schema, source = 'body') => {
       }
 
       const parsed = await schema.parseAsync(req[source]);
-      req[source] = parsed;
+      if (source === 'query') {
+        Object.defineProperty(req, 'query', {
+          value: parsed,
+          writable: true,
+          enumerable: true,
+          configurable: true,
+        });
+      } else {
+        req[source] = parsed;
+      }
       return next();
     } catch (error) {
       return next(error);
