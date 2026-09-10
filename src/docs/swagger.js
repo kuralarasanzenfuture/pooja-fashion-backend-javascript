@@ -62,6 +62,10 @@ export const swaggerSpec = {
         'Role-based access control (RBAC) master entity operations, meaningful code generation, and system role seeding',
     },
     {
+      name: 'Users',
+      description: 'Enterprise user accounts, security policies, password management, and profiles',
+    },
+    {
       name: 'System',
       description: 'System health and diagnostics',
     },
@@ -2403,6 +2407,212 @@ export const swaggerSpec = {
         responses: {
           200: { description: 'Default system roles seeded successfully' },
           404: { description: 'Company not found' },
+        },
+      },
+    },
+    '/users': {
+      get: {
+        tags: ['Users'],
+        summary: 'Get paginated list of users with multi-tenant filtering',
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } },
+          { name: 'company_id', in: 'query', schema: { type: 'integer' } },
+          { name: 'branch_id', in: 'query', schema: { type: 'integer' } },
+          { name: 'role_id', in: 'query', schema: { type: 'integer' } },
+          {
+            name: 'status',
+            in: 'query',
+            schema: { type: 'string', enum: ['active', 'inactive', 'blocked', 'locked'] },
+          },
+          { name: 'search', in: 'query', schema: { type: 'string' } },
+          {
+            name: 'sortBy',
+            in: 'query',
+            schema: {
+              type: 'string',
+              enum: [
+                'id',
+                'username',
+                'email',
+                'status',
+                'company_id',
+                'branch_id',
+                'role_id',
+                'created_at',
+                'last_login_at',
+              ],
+              default: 'id',
+            },
+          },
+          {
+            name: 'sortOrder',
+            in: 'query',
+            schema: { type: 'string', enum: ['asc', 'desc'], default: 'asc' },
+          },
+        ],
+        responses: {
+          200: { description: 'Users retrieved successfully' },
+          401: { description: 'Authentication required' },
+          403: { description: 'Admin access required' },
+        },
+      },
+      post: {
+        tags: ['Users'],
+        summary: 'Create a new enterprise user account',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['company_id', 'username', 'password'],
+                properties: {
+                  company_id: { type: 'integer', example: 1 },
+                  branch_id: { type: 'integer', nullable: true, example: 1 },
+                  role_id: { type: 'integer', nullable: true, example: 2 },
+                  employee_id: { type: 'integer', nullable: true },
+                  username: { type: 'string', example: 'store_manager' },
+                  email: { type: 'string', format: 'email', example: 'manager@poojafashion.com' },
+                  phone: { type: 'string', example: '+919876543210' },
+                  password: { type: 'string', format: 'password', example: 'SecureP@ss123' },
+                  profile_image_url: { type: 'string', nullable: true },
+                  status: {
+                    type: 'string',
+                    enum: ['active', 'inactive', 'blocked', 'locked'],
+                    default: 'active',
+                  },
+                  is_email_verified: { type: 'boolean', default: false },
+                  is_phone_verified: { type: 'boolean', default: false },
+                  two_factor_enabled: { type: 'boolean', default: false },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: { description: 'User account created successfully' },
+          400: { description: 'Validation failed or username/email duplicate' },
+          401: { description: 'Authentication required' },
+          403: { description: 'Admin access required' },
+        },
+      },
+    },
+    '/users/{id}': {
+      get: {
+        tags: ['Users'],
+        summary: 'Get user profile by ID',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          200: { description: 'User retrieved successfully' },
+          401: { description: 'Authentication required' },
+          404: { description: 'User not found' },
+        },
+      },
+      put: {
+        tags: ['Users'],
+        summary: 'Update user account details',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  branch_id: { type: 'integer', nullable: true },
+                  role_id: { type: 'integer', nullable: true },
+                  employee_id: { type: 'integer', nullable: true },
+                  username: { type: 'string' },
+                  email: { type: 'string', format: 'email' },
+                  phone: { type: 'string' },
+                  profile_image_url: { type: 'string', nullable: true },
+                  is_email_verified: { type: 'boolean' },
+                  is_phone_verified: { type: 'boolean' },
+                  two_factor_enabled: { type: 'boolean' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'User updated successfully' },
+          400: { description: 'Validation failed or duplicate constraint' },
+          404: { description: 'User not found' },
+        },
+      },
+      delete: {
+        tags: ['Users'],
+        summary: 'Delete user account',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          200: { description: 'User deleted successfully' },
+          401: { description: 'Authentication required' },
+          403: { description: 'Admin access required' },
+          404: { description: 'User not found' },
+        },
+      },
+    },
+    '/users/{id}/password': {
+      patch: {
+        tags: ['Users'],
+        summary: 'Change or reset user password',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['new_password'],
+                properties: {
+                  current_password: { type: 'string', format: 'password' },
+                  new_password: { type: 'string', format: 'password', example: 'NewSecureP@ss123' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Password changed successfully' },
+          400: { description: 'Validation failed or current password incorrect' },
+          404: { description: 'User not found' },
+        },
+      },
+    },
+    '/users/{id}/status': {
+      patch: {
+        tags: ['Users'],
+        summary: 'Update user account status (active, inactive, blocked, locked)',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['status'],
+                properties: {
+                  status: {
+                    type: 'string',
+                    enum: ['active', 'inactive', 'blocked', 'locked'],
+                    example: 'locked',
+                  },
+                  lock_minutes: {
+                    type: 'integer',
+                    description: 'Lock duration in minutes (used when status is locked)',
+                    example: 30,
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'User status updated successfully' },
+          401: { description: 'Authentication required' },
+          403: { description: 'Admin access required' },
+          404: { description: 'User not found' },
         },
       },
     },

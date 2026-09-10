@@ -10,6 +10,7 @@ import branchRoutes from '../modules/branches/branches/branch.routes.js';
 import branchAddressRoutes from '../modules/branches/branchAddresses/branchAddress.routes.js';
 import branchContactRoutes from '../modules/branches/branchContacts/branchContact.routes.js';
 import roleRoutes from '../modules/roles/role.routes.js';
+import userRoutes from '../modules/users/user.routes.js';
 
 const router = Router();
 
@@ -31,5 +32,6 @@ router.use('/branches', branchRoutes);
 router.use('/branch-addresses', branchAddressRoutes);
 router.use('/branch-contacts', branchContactRoutes);
 router.use('/roles', roleRoutes);
+router.use('/users', userRoutes);
 
 export default router;

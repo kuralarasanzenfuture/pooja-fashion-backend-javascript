@@ -1,0 +1,157 @@
+{
+  "info": {
+    "_postman_id": "pooja-fashion-users-collection",
+    "name": "Pooja Fashion - Users Master API",
+    "description": "Comprehensive API collection for Enterprise User Accounts, Security Policies, Password Management, and Multi-tenant Access Control.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Create User",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+        },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"company_id\": 1,\n  \"branch_id\": 1,\n  \"role_id\": 2,\n  \"username\": \"admin_user\",\n  \"email\": \"admin@poojafashion.com\",\n  \"phone\": \"+919876543210\",\n  \"password\": \"SecurePass@123\",\n  \"status\": \"active\",\n  \"is_email_verified\": true,\n  \"is_phone_verified\": true,\n  \"two_factor_enabled\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users",
+          "host": ["{{baseUrl}}"],
+          "path": ["users"]
+        }
+      }
+    },
+    {
+      "name": "2. Get Users (Paginated & Filtered)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/users?page=1&limit=10&company_id=1&status=active&search=admin",
+          "host": ["{{baseUrl}}"],
+          "path": ["users"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" },
+            { "key": "company_id", "value": "1" },
+            { "key": "status", "value": "active" },
+            { "key": "search", "value": "admin" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "3. Get User by ID",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/users/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "1"]
+        }
+      }
+    },
+    {
+      "name": "4. Update User Details",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+        },
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"admin_updated\",\n  \"email\": \"admin.updated@poojafashion.com\",\n  \"phone\": \"+919876543219\",\n  \"two_factor_enabled\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "1"]
+        }
+      }
+    },
+    {
+      "name": "5. Change / Reset Password",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+        },
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"current_password\": \"SecurePass@123\",\n  \"new_password\": \"NewSecurePass@456\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/1/password",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "1", "password"]
+        }
+      }
+    },
+    {
+      "name": "6. Update User Status / Lock",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+        },
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"locked\",\n  \"lock_minutes\": 30\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/1/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "1", "status"]
+        }
+      }
+    },
+    {
+      "name": "7. Delete User",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+        },
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/users/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "1"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "your_jwt_access_token_here",
+      "type": "string"
+    }
+  ]
+}
