@@ -135,7 +135,8 @@ export const findByBranchId = async (branchId) => {
  */
 export const resetPrimary = async (branchId, excludeAddressId = null) => {
   const pool = getPool();
-  let query = 'UPDATE branch_addresses SET is_primary = FALSE, updated_at = CURRENT_TIMESTAMP WHERE branch_id = $1 AND is_primary = TRUE';
+  let query =
+    'UPDATE branch_addresses SET is_primary = FALSE, updated_at = CURRENT_TIMESTAMP WHERE branch_id = $1 AND is_primary = TRUE';
   const params = [branchId];
 
   if (excludeAddressId) {

@@ -1,5 +1,6 @@
 import * as companyRepository from './company.repository.js';
 import { toCompanyDTO, toCompanyListDTO } from './company.mapper.js';
+import { seedDefaultCompanyRoles } from '../roles/role.service.js';
 import NotFoundError from '../../shared/errors/NotFoundError.js';
 import BadRequestError from '../../shared/errors/BadRequestError.js';
 import { getPaginationParams, formatPaginationMeta } from '../../shared/utils/pagination.js';
@@ -59,6 +60,17 @@ export const createCompany = async (data) => {
   }
 
   const created = await companyRepository.create(data);
+
+  // Auto-seed default system roles (SUPERADMIN, ADMIN) for the new company
+  try {
+    await seedDefaultCompanyRoles(created.id);
+  } catch (seedError) {
+    console.warn(
+      `⚠️ Could not auto-seed default roles for company ${created.id}:`,
+      seedError.message
+    );
+  }
+
   return toCompanyDTO(created);
 };
 

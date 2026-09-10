@@ -62,9 +62,8 @@ export const generateBranchCode = ({ company, branchType = 'store', existingCode
   let sequence = 1;
   while (sequence < 1000) {
     const seqStr = String(sequence).padStart(2, '0');
-    const candidate = branchType === 'head_office'
-      ? `${prefix}-HO-${seqStr}`
-      : `${prefix}-${typeCode}${seqStr}`;
+    const candidate =
+      branchType === 'head_office' ? `${prefix}-HO-${seqStr}` : `${prefix}-${typeCode}${seqStr}`;
 
     if (!existingSet.has(candidate)) {
       return candidate;

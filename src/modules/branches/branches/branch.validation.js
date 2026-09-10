@@ -9,11 +9,7 @@ export const branchTypeEnum = z.enum([
   'other',
 ]);
 
-export const branchStatusEnum = z.enum([
-  'active',
-  'inactive',
-  'closed',
-]);
+export const branchStatusEnum = z.enum(['active', 'inactive', 'closed']);
 
 export const createBranchSchema = z.object({
   company_id: z.coerce.number().int().positive('Company ID must be a positive integer'),
@@ -22,7 +18,10 @@ export const createBranchSchema = z.object({
     .trim()
     .min(2, 'Branch code must be at least 2 characters')
     .max(50, 'Branch code cannot exceed 50 characters')
-    .regex(/^[A-Za-z0-9_-]+$/, 'Branch code must only contain letters, numbers, hyphens, and underscores')
+    .regex(
+      /^[A-Za-z0-9_-]+$/,
+      'Branch code must only contain letters, numbers, hyphens, and underscores'
+    )
     .transform((val) => val.toUpperCase())
     .optional(),
   branch_name: z
@@ -51,9 +50,7 @@ export const createBranchSchema = z.object({
   status: branchStatusEnum.default('active'),
 });
 
-export const updateBranchSchema = createBranchSchema
-  .omit({ company_id: true })
-  .partial();
+export const updateBranchSchema = createBranchSchema.omit({ company_id: true }).partial();
 
 export const updateStatusSchema = z.object({
   status: branchStatusEnum,

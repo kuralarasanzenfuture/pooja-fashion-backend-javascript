@@ -190,8 +190,7 @@ export const create = async (data) => {
   ];
 
   const openingBalance = data.opening_balance !== undefined ? data.opening_balance : 0;
-  const currentBalance =
-    data.current_balance !== undefined ? data.current_balance : openingBalance;
+  const currentBalance = data.current_balance !== undefined ? data.current_balance : openingBalance;
 
   const values = [
     data.company_id,

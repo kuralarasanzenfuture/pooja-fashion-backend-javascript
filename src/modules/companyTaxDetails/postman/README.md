@@ -24,16 +24,16 @@ When the backend server is running (`npm run dev`), you can open the interactive
 
 ## 📋 Endpoints Overview
 
-| Method   | Endpoint                                      | Description                                                           |
-| :------- | :-------------------------------------------- | :-------------------------------------------------------------------- |
-| `POST`   | `/api/company-tax-details`                  | Create a new company tax detail record                                |
-| `GET`    | `/api/company-tax-details`                  | Get paginated & filtered list of company tax details                  |
-| `GET`    | `/api/company-tax-details/:id`              | Get company tax detail by numeric ID                                  |
-| `GET`    | `/api/company-tax-details/company/:companyId` | Get all tax records for a specific company                            |
-| `PUT`    | `/api/company-tax-details/:id`              | Update company tax detail record                                      |
-| `PATCH`  | `/api/company-tax-details/:id/status`       | Toggle / Update active status (`is_active: true/false`)               |
-| `PATCH`  | `/api/company-tax-details/:id/primary`      | Set tax record as primary (resets previous primary for the company)   |
-| `DELETE` | `/api/company-tax-details/:id`              | Delete company tax record                                             |
+| Method   | Endpoint                                      | Description                                                         |
+| :------- | :-------------------------------------------- | :------------------------------------------------------------------ |
+| `POST`   | `/api/company-tax-details`                    | Create a new company tax detail record                              |
+| `GET`    | `/api/company-tax-details`                    | Get paginated & filtered list of company tax details                |
+| `GET`    | `/api/company-tax-details/:id`                | Get company tax detail by numeric ID                                |
+| `GET`    | `/api/company-tax-details/company/:companyId` | Get all tax records for a specific company                          |
+| `PUT`    | `/api/company-tax-details/:id`                | Update company tax detail record                                    |
+| `PATCH`  | `/api/company-tax-details/:id/status`         | Toggle / Update active status (`is_active: true/false`)             |
+| `PATCH`  | `/api/company-tax-details/:id/primary`        | Set tax record as primary (resets previous primary for the company) |
+| `DELETE` | `/api/company-tax-details/:id`                | Delete company tax record                                           |
 
 ---
 

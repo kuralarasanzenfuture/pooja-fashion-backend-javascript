@@ -24,16 +24,16 @@ When the backend server is running (`npm run dev`), you can open the interactive
 
 ## 📋 Endpoints Overview
 
-| Method   | Endpoint                                  | Description                                                           |
-| :------- | :---------------------------------------- | :-------------------------------------------------------------------- |
-| `POST`   | `/api/company-contacts`                  | Create a new company contact                                          |
-| `GET`    | `/api/company-contacts`                  | Get paginated & filtered list of company contacts                     |
-| `GET`    | `/api/company-contacts/:id`              | Get company contact by numeric ID                                     |
-| `GET`    | `/api/company-contacts/company/:companyId` | Get all contacts for a specific company                              |
-| `PUT`    | `/api/company-contacts/:id`              | Update company contact details                                        |
-| `PATCH`  | `/api/company-contacts/:id/status`       | Toggle / Update active status (`is_active: true/false`)               |
-| `PATCH`  | `/api/company-contacts/:id/primary`      | Set contact as primary (resets previous primary for the same company) |
-| `DELETE` | `/api/company-contacts/:id`              | Delete company contact record                                         |
+| Method   | Endpoint                                   | Description                                                           |
+| :------- | :----------------------------------------- | :-------------------------------------------------------------------- |
+| `POST`   | `/api/company-contacts`                    | Create a new company contact                                          |
+| `GET`    | `/api/company-contacts`                    | Get paginated & filtered list of company contacts                     |
+| `GET`    | `/api/company-contacts/:id`                | Get company contact by numeric ID                                     |
+| `GET`    | `/api/company-contacts/company/:companyId` | Get all contacts for a specific company                               |
+| `PUT`    | `/api/company-contacts/:id`                | Update company contact details                                        |
+| `PATCH`  | `/api/company-contacts/:id/status`         | Toggle / Update active status (`is_active: true/false`)               |
+| `PATCH`  | `/api/company-contacts/:id/primary`        | Set contact as primary (resets previous primary for the same company) |
+| `DELETE` | `/api/company-contacts/:id`                | Delete company contact record                                         |
 
 ---
 

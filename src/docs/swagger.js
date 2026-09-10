@@ -57,6 +57,11 @@ export const swaggerSpec = {
       description: 'Branch staff and manager contact management operations',
     },
     {
+      name: 'Roles',
+      description:
+        'Role-based access control (RBAC) master entity operations, meaningful code generation, and system role seeding',
+    },
+    {
       name: 'System',
       description: 'System health and diagnostics',
     },
@@ -343,7 +348,16 @@ export const swaggerSpec = {
             in: 'query',
             schema: {
               type: 'string',
-              enum: ['id', 'company_id', 'address_type', 'city', 'state', 'created_at', 'is_primary', 'is_active'],
+              enum: [
+                'id',
+                'company_id',
+                'address_type',
+                'city',
+                'state',
+                'created_at',
+                'is_primary',
+                'is_active',
+              ],
               default: 'created_at',
             },
           },
@@ -1158,12 +1172,7 @@ export const swaggerSpec = {
             'application/json': {
               schema: {
                 type: 'object',
-                required: [
-                  'company_id',
-                  'bank_name',
-                  'account_holder_name',
-                  'account_number',
-                ],
+                required: ['company_id', 'bank_name', 'account_holder_name', 'account_number'],
                 properties: {
                   company_id: { type: 'integer', example: 1 },
                   bank_name: { type: 'string', example: 'HDFC Bank' },
@@ -1391,7 +1400,11 @@ export const swaggerSpec = {
               default: 'display_order',
             },
           },
-          { name: 'sortOrder', in: 'query', schema: { type: 'string', enum: ['asc', 'desc'], default: 'asc' } },
+          {
+            name: 'sortOrder',
+            in: 'query',
+            schema: { type: 'string', enum: ['asc', 'desc'], default: 'asc' },
+          },
         ],
         responses: { 200: { description: 'List of banks retrieved successfully' } },
       },
@@ -1443,7 +1456,15 @@ export const swaggerSpec = {
                   legal_name: { type: 'string', example: 'HDFC Bank Limited' },
                   bank_type: {
                     type: 'string',
-                    enum: ['commercial', 'cooperative', 'regional_rural', 'small_finance', 'payments', 'foreign', 'other'],
+                    enum: [
+                      'commercial',
+                      'cooperative',
+                      'regional_rural',
+                      'small_finance',
+                      'payments',
+                      'foreign',
+                      'other',
+                    ],
                     example: 'commercial',
                   },
                   website_url: { type: 'string', example: 'https://www.hdfcbank.com' },
@@ -1451,15 +1472,30 @@ export const swaggerSpec = {
                   is_active: { type: 'boolean', default: true },
                   is_verified: { type: 'boolean', default: true },
                   display_order: { type: 'integer', default: 1 },
-                  logo: { type: 'string', format: 'binary', description: 'Primary bank logo image' },
-                  logo_light: { type: 'string', format: 'binary', description: 'Light mode logo image' },
-                  logo_dark: { type: 'string', format: 'binary', description: 'Dark mode logo image' },
+                  logo: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Primary bank logo image',
+                  },
+                  logo_light: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Light mode logo image',
+                  },
+                  logo_dark: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Dark mode logo image',
+                  },
                 },
               },
             },
           },
         },
-        responses: { 201: { description: 'Bank created successfully' }, 400: { description: 'Validation error' } },
+        responses: {
+          201: { description: 'Bank created successfully' },
+          400: { description: 'Validation error' },
+        },
       },
     },
     '/banks/{id}': {
@@ -1467,7 +1503,10 @@ export const swaggerSpec = {
         tags: ['Banks'],
         summary: 'Get bank by ID',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        responses: { 200: { description: 'Bank retrieved successfully' }, 404: { description: 'Bank not found' } },
+        responses: {
+          200: { description: 'Bank retrieved successfully' },
+          404: { description: 'Bank not found' },
+        },
       },
       put: {
         tags: ['Banks'],
@@ -1491,21 +1530,39 @@ export const swaggerSpec = {
                   is_active: { type: 'boolean' },
                   is_verified: { type: 'boolean' },
                   display_order: { type: 'integer' },
-                  logo: { type: 'string', format: 'binary', description: 'Primary bank logo image' },
-                  logo_light: { type: 'string', format: 'binary', description: 'Light mode logo image' },
-                  logo_dark: { type: 'string', format: 'binary', description: 'Dark mode logo image' },
+                  logo: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Primary bank logo image',
+                  },
+                  logo_light: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Light mode logo image',
+                  },
+                  logo_dark: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Dark mode logo image',
+                  },
                 },
               },
             },
           },
         },
-        responses: { 200: { description: 'Bank updated successfully' }, 404: { description: 'Bank not found' } },
+        responses: {
+          200: { description: 'Bank updated successfully' },
+          404: { description: 'Bank not found' },
+        },
       },
       delete: {
         tags: ['Banks'],
         summary: 'Delete bank by ID',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        responses: { 200: { description: 'Bank deleted successfully' }, 404: { description: 'Bank not found' } },
+        responses: {
+          200: { description: 'Bank deleted successfully' },
+          404: { description: 'Bank not found' },
+        },
       },
     },
     '/banks/{id}/logo': {
@@ -1520,9 +1577,21 @@ export const swaggerSpec = {
               schema: {
                 type: 'object',
                 properties: {
-                  logo: { type: 'string', format: 'binary', description: 'Primary bank logo image' },
-                  logo_light: { type: 'string', format: 'binary', description: 'Light theme logo image' },
-                  logo_dark: { type: 'string', format: 'binary', description: 'Dark theme logo image' },
+                  logo: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Primary bank logo image',
+                  },
+                  logo_light: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Light theme logo image',
+                  },
+                  logo_dark: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Dark theme logo image',
+                  },
                 },
               },
             },
@@ -1543,7 +1612,11 @@ export const swaggerSpec = {
             name: 'type',
             in: 'query',
             required: false,
-            schema: { type: 'string', enum: ['logo', 'logo_light', 'logo_dark', 'all'], default: 'all' },
+            schema: {
+              type: 'string',
+              enum: ['logo', 'logo_light', 'logo_dark', 'all'],
+              default: 'all',
+            },
             description: 'Which logo variant to delete (logo, logo_light, logo_dark, or all)',
           },
         ],
@@ -1557,8 +1630,18 @@ export const swaggerSpec = {
       get: {
         tags: ['Banks'],
         summary: 'Get bank by bank code',
-        parameters: [{ name: 'bankCode', in: 'path', required: true, schema: { type: 'string', example: 'HDFC' } }],
-        responses: { 200: { description: 'Bank retrieved successfully' }, 404: { description: 'Bank not found' } },
+        parameters: [
+          {
+            name: 'bankCode',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'HDFC' },
+          },
+        ],
+        responses: {
+          200: { description: 'Bank retrieved successfully' },
+          404: { description: 'Bank not found' },
+        },
       },
     },
     '/banks/{id}/status': {
@@ -1570,11 +1653,18 @@ export const swaggerSpec = {
           required: true,
           content: {
             'application/json': {
-              schema: { type: 'object', required: ['is_active'], properties: { is_active: { type: 'boolean' } } },
+              schema: {
+                type: 'object',
+                required: ['is_active'],
+                properties: { is_active: { type: 'boolean' } },
+              },
             },
           },
         },
-        responses: { 200: { description: 'Status updated' }, 404: { description: 'Bank not found' } },
+        responses: {
+          200: { description: 'Status updated' },
+          404: { description: 'Bank not found' },
+        },
       },
     },
     '/bank-identifiers': {
@@ -1627,7 +1717,10 @@ export const swaggerSpec = {
             },
           },
         },
-        responses: { 201: { description: 'Identifier created' }, 400: { description: 'Validation error' } },
+        responses: {
+          201: { description: 'Identifier created' },
+          400: { description: 'Validation error' },
+        },
       },
     },
     '/bank-identifiers/{id}': {
@@ -1635,20 +1728,32 @@ export const swaggerSpec = {
         tags: ['Bank Identifiers'],
         summary: 'Get bank identifier by ID',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        responses: { 200: { description: 'Identifier retrieved successfully' }, 404: { description: 'Not found' } },
+        responses: {
+          200: { description: 'Identifier retrieved successfully' },
+          404: { description: 'Not found' },
+        },
       },
       put: {
         tags: ['Bank Identifiers'],
         summary: 'Update bank identifier by ID',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
-        responses: { 200: { description: 'Identifier updated' }, 404: { description: 'Not found' } },
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object' } } },
+        },
+        responses: {
+          200: { description: 'Identifier updated' },
+          404: { description: 'Not found' },
+        },
       },
       delete: {
         tags: ['Bank Identifiers'],
         summary: 'Delete bank identifier by ID',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        responses: { 200: { description: 'Identifier deleted' }, 404: { description: 'Not found' } },
+        responses: {
+          200: { description: 'Identifier deleted' },
+          404: { description: 'Not found' },
+        },
       },
     },
     '/bank-identifiers/bank/{bankId}': {
@@ -1656,15 +1761,28 @@ export const swaggerSpec = {
         tags: ['Bank Identifiers'],
         summary: 'Get all identifiers for a bank',
         parameters: [{ name: 'bankId', in: 'path', required: true, schema: { type: 'integer' } }],
-        responses: { 200: { description: 'Identifiers retrieved' }, 404: { description: 'Bank not found' } },
+        responses: {
+          200: { description: 'Identifiers retrieved' },
+          404: { description: 'Bank not found' },
+        },
       },
     },
     '/bank-identifiers/value/{identifierValue}': {
       get: {
         tags: ['Bank Identifiers'],
         summary: 'Lookup bank branch by identifier code (e.g. IFSC)',
-        parameters: [{ name: 'identifierValue', in: 'path', required: true, schema: { type: 'string', example: 'HDFC0001234' } }],
-        responses: { 200: { description: 'Identifier retrieved' }, 404: { description: 'Not found' } },
+        parameters: [
+          {
+            name: 'identifierValue',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'HDFC0001234' },
+          },
+        ],
+        responses: {
+          200: { description: 'Identifier retrieved' },
+          404: { description: 'Not found' },
+        },
       },
     },
     '/bank-identifiers/{id}/status': {
@@ -1676,7 +1794,11 @@ export const swaggerSpec = {
           required: true,
           content: {
             'application/json': {
-              schema: { type: 'object', required: ['is_active'], properties: { is_active: { type: 'boolean' } } },
+              schema: {
+                type: 'object',
+                required: ['is_active'],
+                properties: { is_active: { type: 'boolean' } },
+              },
             },
           },
         },
@@ -1699,7 +1821,11 @@ export const swaggerSpec = {
               enum: ['head_office', 'store', 'warehouse', 'office', 'showroom', 'other'],
             },
           },
-          { name: 'status', in: 'query', schema: { type: 'string', enum: ['active', 'inactive', 'closed'] } },
+          {
+            name: 'status',
+            in: 'query',
+            schema: { type: 'string', enum: ['active', 'inactive', 'closed'] },
+          },
           { name: 'is_main_branch', in: 'query', schema: { type: 'boolean' } },
           { name: 'search', in: 'query', schema: { type: 'string' } },
         ],
@@ -1717,7 +1843,11 @@ export const swaggerSpec = {
                 required: ['company_id', 'branch_name'],
                 properties: {
                   company_id: { type: 'integer', example: 1 },
-                  branch_code: { type: 'string', example: 'PFS-B01', description: 'Optional. Auto-generated if omitted.' },
+                  branch_code: {
+                    type: 'string',
+                    example: 'PFS-B01',
+                    description: 'Optional. Auto-generated if omitted.',
+                  },
                   branch_name: { type: 'string', example: 'Hosur Main Branch' },
                   branch_type: {
                     type: 'string',
@@ -1730,13 +1860,20 @@ export const swaggerSpec = {
                   manager_name: { type: 'string', example: 'Kuralarasan' },
                   opening_date: { type: 'string', format: 'date', example: '2024-01-15' },
                   is_main_branch: { type: 'boolean', default: false },
-                  status: { type: 'string', enum: ['active', 'inactive', 'closed'], default: 'active' },
+                  status: {
+                    type: 'string',
+                    enum: ['active', 'inactive', 'closed'],
+                    default: 'active',
+                  },
                 },
               },
             },
           },
         },
-        responses: { 201: { description: 'Branch created successfully' }, 400: { description: 'Validation error' } },
+        responses: {
+          201: { description: 'Branch created successfully' },
+          400: { description: 'Validation error' },
+        },
       },
     },
     '/branches/{id}': {
@@ -1744,28 +1881,45 @@ export const swaggerSpec = {
         tags: ['Branches'],
         summary: 'Get branch by ID',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        responses: { 200: { description: 'Branch retrieved successfully' }, 404: { description: 'Branch not found' } },
+        responses: {
+          200: { description: 'Branch retrieved successfully' },
+          404: { description: 'Branch not found' },
+        },
       },
       put: {
         tags: ['Branches'],
         summary: 'Update branch by ID',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
-        responses: { 200: { description: 'Branch updated successfully' }, 404: { description: 'Branch not found' } },
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object' } } },
+        },
+        responses: {
+          200: { description: 'Branch updated successfully' },
+          404: { description: 'Branch not found' },
+        },
       },
       delete: {
         tags: ['Branches'],
         summary: 'Delete branch by ID',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        responses: { 200: { description: 'Branch deleted successfully' }, 404: { description: 'Branch not found' } },
+        responses: {
+          200: { description: 'Branch deleted successfully' },
+          404: { description: 'Branch not found' },
+        },
       },
     },
     '/branches/company/{companyId}': {
       get: {
         tags: ['Branches'],
         summary: 'Get all branches for a company',
-        parameters: [{ name: 'companyId', in: 'path', required: true, schema: { type: 'integer' } }],
-        responses: { 200: { description: 'Branches retrieved successfully' }, 404: { description: 'Company not found' } },
+        parameters: [
+          { name: 'companyId', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        responses: {
+          200: { description: 'Branches retrieved successfully' },
+          404: { description: 'Company not found' },
+        },
       },
     },
     '/branches/code/{companyId}/{branchCode}': {
@@ -1774,9 +1928,17 @@ export const swaggerSpec = {
         summary: 'Get branch by company ID and branch code',
         parameters: [
           { name: 'companyId', in: 'path', required: true, schema: { type: 'integer' } },
-          { name: 'branchCode', in: 'path', required: true, schema: { type: 'string', example: 'PFS-B01' } },
+          {
+            name: 'branchCode',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'PFS-B01' },
+          },
         ],
-        responses: { 200: { description: 'Branch retrieved successfully' }, 404: { description: 'Branch not found' } },
+        responses: {
+          200: { description: 'Branch retrieved successfully' },
+          404: { description: 'Branch not found' },
+        },
       },
     },
     '/branches/{id}/status': {
@@ -1796,7 +1958,10 @@ export const swaggerSpec = {
             },
           },
         },
-        responses: { 200: { description: 'Status updated' }, 404: { description: 'Branch not found' } },
+        responses: {
+          200: { description: 'Status updated' },
+          404: { description: 'Branch not found' },
+        },
       },
     },
     '/branches/{id}/main': {
@@ -1804,7 +1969,10 @@ export const swaggerSpec = {
         tags: ['Branches'],
         summary: 'Set branch as main branch for the company',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        responses: { 200: { description: 'Branch set as main branch' }, 404: { description: 'Branch not found' } },
+        responses: {
+          200: { description: 'Branch set as main branch' },
+          404: { description: 'Branch not found' },
+        },
       },
     },
     '/branch-addresses': {
@@ -1850,7 +2018,10 @@ export const swaggerSpec = {
             },
           },
         },
-        responses: { 201: { description: 'Branch address created' }, 400: { description: 'Validation error' } },
+        responses: {
+          201: { description: 'Branch address created' },
+          400: { description: 'Validation error' },
+        },
       },
     },
     '/branch-addresses/{id}': {
@@ -1858,20 +2029,32 @@ export const swaggerSpec = {
         tags: ['Branch Addresses'],
         summary: 'Get branch address by ID',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        responses: { 200: { description: 'Branch address retrieved successfully' }, 404: { description: 'Not found' } },
+        responses: {
+          200: { description: 'Branch address retrieved successfully' },
+          404: { description: 'Not found' },
+        },
       },
       put: {
         tags: ['Branch Addresses'],
         summary: 'Update branch address by ID',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
-        responses: { 200: { description: 'Branch address updated' }, 404: { description: 'Not found' } },
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object' } } },
+        },
+        responses: {
+          200: { description: 'Branch address updated' },
+          404: { description: 'Not found' },
+        },
       },
       delete: {
         tags: ['Branch Addresses'],
         summary: 'Delete branch address by ID',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        responses: { 200: { description: 'Branch address deleted' }, 404: { description: 'Not found' } },
+        responses: {
+          200: { description: 'Branch address deleted' },
+          404: { description: 'Not found' },
+        },
       },
     },
     '/branch-addresses/branch/{branchId}': {
@@ -1879,7 +2062,10 @@ export const swaggerSpec = {
         tags: ['Branch Addresses'],
         summary: 'Get all addresses for a branch',
         parameters: [{ name: 'branchId', in: 'path', required: true, schema: { type: 'integer' } }],
-        responses: { 200: { description: 'Addresses retrieved' }, 404: { description: 'Branch not found' } },
+        responses: {
+          200: { description: 'Addresses retrieved' },
+          404: { description: 'Branch not found' },
+        },
       },
     },
     '/branch-addresses/{id}/status': {
@@ -1891,7 +2077,11 @@ export const swaggerSpec = {
           required: true,
           content: {
             'application/json': {
-              schema: { type: 'object', required: ['is_active'], properties: { is_active: { type: 'boolean' } } },
+              schema: {
+                type: 'object',
+                required: ['is_active'],
+                properties: { is_active: { type: 'boolean' } },
+              },
             },
           },
         },
@@ -1903,7 +2093,10 @@ export const swaggerSpec = {
         tags: ['Branch Addresses'],
         summary: 'Set address as primary for the branch',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        responses: { 200: { description: 'Address set as primary' }, 404: { description: 'Not found' } },
+        responses: {
+          200: { description: 'Address set as primary' },
+          404: { description: 'Not found' },
+        },
       },
     },
     '/branch-contacts': {
@@ -1945,7 +2138,10 @@ export const swaggerSpec = {
             },
           },
         },
-        responses: { 201: { description: 'Branch contact created' }, 400: { description: 'Validation error' } },
+        responses: {
+          201: { description: 'Branch contact created' },
+          400: { description: 'Validation error' },
+        },
       },
     },
     '/branch-contacts/{id}': {
@@ -1953,20 +2149,32 @@ export const swaggerSpec = {
         tags: ['Branch Contacts'],
         summary: 'Get branch contact by ID',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        responses: { 200: { description: 'Branch contact retrieved successfully' }, 404: { description: 'Not found' } },
+        responses: {
+          200: { description: 'Branch contact retrieved successfully' },
+          404: { description: 'Not found' },
+        },
       },
       put: {
         tags: ['Branch Contacts'],
         summary: 'Update branch contact by ID',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
-        responses: { 200: { description: 'Branch contact updated' }, 404: { description: 'Not found' } },
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object' } } },
+        },
+        responses: {
+          200: { description: 'Branch contact updated' },
+          404: { description: 'Not found' },
+        },
       },
       delete: {
         tags: ['Branch Contacts'],
         summary: 'Delete branch contact by ID',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        responses: { 200: { description: 'Branch contact deleted' }, 404: { description: 'Not found' } },
+        responses: {
+          200: { description: 'Branch contact deleted' },
+          404: { description: 'Not found' },
+        },
       },
     },
     '/branch-contacts/branch/{branchId}': {
@@ -1974,7 +2182,10 @@ export const swaggerSpec = {
         tags: ['Branch Contacts'],
         summary: 'Get all contacts for a branch',
         parameters: [{ name: 'branchId', in: 'path', required: true, schema: { type: 'integer' } }],
-        responses: { 200: { description: 'Contacts retrieved' }, 404: { description: 'Branch not found' } },
+        responses: {
+          200: { description: 'Contacts retrieved' },
+          404: { description: 'Branch not found' },
+        },
       },
     },
     '/branch-contacts/{id}/status': {
@@ -1986,7 +2197,11 @@ export const swaggerSpec = {
           required: true,
           content: {
             'application/json': {
-              schema: { type: 'object', required: ['is_active'], properties: { is_active: { type: 'boolean' } } },
+              schema: {
+                type: 'object',
+                required: ['is_active'],
+                properties: { is_active: { type: 'boolean' } },
+              },
             },
           },
         },
@@ -1998,7 +2213,197 @@ export const swaggerSpec = {
         tags: ['Branch Contacts'],
         summary: 'Set contact as primary for the branch',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        responses: { 200: { description: 'Contact set as primary' }, 404: { description: 'Not found' } },
+        responses: {
+          200: { description: 'Contact set as primary' },
+          404: { description: 'Not found' },
+        },
+      },
+    },
+    '/roles': {
+      get: {
+        tags: ['Roles'],
+        summary: 'Get paginated list of roles with filtering and search',
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } },
+          { name: 'company_id', in: 'query', schema: { type: 'integer' } },
+          { name: 'is_active', in: 'query', schema: { type: 'boolean' } },
+          { name: 'is_system_role', in: 'query', schema: { type: 'boolean' } },
+          { name: 'search', in: 'query', schema: { type: 'string' } },
+          {
+            name: 'sortBy',
+            in: 'query',
+            schema: {
+              type: 'string',
+              enum: [
+                'id',
+                'company_id',
+                'role_code',
+                'role_name',
+                'is_system_role',
+                'is_active',
+                'created_at',
+              ],
+              default: 'id',
+            },
+          },
+          {
+            name: 'sortOrder',
+            in: 'query',
+            schema: { type: 'string', enum: ['asc', 'desc'], default: 'asc' },
+          },
+        ],
+        responses: { 200: { description: 'Roles retrieved successfully' } },
+      },
+      post: {
+        tags: ['Roles'],
+        summary: 'Create a new role (auto-generates meaningful role code if omitted)',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['company_id', 'role_name'],
+                properties: {
+                  company_id: { type: 'integer', example: 1 },
+                  role_name: { type: 'string', example: 'Store Manager' },
+                  role_code: {
+                    type: 'string',
+                    example: 'STORE_MANAGER',
+                    description:
+                      'Optional. If omitted, a meaningful uppercase code will be automatically generated.',
+                  },
+                  description: { type: 'string', example: 'Branch retail operations supervisor' },
+                  is_system_role: { type: 'boolean', default: false },
+                  is_active: { type: 'boolean', default: true },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: { description: 'Role created successfully' },
+          400: { description: 'Validation error or duplicate role name/code' },
+          404: { description: 'Company not found' },
+        },
+      },
+    },
+    '/roles/{id}': {
+      get: {
+        tags: ['Roles'],
+        summary: 'Get role by ID',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          200: { description: 'Role retrieved successfully' },
+          404: { description: 'Role not found' },
+        },
+      },
+      put: {
+        tags: ['Roles'],
+        summary: 'Update role details',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  role_name: { type: 'string', example: 'Senior Store Manager' },
+                  role_code: { type: 'string', example: 'SENIOR_STORE_MANAGER' },
+                  description: { type: 'string', example: 'Updated role description' },
+                  is_active: { type: 'boolean' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Role updated successfully' },
+          400: { description: 'Validation error' },
+          403: { description: 'Cannot modify system role code' },
+          404: { description: 'Role not found' },
+        },
+      },
+      delete: {
+        tags: ['Roles'],
+        summary: 'Delete role by ID (System roles cannot be deleted)',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          200: { description: 'Role deleted successfully' },
+          403: { description: 'System roles cannot be deleted' },
+          404: { description: 'Role not found' },
+        },
+      },
+    },
+    '/roles/company/{companyId}': {
+      get: {
+        tags: ['Roles'],
+        summary: 'Get all roles for a company',
+        parameters: [
+          { name: 'companyId', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        responses: {
+          200: { description: 'Roles retrieved' },
+          404: { description: 'Company not found' },
+        },
+      },
+    },
+    '/roles/code/{companyId}/{roleCode}': {
+      get: {
+        tags: ['Roles'],
+        summary: 'Get role by company ID and role code',
+        parameters: [
+          { name: 'companyId', in: 'path', required: true, schema: { type: 'integer' } },
+          {
+            name: 'roleCode',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'SUPERADMIN' },
+          },
+        ],
+        responses: {
+          200: { description: 'Role retrieved' },
+          404: { description: 'Role not found' },
+        },
+      },
+    },
+    '/roles/{id}/status': {
+      patch: {
+        tags: ['Roles'],
+        summary: 'Update role active status',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['is_active'],
+                properties: { is_active: { type: 'boolean' } },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Role status updated' },
+          403: { description: 'SUPERADMIN cannot be deactivated' },
+          404: { description: 'Role not found' },
+        },
+      },
+    },
+    '/roles/company/{companyId}/seed-defaults': {
+      post: {
+        tags: ['Roles'],
+        summary: 'Seed default system roles (SUPERADMIN and ADMIN) for a company',
+        parameters: [
+          { name: 'companyId', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        responses: {
+          200: { description: 'Default system roles seeded successfully' },
+          404: { description: 'Company not found' },
+        },
       },
     },
   },

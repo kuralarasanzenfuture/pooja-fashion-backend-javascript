@@ -184,7 +184,8 @@ export const findMainBranchByCompanyId = async (companyId) => {
  */
 export const resetMainBranch = async (companyId, excludeBranchId = null) => {
   const pool = getPool();
-  let query = 'UPDATE branches SET is_main_branch = FALSE, updated_at = CURRENT_TIMESTAMP WHERE company_id = $1 AND is_main_branch = TRUE';
+  let query =
+    'UPDATE branches SET is_main_branch = FALSE, updated_at = CURRENT_TIMESTAMP WHERE company_id = $1 AND is_main_branch = TRUE';
   const params = [companyId];
 
   if (excludeBranchId) {

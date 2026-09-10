@@ -35,12 +35,7 @@ router.get('/code/:bankCode', validate(bankCodeParamSchema, 'params'), getByCode
 router.get('/:id', validate(bankIdParamSchema, 'params'), getById);
 
 // POST /api/banks - Create new bank (accepts JSON or multipart/form-data with logos)
-router.post(
-  '/',
-  bankLogoUploadFields,
-  validate(createBankSchema, 'body'),
-  create
-);
+router.post('/', bankLogoUploadFields, validate(createBankSchema, 'body'), create);
 
 // PUT /api/banks/:id - Update existing bank (accepts JSON or multipart/form-data with logos)
 router.put(

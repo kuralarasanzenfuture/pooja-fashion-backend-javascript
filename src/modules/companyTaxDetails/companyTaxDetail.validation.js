@@ -1,11 +1,6 @@
 import { z } from 'zod';
 
-export const gstRegistrationTypeEnum = z.enum([
-  'regular',
-  'composition',
-  'unregistered',
-  'other',
-]);
+export const gstRegistrationTypeEnum = z.enum(['regular', 'composition', 'unregistered', 'other']);
 
 export const createCompanyTaxDetailSchema = z.object({
   company_id: z.coerce.number().int().positive('Company ID must be a positive integer'),

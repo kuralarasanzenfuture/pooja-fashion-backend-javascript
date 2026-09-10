@@ -9,6 +9,7 @@ import companyBankRoutes from '../modules/banks/companyBanks/companyBank.routes.
 import branchRoutes from '../modules/branches/branches/branch.routes.js';
 import branchAddressRoutes from '../modules/branches/branchAddresses/branchAddress.routes.js';
 import branchContactRoutes from '../modules/branches/branchContacts/branchContact.routes.js';
+import roleRoutes from '../modules/roles/role.routes.js';
 
 const router = Router();
 
@@ -29,5 +30,6 @@ router.use('/company-banks', companyBankRoutes);
 router.use('/branches', branchRoutes);
 router.use('/branch-addresses', branchAddressRoutes);
 router.use('/branch-contacts', branchContactRoutes);
+router.use('/roles', roleRoutes);
 
 export default router;

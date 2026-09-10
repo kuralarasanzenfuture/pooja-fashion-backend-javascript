@@ -1,0 +1,135 @@
+{
+  "info": {
+    "name": "Pooja Fashion - Roles API",
+    "_postman_id": "b3e04e9c-4610-449e-8ff5-roles-00000001",
+    "description": "Enterprise Role-Based Access Control (RBAC) collection with intelligent auto-generation and system role seeding.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "List Roles",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/roles?company_id=1&page=1&limit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "roles"],
+          "query": [
+            { "key": "company_id", "value": "1" },
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Role By ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/roles/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "roles", "1"]
+        }
+      }
+    },
+    {
+      "name": "Get Role By Code",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/roles/code/1/SUPERADMIN",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "roles", "code", "1", "SUPERADMIN"]
+        }
+      }
+    },
+    {
+      "name": "Get Roles By Company ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/roles/company/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "roles", "company", "1"]
+        }
+      }
+    },
+    {
+      "name": "Create Role (Auto-Generated Code)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"company_id\": 1,\n  \"role_name\": \"Store Manager\",\n  \"description\": \"Branch store operational manager\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/roles",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "roles"]
+        }
+      }
+    },
+    {
+      "name": "Update Role",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"role_name\": \"Senior Store Manager\",\n  \"description\": \"Branch store operational lead\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/roles/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "roles", "1"]
+        }
+      }
+    },
+    {
+      "name": "Update Role Status",
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"is_active\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/roles/1/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "roles", "1", "status"]
+        }
+      }
+    },
+    {
+      "name": "Delete Role",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/roles/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "roles", "1"]
+        }
+      }
+    },
+    {
+      "name": "Seed Default Roles for Company",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/roles/company/1/seed-defaults",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "roles", "company", "1", "seed-defaults"]
+        }
+      }
+    }
+  ]
+}

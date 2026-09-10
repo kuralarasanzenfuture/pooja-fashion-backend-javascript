@@ -24,16 +24,16 @@ When the backend server is running (`npm run dev`), you can open the interactive
 
 ## 📋 Endpoints Overview
 
-| Method   | Endpoint                                  | Description                                                           |
-| :------- | :---------------------------------------- | :-------------------------------------------------------------------- |
-| `POST`   | `/api/company-banks`                     | Create a new company bank account                                     |
-| `GET`    | `/api/company-banks`                     | Get paginated & filtered list of company bank accounts                |
-| `GET`    | `/api/company-banks/:id`                 | Get company bank account by numeric ID                                |
-| `GET`    | `/api/company-banks/company/:companyId`    | Get all bank accounts for a specific company                          |
-| `PUT`    | `/api/company-banks/:id`                 | Update company bank account details                                   |
-| `PATCH`  | `/api/company-banks/:id/status`          | Toggle / Update active status (`is_active: true/false`)               |
-| `PATCH`  | `/api/company-banks/:id/primary`         | Set account as primary (resets previous primary for the same company) |
-| `DELETE` | `/api/company-banks/:id`                 | Delete company bank account record                                    |
+| Method   | Endpoint                                | Description                                                           |
+| :------- | :-------------------------------------- | :-------------------------------------------------------------------- |
+| `POST`   | `/api/company-banks`                    | Create a new company bank account                                     |
+| `GET`    | `/api/company-banks`                    | Get paginated & filtered list of company bank accounts                |
+| `GET`    | `/api/company-banks/:id`                | Get company bank account by numeric ID                                |
+| `GET`    | `/api/company-banks/company/:companyId` | Get all bank accounts for a specific company                          |
+| `PUT`    | `/api/company-banks/:id`                | Update company bank account details                                   |
+| `PATCH`  | `/api/company-banks/:id/status`         | Toggle / Update active status (`is_active: true/false`)               |
+| `PATCH`  | `/api/company-banks/:id/primary`        | Set account as primary (resets previous primary for the same company) |
+| `DELETE` | `/api/company-banks/:id`                | Delete company bank account record                                    |
 
 ---
 

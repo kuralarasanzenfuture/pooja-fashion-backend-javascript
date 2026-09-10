@@ -35,11 +35,14 @@ export const updateBranchAddressSchema = createBranchAddressSchema
   .partial();
 
 export const updateStatusSchema = z.object({
-  is_active: z.preprocess((val) => {
-    if (val === 'true' || val === true || val === 1 || val === '1') return true;
-    if (val === 'false' || val === false || val === 0 || val === '0') return false;
-    return val;
-  }, z.boolean({ required_error: 'is_active is required' })),
+  is_active: z.preprocess(
+    (val) => {
+      if (val === 'true' || val === true || val === 1 || val === '1') return true;
+      if (val === 'false' || val === false || val === 0 || val === '0') return false;
+      return val;
+    },
+    z.boolean({ required_error: 'is_active is required' })
+  ),
 });
 
 export const branchAddressIdParamSchema = z.object({

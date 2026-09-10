@@ -16,7 +16,10 @@ export const createBankSchema = z.object({
     .trim()
     .min(2, 'Bank code must be at least 2 characters')
     .max(50, 'Bank code cannot exceed 50 characters')
-    .regex(/^[A-Za-z0-9_-]+$/, 'Bank code must only contain letters, numbers, hyphens, and underscores')
+    .regex(
+      /^[A-Za-z0-9_-]+$/,
+      'Bank code must only contain letters, numbers, hyphens, and underscores'
+    )
     .transform((val) => val.toUpperCase()),
   bank_name: z
     .string()
@@ -64,11 +67,14 @@ export const createBankSchema = z.object({
 export const updateBankSchema = createBankSchema.partial();
 
 export const updateStatusSchema = z.object({
-  is_active: z.preprocess((val) => {
-    if (val === 'true' || val === true || val === 1 || val === '1') return true;
-    if (val === 'false' || val === false || val === 0 || val === '0') return false;
-    return val;
-  }, z.boolean({ required_error: 'is_active is required' })),
+  is_active: z.preprocess(
+    (val) => {
+      if (val === 'true' || val === true || val === 1 || val === '1') return true;
+      if (val === 'false' || val === false || val === 0 || val === '0') return false;
+      return val;
+    },
+    z.boolean({ required_error: 'is_active is required' })
+  ),
 });
 
 export const deleteLogoQuerySchema = z.object({

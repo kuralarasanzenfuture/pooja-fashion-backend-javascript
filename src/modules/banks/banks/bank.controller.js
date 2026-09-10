@@ -56,7 +56,12 @@ export const create = async (req, res, next) => {
  */
 export const update = async (req, res, next) => {
   try {
-    const bank = await bankService.updateBank(req.params.id, req.body, req.files, req.bankUploadSlug);
+    const bank = await bankService.updateBank(
+      req.params.id,
+      req.body,
+      req.files,
+      req.bankUploadSlug
+    );
     return sendSuccess(res, bank, 'Bank updated successfully');
   } catch (error) {
     return next(error);

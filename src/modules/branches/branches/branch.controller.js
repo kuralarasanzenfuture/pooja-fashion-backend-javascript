@@ -30,10 +30,7 @@ export const getById = async (req, res, next) => {
  */
 export const getByCode = async (req, res, next) => {
   try {
-    const branch = await branchService.getBranchByCode(
-      req.params.companyId,
-      req.params.branchCode
-    );
+    const branch = await branchService.getBranchByCode(req.params.companyId, req.params.branchCode);
     return sendSuccess(res, branch, 'Branch retrieved successfully');
   } catch (error) {
     return next(error);

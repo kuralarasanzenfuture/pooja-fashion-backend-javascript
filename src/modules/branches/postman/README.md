@@ -1,6 +1,7 @@
 # Branches Postman Collection & Integration Guide
 
 This directory contains integration resources and Postman collections for the **Branches Domain**:
+
 - **Branch Master** (`/api/branches`)
 - **Branch Addresses** (`/api/branch-addresses`)
 - **Branch Contacts** (`/api/branch-contacts`)
@@ -30,6 +31,7 @@ Interactive OpenAPI / Swagger UI:
 ## 🏷️ Meaningful Branch Code Auto-Generation
 
 When creating a branch via `POST /api/branches`, the `branch_code` property is **optional**:
+
 - If omitted, the system will automatically and professionally generate a code:
   - **Head Office**: `PFS-HO`
   - **Retail Stores**: `PFS-B01`, `PFS-B02`, ...

@@ -32,11 +32,14 @@ export const updateBranchContactSchema = createBranchContactSchema
   .partial();
 
 export const updateStatusSchema = z.object({
-  is_active: z.preprocess((val) => {
-    if (val === 'true' || val === true || val === 1 || val === '1') return true;
-    if (val === 'false' || val === false || val === 0 || val === '0') return false;
-    return val;
-  }, z.boolean({ required_error: 'is_active is required' })),
+  is_active: z.preprocess(
+    (val) => {
+      if (val === 'true' || val === true || val === 1 || val === '1') return true;
+      if (val === 'false' || val === false || val === 0 || val === '0') return false;
+      return val;
+    },
+    z.boolean({ required_error: 'is_active is required' })
+  ),
 });
 
 export const branchContactIdParamSchema = z.object({
@@ -68,7 +71,16 @@ export const getBranchContactsQuerySchema = z.object({
     .optional(),
   search: z.string().trim().optional(),
   sortBy: z
-    .enum(['id', 'contact_name', 'designation', 'email', 'phone', 'is_primary', 'is_active', 'created_at'])
+    .enum([
+      'id',
+      'contact_name',
+      'designation',
+      'email',
+      'phone',
+      'is_primary',
+      'is_active',
+      'created_at',
+    ])
     .default('id'),
   sortOrder: z.enum(['asc', 'desc', 'ASC', 'DESC']).default('asc'),
 });

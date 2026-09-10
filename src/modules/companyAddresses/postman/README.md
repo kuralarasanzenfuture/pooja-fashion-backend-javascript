@@ -24,16 +24,16 @@ When the backend server is running (`npm run dev`), you can open the interactive
 
 ## 📋 Endpoints Overview
 
-| Method   | Endpoint                                  | Description                                                           |
-| :------- | :---------------------------------------- | :-------------------------------------------------------------------- |
-| `POST`   | `/api/company-addresses`                  | Create a new company address                                          |
-| `GET`    | `/api/company-addresses`                  | Get paginated & filtered list of company addresses                   |
-| `GET`    | `/api/company-addresses/:id`              | Get company address by numeric ID                                     |
+| Method   | Endpoint                                    | Description                                                           |
+| :------- | :------------------------------------------ | :-------------------------------------------------------------------- |
+| `POST`   | `/api/company-addresses`                    | Create a new company address                                          |
+| `GET`    | `/api/company-addresses`                    | Get paginated & filtered list of company addresses                    |
+| `GET`    | `/api/company-addresses/:id`                | Get company address by numeric ID                                     |
 | `GET`    | `/api/company-addresses/company/:companyId` | Get all addresses for a specific company                              |
-| `PUT`    | `/api/company-addresses/:id`              | Update company address details                                        |
-| `PATCH`  | `/api/company-addresses/:id/status`       | Toggle / Update active status (`is_active: true/false`)               |
-| `PATCH`  | `/api/company-addresses/:id/primary`      | Set address as primary (resets previous primary for the same company) |
-| `DELETE` | `/api/company-addresses/:id`              | Delete company address record                                         |
+| `PUT`    | `/api/company-addresses/:id`                | Update company address details                                        |
+| `PATCH`  | `/api/company-addresses/:id/status`         | Toggle / Update active status (`is_active: true/false`)               |
+| `PATCH`  | `/api/company-addresses/:id/primary`        | Set address as primary (resets previous primary for the same company) |
+| `DELETE` | `/api/company-addresses/:id`                | Delete company address record                                         |
 
 ---
 

@@ -7,13 +7,7 @@ import { sendSuccess, sendCreated } from '../../shared/utils/response.js';
 export const getAll = async (req, res, next) => {
   try {
     const { taxDetails, meta } = await companyTaxDetailService.getTaxDetails(req.query);
-    return sendSuccess(
-      res,
-      taxDetails,
-      'Company tax details retrieved successfully',
-      200,
-      meta
-    );
+    return sendSuccess(res, taxDetails, 'Company tax details retrieved successfully', 200, meta);
   } catch (error) {
     return next(error);
   }
@@ -36,9 +30,7 @@ export const getById = async (req, res, next) => {
  */
 export const getByCompanyId = async (req, res, next) => {
   try {
-    const taxDetails = await companyTaxDetailService.getTaxDetailsByCompanyId(
-      req.params.companyId
-    );
+    const taxDetails = await companyTaxDetailService.getTaxDetailsByCompanyId(req.params.companyId);
     return sendSuccess(res, taxDetails, 'Company tax details retrieved successfully');
   } catch (error) {
     return next(error);

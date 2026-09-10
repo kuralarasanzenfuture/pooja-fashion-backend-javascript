@@ -11,8 +11,10 @@ Base URL:
 # SECTION 1: Branch Master (`/api/branches`)
 
 ## 1. POST /api/branches (Create Branch)
+
 > [!NOTE]
 > `branch_code` is optional. If omitted, the system professionally auto-generates it based on the company and branch type:
+>
 > - Head Office: `<PREFIX>-HO` (e.g. `PFS-HO`)
 > - Retail Stores: `<PREFIX>-B01`, `<PREFIX>-B02` (e.g. `PFS-B01` for Hosur, `PFS-B02` for Bangalore)
 > - Warehouses: `<PREFIX>-WH01`, `<PREFIX>-WH02`

@@ -62,7 +62,17 @@ export const getCompanyAddressesQuerySchema = z.object({
     .optional(),
   search: z.string().trim().optional(),
   sortBy: z
-    .enum(['id', 'company_id', 'address_type', 'city', 'state', 'postal_code', 'created_at', 'is_primary', 'is_active'])
+    .enum([
+      'id',
+      'company_id',
+      'address_type',
+      'city',
+      'state',
+      'postal_code',
+      'created_at',
+      'is_primary',
+      'is_active',
+    ])
     .default('created_at'),
   sortOrder: z.enum(['asc', 'desc', 'ASC', 'DESC']).default('desc'),
 });

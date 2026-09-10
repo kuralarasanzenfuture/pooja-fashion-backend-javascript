@@ -58,7 +58,17 @@ export const getBankIdentifiersQuerySchema = z.object({
     .optional(),
   search: z.string().trim().optional(),
   sortBy: z
-    .enum(['id', 'bank_id', 'identifier_type', 'identifier_value', 'branch_name', 'city', 'state', 'created_at', 'is_active'])
+    .enum([
+      'id',
+      'bank_id',
+      'identifier_type',
+      'identifier_value',
+      'branch_name',
+      'city',
+      'state',
+      'created_at',
+      'is_active',
+    ])
     .default('created_at'),
   sortOrder: z.enum(['asc', 'desc', 'ASC', 'DESC']).default('desc'),
 });
