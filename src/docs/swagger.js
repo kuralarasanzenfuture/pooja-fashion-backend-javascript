@@ -62,6 +62,11 @@ export const swaggerSpec = {
         'Role-based access control (RBAC) master entity operations, meaningful code generation, and system role seeding',
     },
     {
+      name: 'Authentication',
+      description:
+        'Enterprise JWT authentication, session tracking, token rotation, login history, and security policies',
+    },
+    {
       name: 'Users',
       description: 'Enterprise user accounts, security policies, password management, and profiles',
     },
@@ -2908,6 +2913,183 @@ export const swaggerSpec = {
           401: { description: 'Authentication required' },
           403: { description: 'Admin access required' },
           404: { description: 'Employee not found' },
+        },
+      },
+    },
+    '/auth/login': {
+      post: {
+        tags: ['Authentication'],
+        summary: 'Authenticate user credentials, start session, and issue access/refresh tokens',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['identifier', 'password'],
+                properties: {
+                  identifier: {
+                    type: 'string',
+                    description: 'Username, email address, or phone number',
+                    example: 'admin',
+                  },
+                  password: {
+                    type: 'string',
+                    format: 'password',
+                    example: 'P@ssword123',
+                  },
+                  company_id: {
+                    type: 'integer',
+                    description: 'Optional company ID for multi-tenant tenant isolation',
+                    example: 1,
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Login successful with tokens and session' },
+          401: { description: 'Invalid username or password' },
+          403: { description: 'Account locked or suspended' },
+        },
+      },
+    },
+    '/auth/refresh-token': {
+      post: {
+        tags: ['Authentication'],
+        summary: 'Rotate refresh token and issue a fresh JWT access token',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  refresh_token: {
+                    type: 'string',
+                    description:
+                      'Refresh token string (optional if sent via HTTP-only refresh_token cookie)',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Token refreshed and rotated successfully' },
+          401: { description: 'Invalid, expired, or reused refresh token' },
+        },
+      },
+    },
+    '/auth/me': {
+      get: {
+        tags: ['Authentication'],
+        summary: 'Get current authenticated user profile and session info',
+        responses: {
+          200: { description: 'User profile retrieved successfully' },
+          401: { description: 'Authentication required' },
+        },
+      },
+    },
+    '/auth/logout': {
+      post: {
+        tags: ['Authentication'],
+        summary: 'Terminate current session and clear auth cookies',
+        responses: {
+          200: { description: 'Logged out successfully' },
+          401: { description: 'Authentication required' },
+        },
+      },
+    },
+    '/auth/logout-all': {
+      post: {
+        tags: ['Authentication'],
+        summary: 'Terminate all active sessions across all devices for current user',
+        responses: {
+          200: { description: 'All sessions terminated successfully' },
+          401: { description: 'Authentication required' },
+        },
+      },
+    },
+    '/auth/sessions': {
+      get: {
+        tags: ['Authentication'],
+        summary: 'List all active sessions and device fingerprints for current user',
+        responses: {
+          200: { description: 'Active sessions retrieved successfully' },
+          401: { description: 'Authentication required' },
+        },
+      },
+    },
+    '/auth/sessions/{id}': {
+      delete: {
+        tags: ['Authentication'],
+        summary: 'Remotely terminate a specific session by UUID',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+            description: 'Session UUID to revoke',
+          },
+        ],
+        responses: {
+          200: { description: 'Session revoked successfully' },
+          401: { description: 'Authentication required' },
+          404: { description: 'Session not found' },
+        },
+      },
+    },
+    '/auth/login-history': {
+      get: {
+        tags: ['Authentication'],
+        summary: 'Get audit history of login attempts for current user',
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } },
+          {
+            name: 'status',
+            in: 'query',
+            schema: {
+              type: 'string',
+              enum: ['success', 'failed', 'blocked', 'locked', 'logout'],
+            },
+          },
+        ],
+        responses: {
+          200: { description: 'Login history retrieved successfully' },
+          401: { description: 'Authentication required' },
+        },
+      },
+    },
+    '/auth/change-password': {
+      post: {
+        tags: ['Authentication'],
+        summary: 'Change password with password history verification (prevents last 5 reuse)',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['current_password', 'new_password'],
+                properties: {
+                  current_password: { type: 'string', format: 'password' },
+                  new_password: {
+                    type: 'string',
+                    format: 'password',
+                    example: 'NewSecurePass@123',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Password changed successfully' },
+          400: { description: 'Current password incorrect or new password was recently used' },
+          401: { description: 'Authentication required' },
         },
       },
     },

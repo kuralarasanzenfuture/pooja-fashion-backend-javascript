@@ -82,15 +82,16 @@ CREATE TABLE IF NOT EXISTS user_refresh_tokens (
     CONSTRAINT uq_refresh_token_hash
         UNIQUE (refresh_token_hash),
 
-    CONSTRAINT uq_refresh_token_session
-        UNIQUE (session_id),
-
     -- =========================================================
     -- VALIDATION
     -- =========================================================
     CONSTRAINT chk_refresh_token_expiry
         CHECK (expires_at > issued_at)
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_refresh_token_active_session
+    ON user_refresh_tokens (session_id)
+    WHERE is_active = TRUE;
 
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user
     ON user_refresh_tokens(user_id);

@@ -12,6 +12,7 @@ import branchContactRoutes from '../modules/branches/branchContacts/branchContac
 import roleRoutes from '../modules/roles/role.routes.js';
 import userRoutes from '../modules/users/user.routes.js';
 import employeeRoutes from '../modules/employees/employee.routes.js';
+import authRoutes from '../modules/auth/auth.routes.js';
 
 const router = Router();
 
@@ -22,6 +23,7 @@ router.get('/health', (req, res) => {
   });
 });
 
+router.use('/auth', authRoutes);
 router.use('/companies', companyRoutes);
 router.use('/company-addresses', companyAddressRoutes);
 router.use('/company-contacts', companyContactRoutes);
