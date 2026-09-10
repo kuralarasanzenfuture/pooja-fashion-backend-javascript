@@ -11,6 +11,7 @@ import branchAddressRoutes from '../modules/branches/branchAddresses/branchAddre
 import branchContactRoutes from '../modules/branches/branchContacts/branchContact.routes.js';
 import roleRoutes from '../modules/roles/role.routes.js';
 import userRoutes from '../modules/users/user.routes.js';
+import employeeRoutes from '../modules/employees/employee.routes.js';
 
 const router = Router();
 
@@ -33,5 +34,6 @@ router.use('/branch-addresses', branchAddressRoutes);
 router.use('/branch-contacts', branchContactRoutes);
 router.use('/roles', roleRoutes);
 router.use('/users', userRoutes);
+router.use('/employees', employeeRoutes);
 
 export default router;

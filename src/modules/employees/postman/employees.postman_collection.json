@@ -1,0 +1,196 @@
+{
+  "info": {
+    "_postman_id": "pooja-fashion-employees-collection",
+    "name": "Pooja Fashion - Employees Master API",
+    "description": "Comprehensive API collection for Employees Master, Auto-generated Employee Codes, Profile Photo Management, and Multi-tenant Access Control.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Create Employee (Auto Code)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+        },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"company_id\": 1,\n  \"branch_id\": 1,\n  \"first_name\": \"Kuralarasan\",\n  \"last_name\": \"Zen\",\n  \"display_name\": \"Kural Zen\",\n  \"phone\": \"+919876543210\",\n  \"email\": \"kural@poojafashion.com\",\n  \"date_of_birth\": \"1995-05-20\",\n  \"gender\": \"Male\",\n  \"designation\": \"Store Manager\",\n  \"department\": \"Sales\",\n  \"date_of_joining\": \"2024-01-15\",\n  \"employment_type\": \"full_time\",\n  \"employment_status\": \"active\",\n  \"salary_type\": \"monthly\",\n  \"salary_amount\": 45000,\n  \"city\": \"Hosur\",\n  \"district\": \"Krishnagiri\",\n  \"state\": \"Tamil Nadu\",\n  \"pincode\": \"635109\",\n  \"country\": \"India\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/employees",
+          "host": ["{{baseUrl}}"],
+          "path": ["employees"]
+        }
+      }
+    },
+    {
+      "name": "2. Get Employees (Paginated & Filtered)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/employees?page=1&limit=10&company_id=1&department=Sales&employment_status=active&search=Kural",
+          "host": ["{{baseUrl}}"],
+          "path": ["employees"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" },
+            { "key": "company_id", "value": "1" },
+            { "key": "department", "value": "Sales" },
+            { "key": "employment_status", "value": "active" },
+            { "key": "search", "value": "Kural" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "3. Get Employee by ID",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/employees/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["employees", "1"]
+        }
+      }
+    },
+    {
+      "name": "4. Get Employee by Code",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/employees/code/1/PFS-EMP001",
+          "host": ["{{baseUrl}}"],
+          "path": ["employees", "code", "1", "PFS-EMP001"]
+        }
+      }
+    },
+    {
+      "name": "5. Update Employee Details",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+        },
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"designation\": \"Senior General Manager\",\n  \"salary_amount\": 55000\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/employees/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["employees", "1"]
+        }
+      }
+    },
+    {
+      "name": "6. Upload Employee Photo",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "photo",
+              "type": "file",
+              "src": []
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/employees/1/photo",
+          "host": ["{{baseUrl}}"],
+          "path": ["employees", "1", "photo"]
+        }
+      }
+    },
+    {
+      "name": "7. Delete Employee Photo",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+        },
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/employees/1/photo",
+          "host": ["{{baseUrl}}"],
+          "path": ["employees", "1", "photo"]
+        }
+      }
+    },
+    {
+      "name": "8. Update Employment Status",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+        },
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"employment_status\": \"on_leave\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/employees/1/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["employees", "1", "status"]
+        }
+      }
+    },
+    {
+      "name": "9. Delete Employee",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+        },
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/employees/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["employees", "1"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "your_jwt_token_here",
+      "type": "string"
+    }
+  ]
+}

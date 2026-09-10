@@ -63,6 +63,8 @@ CREATE INDEX idx_employees_company ON employees (company_id);
 
 CREATE INDEX idx_employees_branch ON employees (branch_id);
 
-CREATE INDEX idx_employees_phone ON employees (company_id, phone);
+CREATE INDEX IF NOT EXISTS idx_employees_phone ON employees (company_id, phone);
 
-CREATE INDEX idx_employees_status ON employees (company_id, employment_status);
+CREATE INDEX IF NOT EXISTS idx_employees_email ON employees (company_id, email);
+
+CREATE INDEX IF NOT EXISTS idx_employees_status ON employees (company_id, employment_status);

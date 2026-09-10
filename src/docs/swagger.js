@@ -66,6 +66,11 @@ export const swaggerSpec = {
       description: 'Enterprise user accounts, security policies, password management, and profiles',
     },
     {
+      name: 'Employees',
+      description:
+        'Staff management, auto-generated employee codes, profile photos, and employment details',
+    },
+    {
       name: 'System',
       description: 'System health and diagnostics',
     },
@@ -2613,6 +2618,296 @@ export const swaggerSpec = {
           401: { description: 'Authentication required' },
           403: { description: 'Admin access required' },
           404: { description: 'User not found' },
+        },
+      },
+    },
+    '/employees': {
+      get: {
+        tags: ['Employees'],
+        summary: 'Get paginated list of employees with multi-tenant filtering',
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } },
+          { name: 'company_id', in: 'query', schema: { type: 'integer' } },
+          { name: 'branch_id', in: 'query', schema: { type: 'integer' } },
+          { name: 'department', in: 'query', schema: { type: 'string' } },
+          {
+            name: 'employment_status',
+            in: 'query',
+            schema: {
+              type: 'string',
+              enum: ['active', 'inactive', 'on_leave', 'resigned', 'terminated'],
+            },
+          },
+          {
+            name: 'employment_type',
+            in: 'query',
+            schema: {
+              type: 'string',
+              enum: ['full_time', 'part_time', 'temporary', 'contract', 'intern'],
+            },
+          },
+          { name: 'search', in: 'query', schema: { type: 'string' } },
+          {
+            name: 'sortBy',
+            in: 'query',
+            schema: {
+              type: 'string',
+              enum: [
+                'id',
+                'employee_code',
+                'first_name',
+                'last_name',
+                'display_name',
+                'email',
+                'phone',
+                'department',
+                'designation',
+                'employment_status',
+                'employment_type',
+                'date_of_joining',
+                'created_at',
+              ],
+              default: 'id',
+            },
+          },
+          {
+            name: 'sortOrder',
+            in: 'query',
+            schema: { type: 'string', enum: ['asc', 'desc'], default: 'asc' },
+          },
+        ],
+        responses: {
+          200: { description: 'Employees retrieved successfully' },
+          401: { description: 'Authentication required' },
+          403: { description: 'Admin access required' },
+        },
+      },
+      post: {
+        tags: ['Employees'],
+        summary:
+          'Create new employee (auto-generates meaningful employee_code if omitted, supports photo upload)',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['company_id', 'first_name'],
+                properties: {
+                  company_id: { type: 'integer', example: 1 },
+                  branch_id: { type: 'integer', nullable: true, example: 1 },
+                  employee_code: {
+                    type: 'string',
+                    description: 'Optional; auto-generated (e.g. PFS-EMP001) if omitted',
+                    example: 'PFS-EMP001',
+                  },
+                  first_name: { type: 'string', example: 'Kuralarasan' },
+                  last_name: { type: 'string', example: 'Zen' },
+                  display_name: { type: 'string', example: 'Kural Zen' },
+                  phone: { type: 'string', example: '+919876543210' },
+                  alternate_phone: { type: 'string' },
+                  email: { type: 'string', format: 'email', example: 'kural@poojafashion.com' },
+                  date_of_birth: { type: 'string', format: 'date', example: '1995-05-20' },
+                  gender: { type: 'string', example: 'Male' },
+                  designation: { type: 'string', example: 'Senior Manager' },
+                  department: { type: 'string', example: 'Sales' },
+                  date_of_joining: { type: 'string', format: 'date', example: '2024-01-15' },
+                  employment_type: {
+                    type: 'string',
+                    enum: ['full_time', 'part_time', 'temporary', 'contract', 'intern'],
+                    default: 'full_time',
+                  },
+                  employment_status: {
+                    type: 'string',
+                    enum: ['active', 'inactive', 'on_leave', 'resigned', 'terminated'],
+                    default: 'active',
+                  },
+                  salary_type: { type: 'string', enum: ['monthly', 'daily', 'hourly'] },
+                  salary_amount: { type: 'number', example: 45000 },
+                  address: { type: 'string' },
+                  city: { type: 'string', example: 'Hosur' },
+                  district: { type: 'string', example: 'Krishnagiri' },
+                  state: { type: 'string', example: 'Tamil Nadu' },
+                  pincode: { type: 'string', example: '635109' },
+                  country: { type: 'string', default: 'India' },
+                  profile_photo_url: { type: 'string' },
+                  username: {
+                    type: 'string',
+                    description: 'Optional username for photo naming or user account linkage',
+                  },
+                  emergency_contact_name: { type: 'string' },
+                  emergency_contact_phone: { type: 'string' },
+                  emergency_contact_relation: { type: 'string' },
+                  notes: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: { description: 'Employee created successfully' },
+          400: { description: 'Validation failed or duplicate employee code/phone' },
+          401: { description: 'Authentication required' },
+          403: { description: 'Admin access required' },
+        },
+      },
+    },
+    '/employees/{id}': {
+      get: {
+        tags: ['Employees'],
+        summary: 'Get employee details by ID',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          200: { description: 'Employee retrieved successfully' },
+          401: { description: 'Authentication required' },
+          404: { description: 'Employee not found' },
+        },
+      },
+      put: {
+        tags: ['Employees'],
+        summary: 'Update employee details',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  branch_id: { type: 'integer', nullable: true },
+                  employee_code: { type: 'string' },
+                  first_name: { type: 'string' },
+                  last_name: { type: 'string' },
+                  display_name: { type: 'string' },
+                  phone: { type: 'string' },
+                  alternate_phone: { type: 'string' },
+                  email: { type: 'string', format: 'email' },
+                  date_of_birth: { type: 'string', format: 'date' },
+                  gender: { type: 'string' },
+                  designation: { type: 'string' },
+                  department: { type: 'string' },
+                  date_of_joining: { type: 'string', format: 'date' },
+                  employment_type: {
+                    type: 'string',
+                    enum: ['full_time', 'part_time', 'temporary', 'contract', 'intern'],
+                  },
+                  employment_status: {
+                    type: 'string',
+                    enum: ['active', 'inactive', 'on_leave', 'resigned', 'terminated'],
+                  },
+                  salary_type: { type: 'string', enum: ['monthly', 'daily', 'hourly'] },
+                  salary_amount: { type: 'number' },
+                  address: { type: 'string' },
+                  city: { type: 'string' },
+                  district: { type: 'string' },
+                  state: { type: 'string' },
+                  pincode: { type: 'string' },
+                  country: { type: 'string' },
+                  profile_photo_url: { type: 'string' },
+                  emergency_contact_name: { type: 'string' },
+                  emergency_contact_phone: { type: 'string' },
+                  emergency_contact_relation: { type: 'string' },
+                  notes: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Employee updated successfully' },
+          400: { description: 'Validation failed' },
+          404: { description: 'Employee not found' },
+        },
+      },
+      delete: {
+        tags: ['Employees'],
+        summary: 'Remove employee record and photo',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          200: { description: 'Employee deleted successfully' },
+          401: { description: 'Authentication required' },
+          403: { description: 'Admin access required' },
+          404: { description: 'Employee not found' },
+        },
+      },
+    },
+    '/employees/code/{companyId}/{employeeCode}': {
+      get: {
+        tags: ['Employees'],
+        summary: 'Get employee by company ID and employee code',
+        parameters: [
+          { name: 'companyId', in: 'path', required: true, schema: { type: 'integer' } },
+          { name: 'employeeCode', in: 'path', required: true, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: { description: 'Employee retrieved successfully' },
+          404: { description: 'Employee not found' },
+        },
+      },
+    },
+    '/employees/{id}/photo': {
+      post: {
+        tags: ['Employees'],
+        summary: 'Upload or replace employee profile photo',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  photo: { type: 'string', format: 'binary' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Photo uploaded successfully' },
+          400: { description: 'Invalid photo file' },
+          404: { description: 'Employee not found' },
+        },
+      },
+      delete: {
+        tags: ['Employees'],
+        summary: 'Delete employee profile photo',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          200: { description: 'Photo removed successfully' },
+          404: { description: 'Employee not found' },
+        },
+      },
+    },
+    '/employees/{id}/status': {
+      patch: {
+        tags: ['Employees'],
+        summary: 'Update employee employment status',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['employment_status'],
+                properties: {
+                  employment_status: {
+                    type: 'string',
+                    enum: ['active', 'inactive', 'on_leave', 'resigned', 'terminated'],
+                    example: 'on_leave',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Employee status updated successfully' },
+          401: { description: 'Authentication required' },
+          403: { description: 'Admin access required' },
+          404: { description: 'Employee not found' },
         },
       },
     },
