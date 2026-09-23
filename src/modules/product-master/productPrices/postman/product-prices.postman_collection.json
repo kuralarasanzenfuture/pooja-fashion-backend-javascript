@@ -1,0 +1,157 @@
+{
+  "info": {
+    "_postman_id": "product-prices-collection-v1",
+    "name": "Pooja Fashion - Product Prices & History API",
+    "description": "Collection for testing Product Prices (030) and Product Price History (031) endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Create Product Price",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"company_id\": \"1\",\n  \"product_id\": \"1\",\n  \"variant_id\": \"1\",\n  \"price_type\": \"RETAIL\",\n  \"purchase_price\": 650.00,\n  \"cost_price\": 720.50,\n  \"mrp\": 1999.00,\n  \"selling_price\": 1499.00,\n  \"min_selling_price\": 1299.00,\n  \"currency_code\": \"INR\",\n  \"reason\": \"Initial catalog setup\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/product-prices",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-prices"]
+        }
+      }
+    },
+    {
+      "name": "2. Get Current Active Price (POS Checkout)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/product-prices/current?variant_id=1&price_type=RETAIL",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-prices", "current"],
+          "query": [
+            { "key": "variant_id", "value": "1" },
+            { "key": "price_type", "value": "RETAIL" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "3. List Product Prices",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/product-prices?page=1&limit=20&sort_by=effective_from&sort_order=desc",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-prices"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "20" },
+            { "key": "sort_by", "value": "effective_from" },
+            { "key": "sort_order", "value": "desc" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "4. Get Product Price By ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/product-prices/1",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-prices", "1"]
+        }
+      }
+    },
+    {
+      "name": "5. Update Product Price (Triggers Audit Trail)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"selling_price\": 1399.00,\n  \"min_selling_price\": 1199.00,\n  \"reason\": \"Diwali special discount\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/product-prices/1",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-prices", "1"]
+        }
+      }
+    },
+    {
+      "name": "6. Toggle Price Active Status",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"is_active\": false,\n  \"reason\": \"End of promotional season\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/product-prices/1/status",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-prices", "1", "status"]
+        }
+      }
+    },
+    {
+      "name": "7. Get Price Audit History (Global)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/product-prices/history?page=1&limit=20",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-prices", "history"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "20" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "8. Get Audit History for Single Price",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/product-prices/1/history",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-prices", "1", "history"]
+        }
+      }
+    },
+    {
+      "name": "9. Delete Product Price",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/product-prices/1",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-prices", "1"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    }
+  ]
+}

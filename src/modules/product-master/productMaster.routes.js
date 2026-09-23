@@ -1,0 +1,52 @@
+import { Router } from 'express';
+import categoryRoutes from './categories/category.routes.js';
+import subCategoryRoutes from './subCategories/subCategory.routes.js';
+import brandRoutes from './brands/brand.routes.js';
+import sizeGroupRoutes from './sizeGroups/sizeGroup.routes.js';
+import sizeRoutes from './sizes/size.routes.js';
+import colorRoutes from './colors/color.routes.js';
+import materialRoutes from './materials/material.routes.js';
+import unitRoutes from './units/unit.routes.js';
+import productTypeRoutes from './productTypes/productType.routes.js';
+import productRoutes from './products/product.routes.js';
+import productVariantRoutes from './productVariants/productVariant.routes.js';
+import productBarcodeRoutes from './productBarcodes/productBarcode.routes.js';
+import productImageRoutes from './productImages/productImage.routes.js';
+import productPriceRoutes from './productPrices/productPrice.routes.js';
+import taxRoutes from './taxes/tax.routes.js';
+import productTaxRoutes from './productTaxes/productTax.routes.js';
+import discountRoutes from './discounts/discount.routes.js';
+import productDiscountRoutes from './productDiscounts/productDiscount.routes.js';
+
+const router = Router();
+
+router.use('/categories', categoryRoutes);
+router.use('/subcategories', subCategoryRoutes);
+router.use('/sub-categories', subCategoryRoutes);
+router.use('/brands', brandRoutes);
+router.use('/size-groups', sizeGroupRoutes);
+router.use('/size_groups', sizeGroupRoutes);
+router.use('/sizes', sizeRoutes);
+router.use('/colors', colorRoutes);
+router.use('/materials', materialRoutes);
+router.use('/units', unitRoutes);
+router.use('/product-types', productTypeRoutes);
+router.use('/product_types', productTypeRoutes);
+router.use('/products', productRoutes);
+router.use('/product-variants', productVariantRoutes);
+router.use('/product_variants', productVariantRoutes);
+router.use('/product-barcodes', productBarcodeRoutes);
+router.use('/product_barcodes', productBarcodeRoutes);
+router.use('/product-images', productImageRoutes);
+router.use('/product_images', productImageRoutes);
+router.use('/product-prices', productPriceRoutes);
+router.use('/product_prices', productPriceRoutes);
+router.use('/taxes', taxRoutes);
+router.use('/product-taxes', productTaxRoutes);
+router.use('/product_taxes', productTaxRoutes);
+router.use('/discounts', discountRoutes);
+router.use('/product-discounts', productDiscountRoutes);
+router.use('/product_discounts', productDiscountRoutes);
+
+export default router;
+

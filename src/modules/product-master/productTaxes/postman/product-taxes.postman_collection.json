@@ -1,0 +1,172 @@
+{
+  "info": {
+    "_postman_id": "product-taxes-collection-v1",
+    "name": "Pooja Fashion - Product Taxes API",
+    "description": "Postman collection for Product Taxes module (033_product_taxes.sql).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Resolve Effective Tax (POS Fallback)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/product-taxes/resolve?company_id=1&product_id=1&variant_id=1",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-taxes", "resolve"],
+          "query": [
+            { "key": "company_id", "value": "1" },
+            { "key": "product_id", "value": "1" },
+            { "key": "variant_id", "value": "1" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "2. List Product Taxes",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/product-taxes?page=1&limit=20&sort_by=id&sort_order=desc",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-taxes"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "20" },
+            { "key": "sort_by", "value": "id" },
+            { "key": "sort_order", "value": "desc" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "3. Get Taxes By Product ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/product-taxes/product/1",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-taxes", "product", "1"]
+        }
+      }
+    },
+    {
+      "name": "4. Get Product Tax By ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/product-taxes/1",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-taxes", "1"]
+        }
+      }
+    },
+    {
+      "name": "5. Create Product Tax (Variant-level)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"company_id\": \"1\",\n  \"product_id\": \"1\",\n  \"variant_id\": \"1\",\n  \"tax_id\": \"1\",\n  \"is_primary\": true\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/product-taxes",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-taxes"]
+        }
+      }
+    },
+    {
+      "name": "6. Bulk Assign Tax to Products",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"company_id\": \"1\",\n  \"tax_id\": \"1\",\n  \"product_ids\": [\"1\", \"2\"],\n  \"is_primary\": true\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/product-taxes/bulk-assign",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-taxes", "bulk-assign"]
+        }
+      }
+    },
+    {
+      "name": "7. Set as Primary Tax",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/product-taxes/1/set-primary",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-taxes", "1", "set-primary"]
+        }
+      }
+    },
+    {
+      "name": "8. Update Product Tax",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tax_id\": \"2\",\n  \"is_primary\": true\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/product-taxes/1",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-taxes", "1"]
+        }
+      }
+    },
+    {
+      "name": "9. Toggle Status",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"is_active\": false\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/product-taxes/1/status",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-taxes", "1", "status"]
+        }
+      }
+    },
+    {
+      "name": "10. Delete Product Tax",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/product-taxes/1",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-taxes", "1"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    }
+  ]
+}

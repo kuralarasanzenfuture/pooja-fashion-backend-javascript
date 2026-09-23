@@ -1,0 +1,210 @@
+{
+  "info": {
+    "_postman_id": "b82a17f2-8899-4cfa-9eb2-9db4fa12f829",
+    "name": "Pooja Fashion - Product Master: Subcategories",
+    "description": "API collection for Subcategories under Product Master in Pooja Fashion ERP & POS platform.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "List Subcategories",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/subcategories?page=1&limit=10&company_id=1&category_id=1&is_active=true&sortBy=display_order&sortOrder=asc",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "subcategories"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" },
+            { "key": "company_id", "value": "1" },
+            { "key": "category_id", "value": "1" },
+            { "key": "is_active", "value": "true" },
+            { "key": "search", "value": "", "disabled": true },
+            { "key": "sortBy", "value": "display_order" },
+            { "key": "sortOrder", "value": "asc" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Subcategory by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/subcategories/{{subcategoryId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "subcategories", "{{subcategoryId}}"]
+        }
+      }
+    },
+    {
+      "name": "Get Subcategory by Code",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/subcategories/code/{{companyId}}/{{subcategoryCode}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "subcategories", "code", "{{companyId}}", "{{subcategoryCode}}"]
+        }
+      }
+    },
+    {
+      "name": "Get Subcategories by Category",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/subcategories/category/{{categoryId}}?is_active=true",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "subcategories", "category", "{{categoryId}}"],
+          "query": [{ "key": "is_active", "value": "true" }]
+        }
+      }
+    },
+    {
+      "name": "Get Subcategories by Company",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/subcategories/company/{{companyId}}?is_active=true",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "subcategories", "company", "{{companyId}}"],
+          "query": [{ "key": "is_active", "value": "true" }]
+        }
+      }
+    },
+    {
+      "name": "Create Subcategory (JSON)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"company_id\": 1,\n  \"category_id\": 1,\n  \"subcategory_code\": \"SILK_SAREES\",\n  \"subcategory_name\": \"Silk Sarees\",\n  \"description\": \"Pure Kanchipuram, Banarasi, and raw silk sarees\",\n  \"display_order\": 1,\n  \"is_active\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/subcategories",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "subcategories"]
+        }
+      }
+    },
+    {
+      "name": "Create Subcategory (Multipart with Image)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "company_id", "value": "1", "type": "text" },
+            { "key": "category_id", "value": "1", "type": "text" },
+            { "key": "subcategory_name", "value": "Printed Kurtis", "type": "text" },
+            { "key": "subcategory_code", "value": "PRINTED_KURTIS", "type": "text" },
+            { "key": "description", "value": "Cotton and rayon printed kurtis", "type": "text" },
+            { "key": "display_order", "value": "2", "type": "text" },
+            { "key": "is_active", "value": "true", "type": "text" },
+            { "key": "image", "type": "file", "src": "" }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/subcategories",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "subcategories"]
+        }
+      }
+    },
+    {
+      "name": "Update Subcategory",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"subcategory_name\": \"Pure Kanchipuram Silk Sarees\",\n  \"description\": \"Handcrafted pure silk sarees with gold zari\",\n  \"display_order\": 1\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/subcategories/{{subcategoryId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "subcategories", "{{subcategoryId}}"]
+        }
+      }
+    },
+    {
+      "name": "Update Subcategory Status",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"is_active\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/subcategories/{{subcategoryId}}/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "subcategories", "{{subcategoryId}}", "status"]
+        }
+      }
+    },
+    {
+      "name": "Upload Subcategory Image",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "image", "type": "file", "src": "" }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/subcategories/{{subcategoryId}}/image",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "subcategories", "{{subcategoryId}}", "image"]
+        }
+      }
+    },
+    {
+      "name": "Delete Subcategory Image",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/subcategories/{{subcategoryId}}/image",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "subcategories", "{{subcategoryId}}", "image"]
+        }
+      }
+    },
+    {
+      "name": "Delete Subcategory",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/subcategories/{{subcategoryId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "subcategories", "{{subcategoryId}}"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000", "type": "string" },
+    { "key": "companyId", "value": "1", "type": "string" },
+    { "key": "categoryId", "value": "1", "type": "string" },
+    { "key": "subcategoryId", "value": "1", "type": "string" },
+    { "key": "subcategoryCode", "value": "SILK_SAREES", "type": "string" }
+  ]
+}

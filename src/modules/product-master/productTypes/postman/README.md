@@ -1,0 +1,17 @@
+# Product Types Postman Collection & Documentation
+
+This directory contains the API documentation and Postman artifacts for the **Product Master: Product Types** module of Pooja Fashion backend.
+
+## Files
+- `product-types.postman_collection.json`: Complete Postman v2.1 collection with preconfigured requests and collection variables.
+- `product-types-api-docs.md`: Markdown REST API specification including parameters, payload contracts, and HTTP responses.
+
+## Import into Postman
+1. Open Postman.
+2. Click **Import** in the top left.
+3. Select `product-types.postman_collection.json`.
+4. Configure collection variables:
+   - `baseUrl`: default `http://localhost:5000`
+   - `companyId`: default `1`
+   - `productTypeId`: ID of the created product type
+   - `typeCode`: e.g. `READY_MADE`

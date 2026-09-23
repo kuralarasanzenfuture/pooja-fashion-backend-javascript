@@ -1,0 +1,173 @@
+{
+  "info": {
+    "_postman_id": "product-discounts-collection-v1",
+    "name": "Pooja Fashion - Product Discounts API",
+    "description": "Postman collection for Product Discounts module (035_product_discounts.sql).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Resolve Effective Discount for Checkout",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/product-discounts/resolve?company_id=1&product_id=1&variant_id=1&amount=2000&quantity=2",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-discounts", "resolve"],
+          "query": [
+            { "key": "company_id", "value": "1" },
+            { "key": "product_id", "value": "1" },
+            { "key": "variant_id", "value": "1" },
+            { "key": "amount", "value": "2000" },
+            { "key": "quantity", "value": "2" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "2. Bulk Assign Discount to Products",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"company_id\": \"1\",\n  \"discount_id\": \"1\",\n  \"product_ids\": [\"1\", \"2\", \"3\"],\n  \"is_primary\": true\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/product-discounts/bulk-assign",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-discounts", "bulk-assign"]
+        }
+      }
+    },
+    {
+      "name": "3. List Product Discounts",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/product-discounts?company_id=1&page=1&limit=20",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-discounts"],
+          "query": [
+            { "key": "company_id", "value": "1" },
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "20" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "4. Get Product Discounts by Product ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/product-discounts/product/1",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-discounts", "product", "1"]
+        }
+      }
+    },
+    {
+      "name": "5. Get Product Discount by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/product-discounts/1",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-discounts", "1"]
+        }
+      }
+    },
+    {
+      "name": "6. Create Product Discount Mapping",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"company_id\": \"1\",\n  \"product_id\": \"1\",\n  \"variant_id\": \"1\",\n  \"discount_id\": \"1\",\n  \"is_primary\": true\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/product-discounts",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-discounts"]
+        }
+      }
+    },
+    {
+      "name": "7. Update Product Discount",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"discount_id\": \"2\",\n  \"is_primary\": false\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/product-discounts/1",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-discounts", "1"]
+        }
+      }
+    },
+    {
+      "name": "8. Toggle Product Discount Status",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"is_active\": false\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/product-discounts/1/status",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-discounts", "1", "status"]
+        }
+      }
+    },
+    {
+      "name": "9. Set as Primary Product Discount",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/product-discounts/1/set-primary",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-discounts", "1", "set-primary"]
+        }
+      }
+    },
+    {
+      "name": "10. Delete Product Discount",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/product-discounts/1",
+          "host": ["{{base_url}}"],
+          "path": ["api", "product-discounts", "1"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    }
+  ]
+}

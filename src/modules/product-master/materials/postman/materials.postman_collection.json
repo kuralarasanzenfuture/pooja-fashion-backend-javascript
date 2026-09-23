@@ -1,0 +1,146 @@
+{
+  "info": {
+    "_postman_id": "e4f5a6b7-8901-42cd-bc34-123456789abc",
+    "name": "Pooja Fashion - Product Master: Materials",
+    "description": "API collection for Materials under Product Master in Pooja Fashion ERP & POS platform.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "List Materials",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/materials?page=1&limit=10&company_id=1&is_active=true&sortBy=material_name&sortOrder=asc",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "materials"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" },
+            { "key": "company_id", "value": "1" },
+            { "key": "is_active", "value": "true" },
+            { "key": "search", "value": "", "disabled": true },
+            { "key": "sortBy", "value": "material_name" },
+            { "key": "sortOrder", "value": "asc" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Material by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/materials/{{materialId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "materials", "{{materialId}}"]
+        }
+      }
+    },
+    {
+      "name": "Get Material by Code",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/materials/code/{{companyId}}/{{materialCode}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "materials", "code", "{{companyId}}", "{{materialCode}}"]
+        }
+      }
+    },
+    {
+      "name": "Get Company Materials",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/materials/company/{{companyId}}?is_active=true",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "materials", "company", "{{companyId}}"],
+          "query": [{ "key": "is_active", "value": "true" }]
+        }
+      }
+    },
+    {
+      "name": "Create Material",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"company_id\": 1,\n  \"material_code\": \"COTTON\",\n  \"material_name\": \"100% Organic Cotton\",\n  \"description\": \"Soft breathable natural organic cotton fiber\",\n  \"is_active\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/materials",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "materials"]
+        }
+      }
+    },
+    {
+      "name": "Update Material",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"material_name\": \"100% Combed Cotton\",\n  \"description\": \"High-grade combed cotton fabric with smooth finish\",\n  \"is_active\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/materials/{{materialId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "materials", "{{materialId}}"]
+        }
+      }
+    },
+    {
+      "name": "Update Material Status",
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"is_active\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/materials/{{materialId}}/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "materials", "{{materialId}}", "status"]
+        }
+      }
+    },
+    {
+      "name": "Delete Material",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/materials/{{materialId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "materials", "{{materialId}}"]
+        }
+      }
+    },
+    {
+      "name": "Seed Default Materials",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/materials/company/{{companyId}}/seed-defaults",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "materials", "company", "{{companyId}}", "seed-defaults"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000", "type": "string" },
+    { "key": "companyId", "value": "1", "type": "string" },
+    { "key": "materialId", "value": "1", "type": "string" },
+    { "key": "materialCode", "value": "COTTON", "type": "string" }
+  ]
+}

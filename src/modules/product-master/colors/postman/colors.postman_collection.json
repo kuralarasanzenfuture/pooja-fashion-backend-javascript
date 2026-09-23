@@ -1,0 +1,146 @@
+{
+  "info": {
+    "_postman_id": "c7a8b9e0-5231-41fa-8a12-58cfc28d9901",
+    "name": "Pooja Fashion - Product Master: Colors",
+    "description": "API collection for Colors under Product Master in Pooja Fashion ERP & POS platform.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "List Colors",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/colors?page=1&limit=10&company_id=1&is_active=true&sortBy=display_order&sortOrder=asc",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "colors"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" },
+            { "key": "company_id", "value": "1" },
+            { "key": "is_active", "value": "true" },
+            { "key": "search", "value": "", "disabled": true },
+            { "key": "sortBy", "value": "display_order" },
+            { "key": "sortOrder", "value": "asc" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Color by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/colors/{{colorId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "colors", "{{colorId}}"]
+        }
+      }
+    },
+    {
+      "name": "Get Color by Code",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/colors/code/{{companyId}}/{{colorCode}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "colors", "code", "{{companyId}}", "{{colorCode}}"]
+        }
+      }
+    },
+    {
+      "name": "Get Company Colors",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/colors/company/{{companyId}}?is_active=true",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "colors", "company", "{{companyId}}"],
+          "query": [{ "key": "is_active", "value": "true" }]
+        }
+      }
+    },
+    {
+      "name": "Create Color",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"company_id\": 1,\n  \"color_code\": \"BLK\",\n  \"color_name\": \"Jet Black\",\n  \"hex_code\": \"#0A0A0A\",\n  \"description\": \"Deep black fabric shade\",\n  \"display_order\": 1,\n  \"is_active\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/colors",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "colors"]
+        }
+      }
+    },
+    {
+      "name": "Update Color",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"color_name\": \"Jet Black (Premium)\",\n  \"hex_code\": \"#000000\",\n  \"display_order\": 1,\n  \"is_active\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/colors/{{colorId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "colors", "{{colorId}}"]
+        }
+      }
+    },
+    {
+      "name": "Update Color Status",
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"is_active\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/colors/{{colorId}}/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "colors", "{{colorId}}", "status"]
+        }
+      }
+    },
+    {
+      "name": "Delete Color",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/colors/{{colorId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "colors", "{{colorId}}"]
+        }
+      }
+    },
+    {
+      "name": "Seed Default Colors",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/colors/company/{{companyId}}/seed-defaults",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "colors", "company", "{{companyId}}", "seed-defaults"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000", "type": "string" },
+    { "key": "companyId", "value": "1", "type": "string" },
+    { "key": "colorId", "value": "1", "type": "string" },
+    { "key": "colorCode", "value": "BLK", "type": "string" }
+  ]
+}

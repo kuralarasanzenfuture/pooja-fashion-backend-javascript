@@ -1,0 +1,162 @@
+{
+  "info": {
+    "_postman_id": "taxes-collection-v1",
+    "name": "Pooja Fashion - Taxes API",
+    "description": "Postman collection for Taxes master module (032_taxes.sql).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Seed Standard GST Slabs",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/taxes/seed/1",
+          "host": ["{{base_url}}"],
+          "path": ["api", "taxes", "seed", "1"]
+        }
+      }
+    },
+    {
+      "name": "2. Calculate Tax (Exclusive Intra-state)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 1000.00,\n  \"rate\": 18.00,\n  \"is_inter_state\": false,\n  \"is_inclusive\": false\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/taxes/calculate",
+          "host": ["{{base_url}}"],
+          "path": ["api", "taxes", "calculate"]
+        }
+      }
+    },
+    {
+      "name": "3. Calculate Tax (Inclusive Inter-state)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 1180.00,\n  \"rate\": 18.00,\n  \"is_inter_state\": true,\n  \"is_inclusive\": true\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/taxes/calculate",
+          "host": ["{{base_url}}"],
+          "path": ["api", "taxes", "calculate"]
+        }
+      }
+    },
+    {
+      "name": "4. List Taxes",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/taxes?company_id=1&page=1&limit=20&sort_by=rate&sort_order=asc",
+          "host": ["{{base_url}}"],
+          "path": ["api", "taxes"],
+          "query": [
+            { "key": "company_id", "value": "1" },
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "20" },
+            { "key": "sort_by", "value": "rate" },
+            { "key": "sort_order", "value": "asc" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "5. Get Tax By ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/taxes/1",
+          "host": ["{{base_url}}"],
+          "path": ["api", "taxes", "1"]
+        }
+      }
+    },
+    {
+      "name": "6. Create Custom Tax",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"company_id\": \"1\",\n  \"tax_code\": \"GST_SPECIAL_10\",\n  \"tax_name\": \"Special Surcharge GST 10%\",\n  \"rate\": 10.0,\n  \"is_inclusive\": false\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/taxes",
+          "host": ["{{base_url}}"],
+          "path": ["api", "taxes"]
+        }
+      }
+    },
+    {
+      "name": "7. Update Tax",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tax_name\": \"Special Surcharge GST 10% (Revised)\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/taxes/1",
+          "host": ["{{base_url}}"],
+          "path": ["api", "taxes", "1"]
+        }
+      }
+    },
+    {
+      "name": "8. Toggle Tax Status",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"is_active\": false\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/taxes/1/status",
+          "host": ["{{base_url}}"],
+          "path": ["api", "taxes", "1", "status"]
+        }
+      }
+    },
+    {
+      "name": "9. Delete Tax",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/taxes/1",
+          "host": ["{{base_url}}"],
+          "path": ["api", "taxes", "1"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    }
+  ]
+}

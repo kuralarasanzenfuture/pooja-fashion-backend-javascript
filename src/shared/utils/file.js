@@ -32,9 +32,14 @@ export const deleteFileByUrl = async (fileUrl) => {
     // Strip leading / if present
     const relativePath = fileUrl.replace(/^\//, '');
     const absolutePath = path.resolve(srcDir, relativePath);
+    const rootAbsolutePath = path.resolve(srcDir, '..', relativePath);
 
     if (fs.existsSync(absolutePath)) {
       await fs.promises.unlink(absolutePath);
+      return true;
+    }
+    if (fs.existsSync(rootAbsolutePath)) {
+      await fs.promises.unlink(rootAbsolutePath);
       return true;
     }
   } catch (error) {
@@ -54,9 +59,14 @@ export const deleteDirectory = async (dirRelativePath) => {
   try {
     const relativePath = dirRelativePath.replace(/^\//, '');
     const absolutePath = path.resolve(srcDir, relativePath);
+    const rootAbsolutePath = path.resolve(srcDir, '..', relativePath);
 
     if (fs.existsSync(absolutePath)) {
       await fs.promises.rm(absolutePath, { recursive: true, force: true });
+      return true;
+    }
+    if (fs.existsSync(rootAbsolutePath)) {
+      await fs.promises.rm(rootAbsolutePath, { recursive: true, force: true });
       return true;
     }
   } catch (error) {

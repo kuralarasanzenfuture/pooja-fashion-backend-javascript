@@ -1,0 +1,135 @@
+{
+  "info": {
+    "_postman_id": "f8a12345-6789-4bc0-def1-23456789abcd",
+    "name": "Pooja Fashion - Product Master: Products",
+    "description": "API collection for Products catalog master under Product Master in Pooja Fashion ERP & POS platform.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "List Products",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/products?page=1&limit=10&company_id=1&is_active=true&sortBy=product_name&sortOrder=asc",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "products"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" },
+            { "key": "company_id", "value": "1" },
+            { "key": "category_id", "value": "1", "disabled": true },
+            { "key": "subcategory_id", "value": "1", "disabled": true },
+            { "key": "brand_id", "value": "1", "disabled": true },
+            { "key": "product_type_id", "value": "1", "disabled": true },
+            { "key": "default_unit_id", "value": "1", "disabled": true },
+            { "key": "is_variant_product", "value": "true", "disabled": true },
+            { "key": "track_stock", "value": "true", "disabled": true },
+            { "key": "allow_negative_stock", "value": "false", "disabled": true },
+            { "key": "is_active", "value": "true" },
+            { "key": "search", "value": "", "disabled": true },
+            { "key": "sortBy", "value": "product_name" },
+            { "key": "sortOrder", "value": "asc" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Product by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/products/{{productId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "products", "{{productId}}"]
+        }
+      }
+    },
+    {
+      "name": "Get Product by Code",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/products/company/{{companyId}}/code/{{productCode}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "products", "company", "{{companyId}}", "code", "{{productCode}}"]
+        }
+      }
+    },
+    {
+      "name": "Create Product",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"company_id\": 1,\n  \"product_code\": \"SILK_ANARKALI_01\",\n  \"product_name\": \"Embroidered Silk Anarkali Suit\",\n  \"category_id\": 1,\n  \"subcategory_id\": 1,\n  \"brand_id\": 1,\n  \"product_type_id\": 1,\n  \"description\": \"Handcrafted premium silk suit with intricate zari embroidery.\",\n  \"short_description\": \"Designer silk anarkali suit\",\n  \"manufacturer_name\": \"Pooja Fashion Crafts Ltd\",\n  \"manufacturer_part_no\": \"PFC-ANK-2026\",\n  \"default_unit_id\": 1,\n  \"is_variant_product\": true,\n  \"track_stock\": true,\n  \"allow_negative_stock\": false,\n  \"is_active\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/products",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "products"]
+        }
+      }
+    },
+    {
+      "name": "Update Product",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"product_name\": \"Embroidered Royal Silk Anarkali Suit\",\n  \"short_description\": \"Exclusive festive designer royal silk anarkali suit\",\n  \"track_stock\": true,\n  \"allow_negative_stock\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/products/{{productId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "products", "{{productId}}"]
+        }
+      }
+    },
+    {
+      "name": "Update Product Status",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"is_active\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/products/{{productId}}/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "products", "{{productId}}", "status"]
+        }
+      }
+    },
+    {
+      "name": "Delete Product",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/products/{{productId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "products", "{{productId}}"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "companyId", "value": "1" },
+    { "key": "productId", "value": "1" },
+    { "key": "productCode", "value": "SILK_ANARKALI_01" }
+  ]
+}

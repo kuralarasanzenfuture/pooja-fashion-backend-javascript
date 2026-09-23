@@ -1,0 +1,149 @@
+{
+  "info": {
+    "_postman_id": "b1f092e1-4560-496a-a241-26cce41a7d65",
+    "name": "Pooja Fashion - Product Master: Sizes",
+    "description": "API collection for Sizes under Product Master in Pooja Fashion ERP & POS platform.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "List Sizes",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/sizes?page=1&limit=10&company_id=1&size_group_id=1&is_active=true&sortBy=display_order&sortOrder=asc",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "sizes"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" },
+            { "key": "company_id", "value": "1" },
+            { "key": "size_group_id", "value": "1" },
+            { "key": "is_active", "value": "true" },
+            { "key": "search", "value": "", "disabled": true },
+            { "key": "sortBy", "value": "display_order" },
+            { "key": "sortOrder", "value": "asc" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Size by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/sizes/{{sizeId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "sizes", "{{sizeId}}"]
+        }
+      }
+    },
+    {
+      "name": "Get Size by Code",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/sizes/code/{{sizeGroupId}}/{{sizeCode}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "sizes", "code", "{{sizeGroupId}}", "{{sizeCode}}"]
+        }
+      }
+    },
+    {
+      "name": "Get Company Sizes",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/sizes/company/{{companyId}}?is_active=true",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "sizes", "company", "{{companyId}}"],
+          "query": [{ "key": "is_active", "value": "true" }]
+        }
+      }
+    },
+    {
+      "name": "Get Size Group Sizes",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/sizes/size-group/{{sizeGroupId}}?is_active=true",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "sizes", "size-group", "{{sizeGroupId}}"],
+          "query": [{ "key": "is_active", "value": "true" }]
+        }
+      }
+    },
+    {
+      "name": "Create Size",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"company_id\": 1,\n  \"size_group_id\": 1,\n  \"size_code\": \"M\",\n  \"size_name\": \"Medium\",\n  \"display_order\": 2,\n  \"is_active\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/sizes",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "sizes"]
+        }
+      }
+    },
+    {
+      "name": "Update Size",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"size_name\": \"Medium (Regular)\",\n  \"display_order\": 2,\n  \"is_active\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/sizes/{{sizeId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "sizes", "{{sizeId}}"]
+        }
+      }
+    },
+    {
+      "name": "Update Size Status",
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"is_active\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/sizes/{{sizeId}}/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "sizes", "{{sizeId}}", "status"]
+        }
+      }
+    },
+    {
+      "name": "Delete Size",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/sizes/{{sizeId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "sizes", "{{sizeId}}"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000", "type": "string" },
+    { "key": "companyId", "value": "1", "type": "string" },
+    { "key": "sizeGroupId", "value": "1", "type": "string" },
+    { "key": "sizeId", "value": "1", "type": "string" },
+    { "key": "sizeCode", "value": "M", "type": "string" }
+  ]
+}

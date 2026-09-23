@@ -1,0 +1,152 @@
+{
+  "info": {
+    "_postman_id": "d92c39f4-1100-4cfa-9eb2-9eb5fa12f941",
+    "name": "Pooja Fashion - Product Master: Size Groups",
+    "description": "API collection for Size Groups under Product Master in Pooja Fashion ERP & POS platform.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "List Size Groups",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/size-groups?page=1&limit=10&company_id=1&is_active=true&sortBy=size_group_name&sortOrder=asc",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "size-groups"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" },
+            { "key": "company_id", "value": "1" },
+            { "key": "is_active", "value": "true" },
+            { "key": "search", "value": "", "disabled": true },
+            { "key": "sortBy", "value": "size_group_name" },
+            { "key": "sortOrder", "value": "asc" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Size Group by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/size-groups/{{sizeGroupId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "size-groups", "{{sizeGroupId}}"]
+        }
+      }
+    },
+    {
+      "name": "Get Size Group by Code",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/size-groups/code/{{companyId}}/{{sizeGroupCode}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "size-groups", "code", "{{companyId}}", "{{sizeGroupCode}}"]
+        }
+      }
+    },
+    {
+      "name": "Get Company Size Groups",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/size-groups/company/{{companyId}}?is_active=true",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "size-groups", "company", "{{companyId}}"],
+          "query": [{ "key": "is_active", "value": "true" }]
+        }
+      }
+    },
+    {
+      "name": "Create Size Group",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"company_id\": 1,\n  \"size_group_code\": \"MEN\",\n  \"size_group_name\": \"Men\",\n  \"description\": \"Standard menswear apparel sizing\",\n  \"is_active\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/size-groups",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "size-groups"]
+        }
+      }
+    },
+    {
+      "name": "Update Size Group",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"size_group_name\": \"Men's Apparel & Formal\",\n  \"description\": \"Shirts, suits, kurtas, and trousers sizing\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/size-groups/{{sizeGroupId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "size-groups", "{{sizeGroupId}}"]
+        }
+      }
+    },
+    {
+      "name": "Update Size Group Status",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"is_active\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/size-groups/{{sizeGroupId}}/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "size-groups", "{{sizeGroupId}}", "status"]
+        }
+      }
+    },
+    {
+      "name": "Delete Size Group",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/size-groups/{{sizeGroupId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "size-groups", "{{sizeGroupId}}"]
+        }
+      }
+    },
+    {
+      "name": "Seed Default Size Groups",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/size-groups/company/{{companyId}}/seed-defaults",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "size-groups", "company", "{{companyId}}", "seed-defaults"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000", "type": "string" },
+    { "key": "companyId", "value": "1", "type": "string" },
+    { "key": "sizeGroupId", "value": "1", "type": "string" },
+    { "key": "sizeGroupCode", "value": "MEN", "type": "string" }
+  ]
+}
