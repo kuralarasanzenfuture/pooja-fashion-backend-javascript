@@ -1,9 +1,6 @@
 import * as companyContactService from './companyContact.service.js';
 import { sendSuccess, sendCreated } from '../../shared/utils/response.js';
 
-/**
- * GET /api/company-contacts
- */
 export const getAll = async (req, res, next) => {
   try {
     const { contacts, meta } = await companyContactService.getContacts(req.query);
@@ -13,9 +10,6 @@ export const getAll = async (req, res, next) => {
   }
 };
 
-/**
- * GET /api/company-contacts/:id
- */
 export const getById = async (req, res, next) => {
   try {
     const contact = await companyContactService.getContactById(req.params.id);
@@ -25,9 +19,6 @@ export const getById = async (req, res, next) => {
   }
 };
 
-/**
- * GET /api/company-contacts/company/:companyId
- */
 export const getByCompanyId = async (req, res, next) => {
   try {
     const contacts = await companyContactService.getContactsByCompanyId(req.params.companyId);
@@ -37,9 +28,15 @@ export const getByCompanyId = async (req, res, next) => {
   }
 };
 
-/**
- * POST /api/company-contacts
- */
+export const getPrimaryByCompanyId = async (req, res, next) => {
+  try {
+    const contact = await companyContactService.getPrimaryContactByCompanyId(req.params.companyId);
+    return sendSuccess(res, contact, 'Primary company contact retrieved successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export const create = async (req, res, next) => {
   try {
     const contact = await companyContactService.createContact(req.body);
@@ -49,9 +46,6 @@ export const create = async (req, res, next) => {
   }
 };
 
-/**
- * PUT /api/company-contacts/:id
- */
 export const update = async (req, res, next) => {
   try {
     const contact = await companyContactService.updateContact(req.params.id, req.body);
@@ -61,14 +55,12 @@ export const update = async (req, res, next) => {
   }
 };
 
-/**
- * PATCH /api/company-contacts/:id/status
- */
 export const updateStatus = async (req, res, next) => {
   try {
+    const isActive = req.body.is_active !== undefined ? req.body.is_active : req.body.isActive;
     const contact = await companyContactService.updateContactStatus(
       req.params.id,
-      req.body.is_active
+      isActive
     );
     return sendSuccess(res, contact, 'Company contact status updated successfully');
   } catch (error) {
@@ -76,9 +68,6 @@ export const updateStatus = async (req, res, next) => {
   }
 };
 
-/**
- * PATCH /api/company-contacts/:id/primary
- */
 export const setPrimary = async (req, res, next) => {
   try {
     const contact = await companyContactService.setPrimaryContact(req.params.id);
@@ -88,9 +77,6 @@ export const setPrimary = async (req, res, next) => {
   }
 };
 
-/**
- * DELETE /api/company-contacts/:id
- */
 export const deleteContact = async (req, res, next) => {
   try {
     const deleted = await companyContactService.deleteContact(req.params.id);
@@ -104,6 +90,7 @@ export default {
   getAll,
   getById,
   getByCompanyId,
+  getPrimaryByCompanyId,
   create,
   update,
   updateStatus,

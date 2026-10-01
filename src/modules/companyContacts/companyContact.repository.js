@@ -8,9 +8,6 @@ const getPool = () => {
   return pool;
 };
 
-/**
- * Find paginated list of company contacts with optional filters
- */
 export const findAll = async ({
   limit = 10,
   offset = 0,
@@ -49,7 +46,7 @@ export const findAll = async ({
 
   if (search) {
     conditions.push(
-      `(cc.contact_name ILIKE $${paramIndex} OR cc.email ILIKE $${paramIndex} OR cc.phone ILIKE $${paramIndex} OR cc.mobile ILIKE $${paramIndex} OR cc.designation ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`
+      `(cc.contact_name ILIKE $${paramIndex} OR cc.designation ILIKE $${paramIndex} OR cc.email ILIKE $${paramIndex} OR cc.phone ILIKE $${paramIndex} OR cc.mobile ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`
     );
     values.push(`%${search}%`);
     paramIndex++;
@@ -60,16 +57,24 @@ export const findAll = async ({
   const allowedSortColumns = {
     id: 'cc.id',
     company_id: 'cc.company_id',
+    companyId: 'cc.company_id',
+    company_name: 'c.company_name',
+    companyName: 'c.company_name',
     contact_type: 'cc.contact_type',
+    contactType: 'cc.contact_type',
     contact_name: 'cc.contact_name',
+    contactName: 'cc.contact_name',
     designation: 'cc.designation',
     email: 'cc.email',
     is_primary: 'cc.is_primary',
+    isPrimary: 'cc.is_primary',
     is_active: 'cc.is_active',
+    isActive: 'cc.is_active',
     created_at: 'cc.created_at',
+    createdAt: 'cc.created_at',
   };
   const orderColumn = allowedSortColumns[sortBy] || 'cc.created_at';
-  const direction = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+  const direction = String(sortOrder).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
   const countQuery = `
     SELECT COUNT(*) AS total 
@@ -96,9 +101,6 @@ export const findAll = async ({
   return { rows: dataResult.rows, total };
 };
 
-/**
- * Find contact by ID (with company details)
- */
 export const findById = async (id) => {
   const pool = getPool();
   const query = `
@@ -111,9 +113,6 @@ export const findById = async (id) => {
   return result.rows[0] || null;
 };
 
-/**
- * Find all contacts belonging to a company
- */
 export const findByCompanyId = async (companyId) => {
   const pool = getPool();
   const query = `
@@ -127,9 +126,6 @@ export const findByCompanyId = async (companyId) => {
   return result.rows;
 };
 
-/**
- * Find primary contact for a company
- */
 export const findPrimaryByCompanyId = async (companyId) => {
   const pool = getPool();
   const query = `
@@ -143,9 +139,6 @@ export const findPrimaryByCompanyId = async (companyId) => {
   return result.rows[0] || null;
 };
 
-/**
- * Reset is_primary = FALSE for all contacts of a company (optionally excluding one contact ID)
- */
 export const resetPrimaryForCompany = async (companyId, excludeId = null) => {
   const pool = getPool();
   let query = `
@@ -163,9 +156,6 @@ export const resetPrimaryForCompany = async (companyId, excludeId = null) => {
   await pool.query(query, params);
 };
 
-/**
- * Insert new company contact
- */
 export const create = async (data) => {
   const pool = getPool();
   const columns = [
@@ -181,15 +171,15 @@ export const create = async (data) => {
   ];
 
   const values = [
-    data.company_id,
-    data.contact_type,
-    data.contact_name,
-    data.designation || null,
-    data.email || null,
-    data.phone || null,
-    data.mobile || null,
-    data.is_primary !== undefined ? Boolean(data.is_primary) : false,
-    data.is_active !== undefined ? Boolean(data.is_active) : true,
+    data.company_id || data.companyId,
+    data.contact_type || data.contactType,
+    data.contact_name || data.contactName,
+    data.designation !== undefined ? data.designation : null,
+    data.email !== undefined ? data.email : null,
+    data.phone !== undefined ? data.phone : null,
+    data.mobile !== undefined ? data.mobile : null,
+    data.is_primary !== undefined ? Boolean(data.is_primary) : (data.isPrimary !== undefined ? Boolean(data.isPrimary) : false),
+    data.is_active !== undefined ? Boolean(data.is_active) : (data.isActive !== undefined ? Boolean(data.isActive) : true),
   ];
 
   const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
@@ -203,31 +193,35 @@ export const create = async (data) => {
   return result.rows[0];
 };
 
-/**
- * Update existing company contact by ID
- */
 export const update = async (id, data) => {
   const pool = getPool();
-  const allowedFields = [
-    'company_id',
-    'contact_type',
-    'contact_name',
-    'designation',
-    'email',
-    'phone',
-    'mobile',
-    'is_primary',
-    'is_active',
-  ];
+  const allowedFields = {
+    company_id: 'company_id',
+    companyId: 'company_id',
+    contact_type: 'contact_type',
+    contactType: 'contact_type',
+    contact_name: 'contact_name',
+    contactName: 'contact_name',
+    designation: 'designation',
+    email: 'email',
+    phone: 'phone',
+    mobile: 'mobile',
+    is_primary: 'is_primary',
+    isPrimary: 'is_primary',
+    is_active: 'is_active',
+    isActive: 'is_active',
+  };
 
   const setClauses = [];
   const values = [];
+  const handled = new Set();
   let paramIndex = 1;
 
-  for (const field of allowedFields) {
-    if (data[field] !== undefined) {
-      setClauses.push(`${field} = $${paramIndex++}`);
-      values.push(data[field]);
+  for (const [key, col] of Object.entries(allowedFields)) {
+    if (data[key] !== undefined && !handled.has(col)) {
+      setClauses.push(`${col} = $${paramIndex++}`);
+      values.push(data[key]);
+      handled.add(col);
     }
   }
 
@@ -249,9 +243,6 @@ export const update = async (id, data) => {
   return result.rows[0] || null;
 };
 
-/**
- * Update active status of a contact
- */
 export const updateStatus = async (id, isActive) => {
   const pool = getPool();
   const query = `
@@ -264,9 +255,6 @@ export const updateStatus = async (id, isActive) => {
   return result.rows[0] || null;
 };
 
-/**
- * Set a contact as primary
- */
 export const setPrimary = async (id) => {
   const pool = getPool();
   const query = `
@@ -279,9 +267,6 @@ export const setPrimary = async (id) => {
   return result.rows[0] || null;
 };
 
-/**
- * Delete company contact by ID
- */
 export const deleteContact = async (id) => {
   const pool = getPool();
   const query = 'DELETE FROM company_contacts WHERE id = $1 RETURNING *';

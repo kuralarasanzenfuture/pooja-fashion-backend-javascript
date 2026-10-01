@@ -8,9 +8,6 @@ const getPool = () => {
   return pool;
 };
 
-/**
- * Find paginated list of company tax details with optional filters
- */
 export const findAll = async ({
   limit = 10,
   offset = 0,
@@ -49,7 +46,7 @@ export const findAll = async ({
 
   if (search) {
     conditions.push(
-      `(ctd.gstin ILIKE $${paramIndex} OR ctd.pan_number ILIKE $${paramIndex} OR ctd.tan_number ILIKE $${paramIndex} OR ctd.tax_registered_name ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`
+      `(ctd.gstin ILIKE $${paramIndex} OR ctd.pan_number ILIKE $${paramIndex} OR ctd.tan_number ILIKE $${paramIndex} OR ctd.tax_registered_name ILIKE $${paramIndex} OR ctd.gst_state_code ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`
     );
     values.push(`%${search}%`);
     paramIndex++;
@@ -60,17 +57,27 @@ export const findAll = async ({
   const allowedSortColumns = {
     id: 'ctd.id',
     company_id: 'ctd.company_id',
+    companyId: 'ctd.company_id',
+    company_name: 'c.company_name',
+    companyName: 'c.company_name',
     gstin: 'ctd.gstin',
     pan_number: 'ctd.pan_number',
+    panNumber: 'ctd.pan_number',
     tan_number: 'ctd.tan_number',
+    tanNumber: 'ctd.tan_number',
     gst_registration_type: 'ctd.gst_registration_type',
+    gstRegistrationType: 'ctd.gst_registration_type',
     tax_registered_name: 'ctd.tax_registered_name',
+    taxRegisteredName: 'ctd.tax_registered_name',
     is_primary: 'ctd.is_primary',
+    isPrimary: 'ctd.is_primary',
     is_active: 'ctd.is_active',
+    isActive: 'ctd.is_active',
     created_at: 'ctd.created_at',
+    createdAt: 'ctd.created_at',
   };
   const orderColumn = allowedSortColumns[sortBy] || 'ctd.created_at';
-  const direction = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+  const direction = String(sortOrder).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
   const countQuery = `
     SELECT COUNT(*) AS total 
@@ -97,9 +104,6 @@ export const findAll = async ({
   return { rows: dataResult.rows, total };
 };
 
-/**
- * Find tax detail by ID (with company details)
- */
 export const findById = async (id) => {
   const pool = getPool();
   const query = `
@@ -112,9 +116,6 @@ export const findById = async (id) => {
   return result.rows[0] || null;
 };
 
-/**
- * Find all tax details belonging to a company
- */
 export const findByCompanyId = async (companyId) => {
   const pool = getPool();
   const query = `
@@ -128,9 +129,6 @@ export const findByCompanyId = async (companyId) => {
   return result.rows;
 };
 
-/**
- * Find primary tax detail for a company
- */
 export const findPrimaryByCompanyId = async (companyId) => {
   const pool = getPool();
   const query = `
@@ -144,9 +142,6 @@ export const findPrimaryByCompanyId = async (companyId) => {
   return result.rows[0] || null;
 };
 
-/**
- * Reset is_primary = FALSE for all tax records of a company (optionally excluding one ID)
- */
 export const resetPrimaryForCompany = async (companyId, excludeId = null) => {
   const pool = getPool();
   let query = `
@@ -164,9 +159,6 @@ export const resetPrimaryForCompany = async (companyId, excludeId = null) => {
   await pool.query(query, params);
 };
 
-/**
- * Insert new company tax detail
- */
 export const create = async (data) => {
   const pool = getPool();
   const columns = [
@@ -182,15 +174,15 @@ export const create = async (data) => {
   ];
 
   const values = [
-    data.company_id,
-    data.gstin || null,
-    data.pan_number || null,
-    data.tan_number || null,
-    data.gst_registration_type || null,
-    data.gst_state_code || null,
-    data.tax_registered_name || null,
-    data.is_primary !== undefined ? Boolean(data.is_primary) : true,
-    data.is_active !== undefined ? Boolean(data.is_active) : true,
+    data.company_id || data.companyId,
+    data.gstin !== undefined ? (data.gstin ? data.gstin.toUpperCase() : null) : null,
+    data.pan_number !== undefined ? (data.pan_number ? data.pan_number.toUpperCase() : null) : (data.panNumber ? data.panNumber.toUpperCase() : null),
+    data.tan_number !== undefined ? (data.tan_number ? data.tan_number.toUpperCase() : null) : (data.tanNumber ? data.tanNumber.toUpperCase() : null),
+    data.gst_registration_type || data.gstRegistrationType || 'regular',
+    data.gst_state_code !== undefined ? data.gst_state_code : (data.gstStateCode || null),
+    data.tax_registered_name !== undefined ? data.tax_registered_name : (data.taxRegisteredName || null),
+    data.is_primary !== undefined ? Boolean(data.is_primary) : (data.isPrimary !== undefined ? Boolean(data.isPrimary) : true),
+    data.is_active !== undefined ? Boolean(data.is_active) : (data.isActive !== undefined ? Boolean(data.isActive) : true),
   ];
 
   const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
@@ -204,31 +196,42 @@ export const create = async (data) => {
   return result.rows[0];
 };
 
-/**
- * Update existing company tax detail by ID
- */
 export const update = async (id, data) => {
   const pool = getPool();
-  const allowedFields = [
-    'company_id',
-    'gstin',
-    'pan_number',
-    'tan_number',
-    'gst_registration_type',
-    'gst_state_code',
-    'tax_registered_name',
-    'is_primary',
-    'is_active',
-  ];
+  const allowedFields = {
+    company_id: 'company_id',
+    companyId: 'company_id',
+    gstin: 'gstin',
+    pan_number: 'pan_number',
+    panNumber: 'pan_number',
+    tan_number: 'tan_number',
+    tanNumber: 'tan_number',
+    gst_registration_type: 'gst_registration_type',
+    gstRegistrationType: 'gst_registration_type',
+    gst_state_code: 'gst_state_code',
+    gstStateCode: 'gst_state_code',
+    tax_registered_name: 'tax_registered_name',
+    taxRegisteredName: 'tax_registered_name',
+    is_primary: 'is_primary',
+    isPrimary: 'is_primary',
+    is_active: 'is_active',
+    isActive: 'is_active',
+  };
 
   const setClauses = [];
   const values = [];
+  const handled = new Set();
   let paramIndex = 1;
 
-  for (const field of allowedFields) {
-    if (data[field] !== undefined) {
-      setClauses.push(`${field} = $${paramIndex++}`);
-      values.push(data[field]);
+  for (const [key, col] of Object.entries(allowedFields)) {
+    if (data[key] !== undefined && !handled.has(col)) {
+      let val = data[key];
+      if (typeof val === 'string' && ['gstin', 'pan_number', 'tan_number'].includes(col)) {
+        val = val.trim().toUpperCase();
+      }
+      setClauses.push(`${col} = $${paramIndex++}`);
+      values.push(val);
+      handled.add(col);
     }
   }
 
@@ -250,9 +253,6 @@ export const update = async (id, data) => {
   return result.rows[0] || null;
 };
 
-/**
- * Update active status of a tax detail
- */
 export const updateStatus = async (id, isActive) => {
   const pool = getPool();
   const query = `
@@ -265,9 +265,6 @@ export const updateStatus = async (id, isActive) => {
   return result.rows[0] || null;
 };
 
-/**
- * Set a tax detail as primary
- */
 export const setPrimary = async (id) => {
   const pool = getPool();
   const query = `
@@ -280,9 +277,6 @@ export const setPrimary = async (id) => {
   return result.rows[0] || null;
 };
 
-/**
- * Delete company tax detail by ID
- */
 export const deleteTaxDetail = async (id) => {
   const pool = getPool();
   const query = 'DELETE FROM company_tax_details WHERE id = $1 RETURNING *';

@@ -3,6 +3,7 @@ import {
   getAll,
   getById,
   getByCompanyId,
+  getPrimaryByCompanyId,
   create,
   update,
   updateStatus,
@@ -24,6 +25,13 @@ const router = Router();
 // GET /api/company-tax-details - List tax details with pagination & filters
 router.get('/', validate(getCompanyTaxDetailsQuerySchema, 'query'), getAll);
 
+// GET /api/company-tax-details/company/:companyId/primary - Get primary tax record
+router.get(
+  '/company/:companyId/primary',
+  validate(companyIdParamSchema, 'params'),
+  getPrimaryByCompanyId
+);
+
 // GET /api/company-tax-details/company/:companyId - List all tax details for a company
 router.get('/company/:companyId', validate(companyIdParamSchema, 'params'), getByCompanyId);
 
@@ -35,6 +43,14 @@ router.post('/', validate(createCompanyTaxDetailSchema, 'body'), create);
 
 // PUT /api/company-tax-details/:id - Update existing company tax detail
 router.put(
+  '/:id',
+  validate(taxDetailIdParamSchema, 'params'),
+  validate(updateCompanyTaxDetailSchema, 'body'),
+  update
+);
+
+// PATCH /api/company-tax-details/:id - Partial update
+router.patch(
   '/:id',
   validate(taxDetailIdParamSchema, 'params'),
   validate(updateCompanyTaxDetailSchema, 'body'),

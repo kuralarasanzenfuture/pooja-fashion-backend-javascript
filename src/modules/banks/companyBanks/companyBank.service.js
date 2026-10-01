@@ -51,6 +51,19 @@ export const getBankById = async (id) => {
 /**
  * Get all banks for a specific company
  */
+/**
+ * Get primary bank account for a specific company
+ */
+export const getPrimaryBankByCompanyId = async (companyId) => {
+  const company = await companyRepository.findById(companyId);
+  if (!company) {
+    throw new NotFoundError(`Company with ID ${companyId} not found`);
+  }
+
+  const primaryBank = await companyBankRepository.findPrimaryByCompanyId(companyId);
+  return toCompanyBankDTO(primaryBank);
+};
+
 export const getBanksByCompanyId = async (companyId) => {
   const company = await companyRepository.findById(companyId);
   if (!company) {
@@ -182,6 +195,7 @@ export const deleteBank = async (id) => {
 
 export default {
   getBanks,
+  getPrimaryBankByCompanyId,
   getBankById,
   getBanksByCompanyId,
   createBank,

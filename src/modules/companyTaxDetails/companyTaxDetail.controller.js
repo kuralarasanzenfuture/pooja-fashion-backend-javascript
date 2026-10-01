@@ -1,9 +1,6 @@
 import * as companyTaxDetailService from './companyTaxDetail.service.js';
 import { sendSuccess, sendCreated } from '../../shared/utils/response.js';
 
-/**
- * GET /api/company-tax-details
- */
 export const getAll = async (req, res, next) => {
   try {
     const { taxDetails, meta } = await companyTaxDetailService.getTaxDetails(req.query);
@@ -13,9 +10,6 @@ export const getAll = async (req, res, next) => {
   }
 };
 
-/**
- * GET /api/company-tax-details/:id
- */
 export const getById = async (req, res, next) => {
   try {
     const taxDetail = await companyTaxDetailService.getTaxDetailById(req.params.id);
@@ -25,9 +19,6 @@ export const getById = async (req, res, next) => {
   }
 };
 
-/**
- * GET /api/company-tax-details/company/:companyId
- */
 export const getByCompanyId = async (req, res, next) => {
   try {
     const taxDetails = await companyTaxDetailService.getTaxDetailsByCompanyId(req.params.companyId);
@@ -37,9 +28,15 @@ export const getByCompanyId = async (req, res, next) => {
   }
 };
 
-/**
- * POST /api/company-tax-details
- */
+export const getPrimaryByCompanyId = async (req, res, next) => {
+  try {
+    const taxDetail = await companyTaxDetailService.getPrimaryTaxDetailByCompanyId(req.params.companyId);
+    return sendSuccess(res, taxDetail, 'Primary company tax detail retrieved successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export const create = async (req, res, next) => {
   try {
     const taxDetail = await companyTaxDetailService.createTaxDetail(req.body);
@@ -49,9 +46,6 @@ export const create = async (req, res, next) => {
   }
 };
 
-/**
- * PUT /api/company-tax-details/:id
- */
 export const update = async (req, res, next) => {
   try {
     const taxDetail = await companyTaxDetailService.updateTaxDetail(req.params.id, req.body);
@@ -61,14 +55,12 @@ export const update = async (req, res, next) => {
   }
 };
 
-/**
- * PATCH /api/company-tax-details/:id/status
- */
 export const updateStatus = async (req, res, next) => {
   try {
+    const isActive = req.body.is_active !== undefined ? req.body.is_active : req.body.isActive;
     const taxDetail = await companyTaxDetailService.updateTaxDetailStatus(
       req.params.id,
-      req.body.is_active
+      isActive
     );
     return sendSuccess(res, taxDetail, 'Company tax detail status updated successfully');
   } catch (error) {
@@ -76,9 +68,6 @@ export const updateStatus = async (req, res, next) => {
   }
 };
 
-/**
- * PATCH /api/company-tax-details/:id/primary
- */
 export const setPrimary = async (req, res, next) => {
   try {
     const taxDetail = await companyTaxDetailService.setPrimaryTaxDetail(req.params.id);
@@ -88,9 +77,6 @@ export const setPrimary = async (req, res, next) => {
   }
 };
 
-/**
- * DELETE /api/company-tax-details/:id
- */
 export const deleteTaxDetail = async (req, res, next) => {
   try {
     const deleted = await companyTaxDetailService.deleteTaxDetail(req.params.id);
@@ -104,6 +90,7 @@ export default {
   getAll,
   getById,
   getByCompanyId,
+  getPrimaryByCompanyId,
   create,
   update,
   updateStatus,

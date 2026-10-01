@@ -45,6 +45,14 @@ router.put(
   update
 );
 
+// PATCH /api/bank-identifiers/:id - Partial update existing bank identifier
+router.patch(
+  '/:id',
+  validate(identifierIdParamSchema, 'params'),
+  validate(updateBankIdentifierSchema, 'body'),
+  update
+);
+
 // PATCH /api/bank-identifiers/:id/status - Update active status
 router.patch(
   '/:id/status',

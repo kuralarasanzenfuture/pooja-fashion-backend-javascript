@@ -38,6 +38,18 @@ export const getByCompanyId = async (req, res, next) => {
 };
 
 /**
+ * GET /api/company-banks/company/:companyId/primary
+ */
+export const getPrimaryByCompanyId = async (req, res, next) => {
+  try {
+    const bank = await companyBankService.getPrimaryBankByCompanyId(req.params.companyId);
+    return sendSuccess(res, bank, 'Primary company bank retrieved successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
  * POST /api/company-banks
  */
 export const create = async (req, res, next) => {
@@ -99,6 +111,7 @@ export const deleteBank = async (req, res, next) => {
 
 export default {
   getAll,
+  getPrimaryByCompanyId,
   getById,
   getByCompanyId,
   create,

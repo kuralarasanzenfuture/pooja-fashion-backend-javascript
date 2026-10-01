@@ -38,6 +38,18 @@ export const getByCompanyId = async (req, res, next) => {
 };
 
 /**
+ * GET /api/company-addresses/company/:companyId/primary
+ */
+export const getPrimaryByCompanyId = async (req, res, next) => {
+  try {
+    const address = await companyAddressService.getPrimaryAddressByCompanyId(req.params.companyId);
+    return sendSuccess(res, address, 'Primary company address retrieved successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
  * POST /api/company-addresses
  */
 export const create = async (req, res, next) => {
@@ -50,7 +62,7 @@ export const create = async (req, res, next) => {
 };
 
 /**
- * PUT /api/company-addresses/:id
+ * PUT / PATCH /api/company-addresses/:id
  */
 export const update = async (req, res, next) => {
   try {
@@ -66,9 +78,10 @@ export const update = async (req, res, next) => {
  */
 export const updateStatus = async (req, res, next) => {
   try {
+    const isActive = req.body.is_active !== undefined ? req.body.is_active : req.body.isActive;
     const address = await companyAddressService.updateAddressStatus(
       req.params.id,
-      req.body.is_active
+      isActive
     );
     return sendSuccess(res, address, 'Company address status updated successfully');
   } catch (error) {
@@ -104,6 +117,7 @@ export default {
   getAll,
   getById,
   getByCompanyId,
+  getPrimaryByCompanyId,
   create,
   update,
   updateStatus,

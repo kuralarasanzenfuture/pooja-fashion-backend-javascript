@@ -4,15 +4,12 @@ import { toCompanyTaxDetailDTO, toCompanyTaxDetailListDTO } from './companyTaxDe
 import NotFoundError from '../../shared/errors/NotFoundError.js';
 import { getPaginationParams, formatPaginationMeta } from '../../shared/utils/pagination.js';
 
-/**
- * List company tax details with pagination, filtering, and search
- */
 export const getTaxDetails = async (query) => {
   const { page, limit, offset, sortBy, sortOrder, search } = getPaginationParams(query);
   const companyId = query.company_id || query.companyId || null;
-  const gstRegistrationType = query.gst_registration_type || null;
-  const isPrimary = query.is_primary !== undefined ? query.is_primary : null;
-  const isActive = query.is_active !== undefined ? query.is_active : null;
+  const gstRegistrationType = query.gst_registration_type || query.gstRegistrationType || null;
+  const isPrimary = query.is_primary !== undefined ? query.is_primary : (query.isPrimary !== undefined ? query.isPrimary : null);
+  const isActive = query.is_active !== undefined ? query.is_active : (query.isActive !== undefined ? query.isActive : null);
 
   const { rows, total } = await companyTaxDetailRepository.findAll({
     limit,
@@ -33,9 +30,6 @@ export const getTaxDetails = async (query) => {
   };
 };
 
-/**
- * Get single tax detail by ID
- */
 export const getTaxDetailById = async (id) => {
   const taxDetail = await companyTaxDetailRepository.findById(id);
   if (!taxDetail) {
@@ -44,9 +38,6 @@ export const getTaxDetailById = async (id) => {
   return toCompanyTaxDetailDTO(taxDetail);
 };
 
-/**
- * Get all tax details for a specific company
- */
 export const getTaxDetailsByCompanyId = async (companyId) => {
   const company = await companyRepository.findById(companyId);
   if (!company) {
@@ -57,65 +48,79 @@ export const getTaxDetailsByCompanyId = async (companyId) => {
   return toCompanyTaxDetailListDTO(rows);
 };
 
-/**
- * Create new company tax detail
- */
-export const createTaxDetail = async (data) => {
-  const company = await companyRepository.findById(data.company_id);
+export const getPrimaryTaxDetailByCompanyId = async (companyId) => {
+  const company = await companyRepository.findById(companyId);
   if (!company) {
-    throw new NotFoundError(`Company with ID ${data.company_id} not found`);
+    throw new NotFoundError(`Company with ID ${companyId} not found`);
   }
 
-  if (data.is_primary) {
-    await companyTaxDetailRepository.resetPrimaryForCompany(data.company_id);
+  const taxDetail = await companyTaxDetailRepository.findPrimaryByCompanyId(companyId);
+  return taxDetail ? toCompanyTaxDetailDTO(taxDetail) : null;
+};
+
+export const createTaxDetail = async (data) => {
+  const companyId = data.company_id || data.companyId;
+  const company = await companyRepository.findById(companyId);
+  if (!company) {
+    throw new NotFoundError(`Company with ID ${companyId} not found`);
   }
 
-  const created = await companyTaxDetailRepository.create(data);
+  const existing = await companyTaxDetailRepository.findByCompanyId(companyId);
+  const shouldBePrimary = Boolean(data.is_primary ?? data.isPrimary ?? (existing.length === 0));
+
+  if (shouldBePrimary) {
+    await companyTaxDetailRepository.resetPrimaryForCompany(companyId);
+  }
+
+  const payload = {
+    ...data,
+    company_id: companyId,
+    is_primary: shouldBePrimary,
+  };
+
+  const created = await companyTaxDetailRepository.create(payload);
   return toCompanyTaxDetailDTO(created);
 };
 
-/**
- * Update existing company tax detail
- */
 export const updateTaxDetail = async (id, data) => {
   const existing = await companyTaxDetailRepository.findById(id);
   if (!existing) {
     throw new NotFoundError(`Company tax detail with ID ${id} not found`);
   }
 
-  if (data.company_id && Number(data.company_id) !== Number(existing.company_id)) {
-    const targetCompany = await companyRepository.findById(data.company_id);
+  const targetCompanyId = data.company_id || data.companyId || existing.company_id;
+  if (Number(targetCompanyId) !== Number(existing.company_id)) {
+    const targetCompany = await companyRepository.findById(targetCompanyId);
     if (!targetCompany) {
-      throw new NotFoundError(`Company with ID ${data.company_id} not found`);
+      throw new NotFoundError(`Company with ID ${targetCompanyId} not found`);
     }
   }
 
-  const companyId = data.company_id || existing.company_id;
-
-  if (data.is_primary) {
-    await companyTaxDetailRepository.resetPrimaryForCompany(companyId, id);
+  const isPrimary = data.is_primary !== undefined ? data.is_primary : data.isPrimary;
+  if (isPrimary) {
+    await companyTaxDetailRepository.resetPrimaryForCompany(targetCompanyId, id);
   }
 
-  const updated = await companyTaxDetailRepository.update(id, data);
+  const payload = {
+    ...data,
+    company_id: targetCompanyId,
+    ...(isPrimary !== undefined ? { is_primary: isPrimary } : {}),
+  };
+
+  const updated = await companyTaxDetailRepository.update(id, payload);
   return toCompanyTaxDetailDTO(updated);
 };
 
-/**
- * Update active status of a tax detail
- */
 export const updateTaxDetailStatus = async (id, isActive) => {
   const existing = await companyTaxDetailRepository.findById(id);
   if (!existing) {
     throw new NotFoundError(`Company tax detail with ID ${id} not found`);
   }
 
-  const updated = await companyTaxDetailRepository.updateStatus(id, isActive);
+  const updated = await companyTaxDetailRepository.updateStatus(id, Boolean(isActive));
   return toCompanyTaxDetailDTO(updated);
 };
 
-/**
- * Set tax detail as primary for its company
- */
 export const setPrimaryTaxDetail = async (id) => {
   const existing = await companyTaxDetailRepository.findById(id);
   if (!existing) {
@@ -127,9 +132,6 @@ export const setPrimaryTaxDetail = async (id) => {
   return toCompanyTaxDetailDTO(updated);
 };
 
-/**
- * Delete company tax detail by ID
- */
 export const deleteTaxDetail = async (id) => {
   const existing = await companyTaxDetailRepository.findById(id);
   if (!existing) {
@@ -144,6 +146,7 @@ export default {
   getTaxDetails,
   getTaxDetailById,
   getTaxDetailsByCompanyId,
+  getPrimaryTaxDetailByCompanyId,
   createTaxDetail,
   updateTaxDetail,
   updateTaxDetailStatus,

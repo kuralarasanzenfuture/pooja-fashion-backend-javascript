@@ -3,6 +3,7 @@ import {
   getAll,
   getById,
   getByCompanyId,
+  getPrimaryByCompanyId,
   create,
   update,
   updateStatus,
@@ -24,6 +25,13 @@ const router = Router();
 // GET /api/company-contacts - List contacts with pagination & filters
 router.get('/', validate(getCompanyContactsQuerySchema, 'query'), getAll);
 
+// GET /api/company-contacts/company/:companyId/primary - Get primary contact
+router.get(
+  '/company/:companyId/primary',
+  validate(companyIdParamSchema, 'params'),
+  getPrimaryByCompanyId
+);
+
 // GET /api/company-contacts/company/:companyId - List all contacts for a specific company
 router.get('/company/:companyId', validate(companyIdParamSchema, 'params'), getByCompanyId);
 
@@ -35,6 +43,14 @@ router.post('/', validate(createCompanyContactSchema, 'body'), create);
 
 // PUT /api/company-contacts/:id - Update existing company contact
 router.put(
+  '/:id',
+  validate(contactIdParamSchema, 'params'),
+  validate(updateCompanyContactSchema, 'body'),
+  update
+);
+
+// PATCH /api/company-contacts/:id - Partial update
+router.patch(
   '/:id',
   validate(contactIdParamSchema, 'params'),
   validate(updateCompanyContactSchema, 'body'),

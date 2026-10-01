@@ -3,6 +3,7 @@ import {
   getAll,
   getById,
   getByCompanyId,
+  getPrimaryByCompanyId,
   create,
   update,
   updateStatus,
@@ -24,6 +25,9 @@ const router = Router();
 // GET /api/company-banks - List company bank accounts with pagination & filters
 router.get('/', validate(getCompanyBanksQuerySchema, 'query'), getAll);
 
+// GET /api/company-banks/company/:companyId/primary - Get primary bank account for company
+router.get('/company/:companyId/primary', validate(companyIdParamSchema, 'params'), getPrimaryByCompanyId);
+
 // GET /api/company-banks/company/:companyId - List all bank accounts for a specific company
 router.get('/company/:companyId', validate(companyIdParamSchema, 'params'), getByCompanyId);
 
@@ -35,6 +39,14 @@ router.post('/', validate(createCompanyBankSchema, 'body'), create);
 
 // PUT /api/company-banks/:id - Update existing company bank account
 router.put(
+  '/:id',
+  validate(bankIdParamSchema, 'params'),
+  validate(updateCompanyBankSchema, 'body'),
+  update
+);
+
+// PATCH /api/company-banks/:id - Partial update existing company bank account
+router.patch(
   '/:id',
   validate(bankIdParamSchema, 'params'),
   validate(updateCompanyBankSchema, 'body'),

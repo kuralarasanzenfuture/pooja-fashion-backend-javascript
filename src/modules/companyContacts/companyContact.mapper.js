@@ -1,6 +1,7 @@
 /**
  * Company Contact Data Mapper
  * Transforms raw database records into clean client-facing response DTOs.
+ * Provides both camelCase and snake_case properties.
  */
 
 export const toCompanyContactDTO = (row) => {
@@ -11,18 +12,25 @@ export const toCompanyContactDTO = (row) => {
   return {
     id: Number(row.id),
     companyId: Number(row.company_id),
-    ...(row.company_name ? { companyName: row.company_name } : {}),
-    ...(row.company_code ? { companyCode: row.company_code } : {}),
+    company_id: Number(row.company_id),
+    ...(row.company_name ? { companyName: row.company_name, company_name: row.company_name } : {}),
+    ...(row.company_code ? { companyCode: row.company_code, company_code: row.company_code } : {}),
     contactType: row.contact_type,
+    contact_type: row.contact_type,
     contactName: row.contact_name,
+    contact_name: row.contact_name,
     designation: row.designation || null,
     email: row.email || null,
     phone: row.phone || null,
     mobile: row.mobile || null,
     isPrimary: Boolean(row.is_primary),
+    is_primary: Boolean(row.is_primary),
     isActive: Boolean(row.is_active),
+    is_active: Boolean(row.is_active),
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
+    created_at: row.created_at ? new Date(row.created_at).toISOString() : null,
     updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
+    updated_at: row.updated_at ? new Date(row.updated_at).toISOString() : null,
   };
 };
 

@@ -37,8 +37,18 @@ router.get('/:id', validate(bankIdParamSchema, 'params'), getById);
 // POST /api/banks - Create new bank (accepts JSON or multipart/form-data with logos)
 router.post('/', bankLogoUploadFields, validate(createBankSchema, 'body'), create);
 
-// PUT /api/banks/:id - Update existing bank (accepts JSON or multipart/form-data with logos)
+// PUT /api/banks/:id - Update existing bank
 router.put(
+  '/:id',
+  resolveBankContext,
+  bankLogoUploadFields,
+  validate(bankIdParamSchema, 'params'),
+  validate(updateBankSchema, 'body'),
+  update
+);
+
+// PATCH /api/banks/:id - Partial update existing bank
+router.patch(
   '/:id',
   resolveBankContext,
   bankLogoUploadFields,
