@@ -1,4 +1,4 @@
-import { getDatabasePool } from '../../database/connection.js';
+﻿import { getDatabasePool } from '../../database/connection.js';
 
 const getPool = () => {
   const pool = getDatabasePool();
@@ -64,6 +64,16 @@ export const findAll = async ({
 
   const total = parseInt(countResult.rows[0]?.total || 0, 10);
   return { rows: dataResult.rows, total };
+};
+
+/**
+ * Find all assigned company codes for sequential generation and collision avoidance
+ */
+export const findAllCodes = async () => {
+  const pool = getPool();
+  const query = 'SELECT UPPER(company_code) AS company_code FROM companies';
+  const result = await pool.query(query);
+  return result.rows.map((r) => r.company_code).filter(Boolean);
 };
 
 /**
@@ -240,6 +250,7 @@ export const deleteCompany = async (id) => {
 
 export default {
   findAll,
+  findAllCodes,
   findById,
   findByCode,
   existsByCode,

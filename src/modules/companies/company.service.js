@@ -1,6 +1,7 @@
-import * as companyRepository from './company.repository.js';
+﻿import * as companyRepository from './company.repository.js';
 import { toCompanyDTO, toCompanyListDTO } from './company.mapper.js';
 import { seedDefaultCompanyRoles } from '../roles/role.service.js';
+import { generateCompanyCode } from './company.utils.js';
 import NotFoundError from '../../shared/errors/NotFoundError.js';
 import BadRequestError from '../../shared/errors/BadRequestError.js';
 import { getPaginationParams, formatPaginationMeta } from '../../shared/utils/pagination.js';
@@ -51,9 +52,29 @@ export const getCompanyByCode = async (companyCode) => {
 };
 
 /**
- * Create new company
+ * Generate a meaningful, collision-free company code (e.g. PFS001)
+ */
+export const generateNextCompanyCode = async (companyName) => {
+  const existingCodes = await companyRepository.findAllCodes();
+  return generateCompanyCode({
+    companyName,
+    existingCodes,
+  });
+};
+
+/**
+ * Create new company (with meaningful auto-generated code if omitted)
  */
 export const createCompany = async (data) => {
+  // Auto-generate meaningful code if omitted or empty
+  if (!data.company_code || !data.company_code.trim()) {
+    const existingCodes = await companyRepository.findAllCodes();
+    data.company_code = generateCompanyCode({
+      companyName: data.company_name,
+      existingCodes,
+    });
+  }
+
   const codeExists = await companyRepository.existsByCode(data.company_code);
   if (codeExists) {
     throw new BadRequestError(`Company code '${data.company_code}' is already in use`);
@@ -66,7 +87,7 @@ export const createCompany = async (data) => {
     await seedDefaultCompanyRoles(created.id);
   } catch (seedError) {
     console.warn(
-      `⚠️ Could not auto-seed default roles for company ${created.id}:`,
+      `Could not auto-seed default roles for company ${created.id}:`,
       seedError.message
     );
   }
@@ -124,6 +145,7 @@ export default {
   getCompanies,
   getCompanyById,
   getCompanyByCode,
+  generateNextCompanyCode,
   createCompany,
   updateCompany,
   updateCompanyStatus,

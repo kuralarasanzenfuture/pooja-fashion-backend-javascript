@@ -1,6 +1,7 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import {
   getAll,
+  generateCode,
   getById,
   getByCode,
   create,
@@ -23,13 +24,16 @@ const router = Router();
 // GET /api/companies - List companies with pagination & filters
 router.get('/', validate(getCompaniesQuerySchema, 'query'), getAll);
 
+// GET /api/companies/generate-code - Generate a meaningful unique company code (optional ?name=...)
+router.get('/generate-code', generateCode);
+
 // GET /api/companies/code/:companyCode - Retrieve company by unique company code
 router.get('/code/:companyCode', validate(companyCodeParamSchema, 'params'), getByCode);
 
 // GET /api/companies/:id - Retrieve company by primary ID
 router.get('/:id', validate(companyIdParamSchema, 'params'), getById);
 
-// POST /api/companies - Create new company
+// POST /api/companies - Create new company (with meaningful auto-generated code if omitted)
 router.post('/', validate(createCompanySchema, 'body'), create);
 
 // PUT /api/companies/:id - Update existing company

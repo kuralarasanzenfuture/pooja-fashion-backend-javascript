@@ -1,4 +1,4 @@
-import * as companyService from './company.service.js';
+﻿import * as companyService from './company.service.js';
 import { sendSuccess, sendCreated } from '../../shared/utils/response.js';
 
 /**
@@ -8,6 +8,19 @@ export const getAll = async (req, res, next) => {
   try {
     const { companies, meta } = await companyService.getCompanies(req.query);
     return sendSuccess(res, companies, 'Companies retrieved successfully', 200, meta);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/companies/generate-code
+ */
+export const generateCode = async (req, res, next) => {
+  try {
+    const { name } = req.query;
+    const companyCode = await companyService.generateNextCompanyCode(name);
+    return sendSuccess(res, { company_code: companyCode }, 'Company code generated successfully');
   } catch (error) {
     return next(error);
   }
@@ -87,6 +100,7 @@ export const deleteCompany = async (req, res, next) => {
 
 export default {
   getAll,
+  generateCode,
   getById,
   getByCode,
   create,

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+﻿import { z } from 'zod';
 
 export const companyStatusEnum = z.enum(['active', 'inactive', 'suspended']);
 
@@ -6,13 +6,15 @@ export const createCompanySchema = z.object({
   company_code: z
     .string()
     .trim()
-    .min(2, 'Company code must be at least 2 characters')
     .max(50, 'Company code cannot exceed 50 characters')
-    .regex(
-      /^[A-Za-z0-9_-]+$/,
+    .refine(
+      (val) => !val || /^[A-Za-z0-9_-]+$/.test(val),
       'Company code must only contain letters, numbers, hyphens, and underscores'
     )
-    .transform((val) => val.toUpperCase()),
+    .transform((val) => (val ? val.toUpperCase() : val))
+    .optional()
+    .nullable()
+    .or(z.literal('')),
   company_name: z
     .string()
     .trim()
@@ -81,6 +83,7 @@ export const getCompaniesQuerySchema = z.object({
 });
 
 export default {
+  companyStatusEnum,
   createCompanySchema,
   updateCompanySchema,
   updateStatusSchema,
