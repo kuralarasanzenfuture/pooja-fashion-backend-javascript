@@ -2,6 +2,7 @@ import * as userRepository from './user.repository.js';
 import * as companyRepository from '../companies/company.repository.js';
 import * as branchRepository from '../branches/branches/branch.repository.js';
 import * as roleRepository from '../roles/role.repository.js';
+import * as employeeRepository from '../employees/employee.repository.js';
 import { toUserDTO, toUserListDTO } from './user.mapper.js';
 import {
   hashPassword,
@@ -11,14 +12,24 @@ import {
 } from './user.utils.js';
 import NotFoundError from '../../shared/errors/NotFoundError.js';
 import BadRequestError from '../../shared/errors/BadRequestError.js';
+import ForbiddenError from '../../shared/errors/ForbiddenError.js';
+import UnauthorizedError from '../../shared/errors/UnauthorizedError.js';
 import { getPaginationParams, formatPaginationMeta } from '../../shared/utils/pagination.js';
 
 /**
- * List users with pagination, multi-tenant filtering, and search
+ * List users with pagination, multi-tenant filtering, and search.
+ * Scoped automatically to current user company unless SUPERADMIN.
  */
-export const getUsers = async (query) => {
+export const getUsers = async (query, currentUser = null) => {
   const { page, limit, offset, sortBy, sortOrder, search } = getPaginationParams(query);
-  const companyId = query.company_id ? Number(query.company_id) : null;
+  let companyId = query.company_id ? Number(query.company_id) : null;
+
+  if (currentUser && currentUser.roleCode !== 'SUPERADMIN') {
+    if (currentUser.companyId) {
+      companyId = Number(currentUser.companyId);
+    }
+  }
+
   const branchId = query.branch_id ? Number(query.branch_id) : null;
   const roleId = query.role_id ? Number(query.role_id) : null;
   const status = query.status || null;
@@ -43,27 +54,72 @@ export const getUsers = async (query) => {
 };
 
 /**
- * Get user profile by primary ID
+ * Get user profile by primary ID with tenant isolation
  */
-export const getUserById = async (id) => {
+export const getUserById = async (id, currentUser = null) => {
   const user = await userRepository.findById(id);
   if (!user) {
     throw new NotFoundError(`User with ID ${id} not found`);
   }
+
+  if (currentUser && currentUser.roleCode !== 'SUPERADMIN' && currentUser.companyId) {
+    if (Number(user.company_id) !== Number(currentUser.companyId)) {
+      throw new ForbiddenError('You do not have permission to view users from another company');
+    }
+  }
+
   return toUserDTO(user);
 };
 
 /**
- * Create a new user with secure password hashing and uniqueness validation
+ * Get current authenticated user profile
  */
-export const createUser = async (data, createdBy = null) => {
-  // 1. Verify company exists
+export const getMyProfile = async (currentUser) => {
+  if (!currentUser?.id) {
+    throw new UnauthorizedError('Authentication token required');
+  }
+
+  const user = await userRepository.findById(currentUser.id);
+  if (!user) {
+    throw new NotFoundError(`User not found`);
+  }
+
+  return toUserDTO(user);
+};
+
+/**
+ * Create a new user with auto-resolved company_id for Admin and SuperAdmin
+ */
+export const createUser = async (data, createdBy = null, currentUser = null) => {
+  // 1. Resolve company_id
+  let targetCompanyId = data.company_id ? Number(data.company_id) : null;
+
+  if (!targetCompanyId) {
+    if (currentUser?.companyId) {
+      targetCompanyId = Number(currentUser.companyId);
+    } else {
+      // SuperAdmin or system-level fallback: find first company
+      const companies = await companyRepository.findAll({ limit: 1, sortBy: 'id', sortOrder: 'ASC' });
+      targetCompanyId = companies?.rows?.[0]?.id ? Number(companies.rows[0].id) : 1;
+    }
+  }
+
+  // Tenant scope check for Admin
+  if (currentUser && currentUser.roleCode !== 'SUPERADMIN' && currentUser.companyId) {
+    if (Number(targetCompanyId) !== Number(currentUser.companyId)) {
+      throw new ForbiddenError('You can only create users within your own company');
+    }
+  }
+
+  data.company_id = targetCompanyId;
+
+  // 2. Verify company exists
   const company = await companyRepository.findById(data.company_id);
   if (!company) {
     throw new NotFoundError(`Company with ID ${data.company_id} not found`);
   }
 
-  // 2. Verify branch exists if provided
+  // 3. Verify branch exists and belongs to company if provided
   if (data.branch_id) {
     const branch = await branchRepository.findById(data.branch_id);
     if (!branch) {
@@ -76,13 +132,25 @@ export const createUser = async (data, createdBy = null) => {
     }
   }
 
-  // 3. Verify role exists if provided
+  // 4. Verify employee exists and belongs to company if provided
+  if (data.employee_id) {
+    const employee = await employeeRepository.findById(data.employee_id);
+    if (!employee) {
+      throw new NotFoundError(`Employee with ID ${data.employee_id} not found`);
+    }
+    if (Number(employee.company_id) !== Number(data.company_id)) {
+      throw new BadRequestError(
+        `Employee ${data.employee_id} does not belong to company ${data.company_id}`
+      );
+    }
+  }
+
+  // 5. Verify role exists and scope if provided
   if (data.role_id) {
     const role = await roleRepository.findById(data.role_id);
     if (!role) {
       throw new NotFoundError(`Role with ID ${data.role_id} not found`);
     }
-    // If role is company-scoped, ensure it belongs to this company
     if (role.company_id !== null && Number(role.company_id) !== Number(data.company_id)) {
       throw new BadRequestError(
         `Role ${data.role_id} does not belong to company ${data.company_id}`
@@ -90,14 +158,14 @@ export const createUser = async (data, createdBy = null) => {
     }
   }
 
-  // 4. Validate username uniqueness per company
+  // 6. Validate username uniqueness per company (case-insensitive)
   const cleanUsername = normalizeUsername(data.username);
   const usernameExists = await userRepository.existsByUsername(data.company_id, cleanUsername);
   if (usernameExists) {
     throw new BadRequestError(`Username '${data.username}' is already taken for this company`);
   }
 
-  // 5. Validate email uniqueness if provided
+  // 7. Validate email uniqueness globally if provided
   if (data.email) {
     const emailExists = await userRepository.existsByEmail(data.email);
     if (emailExists) {
@@ -105,7 +173,7 @@ export const createUser = async (data, createdBy = null) => {
     }
   }
 
-  // 6. Validate phone uniqueness if provided
+  // 8. Validate phone uniqueness per company if provided
   if (data.phone) {
     const phoneExists = await userRepository.existsByPhone(data.company_id, data.phone);
     if (phoneExists) {
@@ -113,7 +181,7 @@ export const createUser = async (data, createdBy = null) => {
     }
   }
 
-  // 7. Validate password strength and hash
+  // 9. Validate password strength and hash
   const strength = validatePasswordStrength(data.password);
   if (!strength.valid) {
     throw new BadRequestError(`Weak password: ${strength.errors.join(', ')}`);
@@ -126,119 +194,234 @@ export const createUser = async (data, createdBy = null) => {
     username: cleanUsername,
     password_hash: passwordHash,
     created_by: createdBy,
+    updated_by: createdBy,
   });
 
   return toUserDTO(created);
 };
 
 /**
- * Update user details
+ * Update user details with tenant isolation and strict field safety
  */
-export const updateUser = async (id, data, updatedBy = null) => {
+export const updateUser = async (id, data, updatedBy = null, currentUser = null) => {
   const existing = await userRepository.findById(id);
   if (!existing) {
     throw new NotFoundError(`User with ID ${id} not found`);
   }
 
-  // Validate username uniqueness if changed
-  if (data.username && normalizeUsername(data.username) !== existing.username.toLowerCase()) {
-    const cleanUsername = normalizeUsername(data.username);
-    const usernameExists = await userRepository.existsByUsername(
-      existing.company_id,
-      cleanUsername,
-      id
-    );
-    if (usernameExists) {
-      throw new BadRequestError(`Username '${data.username}' is already in use`);
-    }
-    data.username = cleanUsername;
-  }
-
-  // Validate email uniqueness if changed
-  if (data.email && data.email.toLowerCase() !== (existing.email || '').toLowerCase()) {
-    const emailExists = await userRepository.existsByEmail(data.email, id);
-    if (emailExists) {
-      throw new BadRequestError(`Email address '${data.email}' is already registered`);
+  // Multi-tenant check
+  if (currentUser && currentUser.roleCode !== 'SUPERADMIN' && currentUser.companyId) {
+    if (Number(existing.company_id) !== Number(currentUser.companyId)) {
+      throw new ForbiddenError('You do not have permission to update users from another company');
     }
   }
 
-  // Validate phone uniqueness if changed
-  if (data.phone && data.phone !== existing.phone) {
-    const phoneExists = await userRepository.existsByPhone(existing.company_id, data.phone, id);
-    if (phoneExists) {
-      throw new BadRequestError(`Phone number '${data.phone}' is already in use`);
-    }
-  }
-
-  // Validate branch if changed
-  if (data.branch_id && data.branch_id !== existing.branch_id) {
-    const branch = await branchRepository.findById(data.branch_id);
-    if (!branch) {
-      throw new NotFoundError(`Branch with ID ${data.branch_id} not found`);
-    }
-    if (Number(branch.company_id) !== Number(existing.company_id)) {
-      throw new BadRequestError(`Branch does not belong to company ${existing.company_id}`);
-    }
-  }
-
-  // Validate role if changed
-  if (data.role_id && data.role_id !== existing.role_id) {
-    const role = await roleRepository.findById(data.role_id);
-    if (!role) {
-      throw new NotFoundError(`Role with ID ${data.role_id} not found`);
-    }
-  }
-
-  const updated = await userRepository.update(id, {
-    ...data,
+  const updatePayload = {
     updated_by: updatedBy,
-  });
+  };
 
+  // Safe email update with re-verification reset
+  if (data.email !== undefined) {
+    const newEmail = data.email ? data.email.toLowerCase().trim() : null;
+    const oldEmail = existing.email ? existing.email.toLowerCase().trim() : null;
+
+    if (newEmail !== oldEmail) {
+      if (newEmail) {
+        const emailExists = await userRepository.existsByEmail(newEmail, id);
+        if (emailExists) {
+          throw new BadRequestError(`Email address '${data.email}' is already registered`);
+        }
+      }
+      updatePayload.email = newEmail;
+      updatePayload.is_email_verified = false;
+      updatePayload.email_verified_at = null;
+    }
+  }
+
+  // Safe phone update with re-verification reset
+  if (data.phone !== undefined) {
+    const newPhone = data.phone ? data.phone.trim() : null;
+    const oldPhone = existing.phone ? existing.phone.trim() : null;
+
+    if (newPhone !== oldPhone) {
+      if (newPhone) {
+        const phoneExists = await userRepository.existsByPhone(existing.company_id, newPhone, id);
+        if (phoneExists) {
+          throw new BadRequestError(`Phone number '${data.phone}' is already in use`);
+        }
+      }
+      updatePayload.phone = newPhone;
+      updatePayload.is_phone_verified = false;
+      updatePayload.phone_verified_at = null;
+    }
+  }
+
+  // Profile image metadata fields
+  if (data.profile_image_url !== undefined) updatePayload.profile_image_url = data.profile_image_url;
+  if (data.profile_image_key !== undefined) updatePayload.profile_image_key = data.profile_image_key;
+  if (data.profile_image_name !== undefined) updatePayload.profile_image_name = data.profile_image_name;
+  if (data.profile_image_mime_type !== undefined) updatePayload.profile_image_mime_type = data.profile_image_mime_type;
+  if (data.profile_image_size !== undefined) updatePayload.profile_image_size = data.profile_image_size;
+
+  const updated = await userRepository.update(id, updatePayload);
   return toUserDTO(updated);
 };
 
 /**
- * Change user password with security checks and token version invalidation
+ * Self-profile update
  */
-export const changePassword = async (id, { currentPassword, newPassword }) => {
+export const updateMyProfile = async (data, currentUser) => {
+  if (!currentUser?.id) {
+    throw new UnauthorizedError('Authentication token required');
+  }
+  return updateUser(currentUser.id, data, currentUser.id, currentUser);
+};
+
+/**
+ * Change user password with security verification and session invalidation
+ */
+export const changePassword = async (id, { current_password, new_password, currentPassword, newPassword }, currentUser = null) => {
+  const currentPass = current_password || currentPassword;
+  const newPass = new_password || newPassword;
+
+  if (!newPass) {
+    throw new BadRequestError('New password is required');
+  }
+
   const existing = await userRepository.findById(id);
   if (!existing) {
     throw new NotFoundError(`User with ID ${id} not found`);
   }
 
-  // If current password is provided, verify it
-  if (currentPassword) {
-    const isMatch = await comparePassword(currentPassword, existing.password_hash);
+  // Multi-tenant check
+  if (currentUser && currentUser.roleCode !== 'SUPERADMIN' && currentUser.companyId) {
+    if (Number(existing.company_id) !== Number(currentUser.companyId)) {
+      throw new ForbiddenError('You do not have permission to change password for users in another company');
+    }
+  }
+
+  // If user is resetting their own password or current_password is provided, require verification
+  const isSelf = currentUser && Number(currentUser.id) === Number(id);
+  if (isSelf || currentPass) {
+    if (!currentPass) {
+      throw new BadRequestError('Current password is required');
+    }
+    const isMatch = await comparePassword(currentPass, existing.password_hash);
     if (!isMatch) {
       throw new BadRequestError('Current password does not match');
     }
   }
 
   // Validate new password strength
-  const strength = validatePasswordStrength(newPassword);
+  const strength = validatePasswordStrength(newPass);
   if (!strength.valid) {
     throw new BadRequestError(`Weak password: ${strength.errors.join(', ')}`);
   }
 
   // Prevent setting identical password
-  const isSame = await comparePassword(newPassword, existing.password_hash);
+  const isSame = await comparePassword(newPass, existing.password_hash);
   if (isSame) {
     throw new BadRequestError('New password cannot be identical to the current password');
   }
 
-  const newHash = await hashPassword(newPassword);
-  await userRepository.updatePassword(id, newHash, false);
+  const newHash = await hashPassword(newPass);
+  await userRepository.updatePassword(id, newHash);
 
   return { message: 'Password changed successfully' };
 };
 
 /**
- * Update user account status (active, inactive, blocked, locked)
+ * Dedicated status operations with company isolation & self-lock protection
  */
-export const updateUserStatus = async (id, status, lockMinutes = null) => {
+export const activateUser = async (id, updatedBy = null, currentUser = null) => {
   const existing = await userRepository.findById(id);
   if (!existing) {
     throw new NotFoundError(`User with ID ${id} not found`);
+  }
+
+  if (currentUser && currentUser.roleCode !== 'SUPERADMIN' && currentUser.companyId) {
+    if (Number(existing.company_id) !== Number(currentUser.companyId)) {
+      throw new ForbiddenError('You do not have permission to modify users from another company');
+    }
+  }
+
+  const updated = await userRepository.updateStatus(id, 'active', null, updatedBy);
+  return toUserDTO(updated);
+};
+
+export const deactivateUser = async (id, updatedBy = null, currentUser = null) => {
+  const existing = await userRepository.findById(id);
+  if (!existing) {
+    throw new NotFoundError(`User with ID ${id} not found`);
+  }
+
+  if (currentUser && currentUser.roleCode !== 'SUPERADMIN' && currentUser.companyId) {
+    if (Number(existing.company_id) !== Number(currentUser.companyId)) {
+      throw new ForbiddenError('You do not have permission to modify users from another company');
+    }
+  }
+
+  if (currentUser && Number(currentUser.id) === Number(id)) {
+    throw new BadRequestError('You cannot deactivate your own account');
+  }
+
+  const updated = await userRepository.updateStatus(id, 'inactive', null, updatedBy);
+  return toUserDTO(updated);
+};
+
+export const blockUser = async (id, updatedBy = null, currentUser = null) => {
+  const existing = await userRepository.findById(id);
+  if (!existing) {
+    throw new NotFoundError(`User with ID ${id} not found`);
+  }
+
+  if (currentUser && currentUser.roleCode !== 'SUPERADMIN' && currentUser.companyId) {
+    if (Number(existing.company_id) !== Number(currentUser.companyId)) {
+      throw new ForbiddenError('You do not have permission to modify users from another company');
+    }
+  }
+
+  if (currentUser && Number(currentUser.id) === Number(id)) {
+    throw new BadRequestError('You cannot block your own account');
+  }
+
+  const updated = await userRepository.updateStatus(id, 'blocked', null, updatedBy);
+  return toUserDTO(updated);
+};
+
+export const unblockUser = async (id, updatedBy = null, currentUser = null) => {
+  const existing = await userRepository.findById(id);
+  if (!existing) {
+    throw new NotFoundError(`User with ID ${id} not found`);
+  }
+
+  if (currentUser && currentUser.roleCode !== 'SUPERADMIN' && currentUser.companyId) {
+    if (Number(existing.company_id) !== Number(currentUser.companyId)) {
+      throw new ForbiddenError('You do not have permission to modify users from another company');
+    }
+  }
+
+  const updated = await userRepository.updateStatus(id, 'active', null, updatedBy);
+  return toUserDTO(updated);
+};
+
+/**
+ * Generic status update with lock minutes support
+ */
+export const updateUserStatus = async (id, status, lockMinutes = null, updatedBy = null, currentUser = null) => {
+  const existing = await userRepository.findById(id);
+  if (!existing) {
+    throw new NotFoundError(`User with ID ${id} not found`);
+  }
+
+  if (currentUser && currentUser.roleCode !== 'SUPERADMIN' && currentUser.companyId) {
+    if (Number(existing.company_id) !== Number(currentUser.companyId)) {
+      throw new ForbiddenError('You do not have permission to update status for users in another company');
+    }
+  }
+
+  if (currentUser && Number(currentUser.id) === Number(id) && (status === 'blocked' || status === 'locked' || status === 'inactive')) {
+    throw new BadRequestError('You cannot deactivate, block, or lock your own account');
   }
 
   let lockedUntil = null;
@@ -247,29 +430,32 @@ export const updateUserStatus = async (id, status, lockMinutes = null) => {
     lockedUntil = new Date(Date.now() + duration * 60000);
   }
 
-  const updated = await userRepository.updateStatus(id, status, lockedUntil);
+  const updated = await userRepository.updateStatus(id, status, lockedUntil, updatedBy);
   return toUserDTO(updated);
 };
 
 /**
- * Delete user record
+ * Hard delete prohibition rule:
+ * Users must not be hard deleted; they should be deactivated to preserve audit history and relational integrity.
  */
-export const deleteUser = async (id) => {
-  const existing = await userRepository.findById(id);
-  if (!existing) {
-    throw new NotFoundError(`User with ID ${id} not found`);
-  }
-
-  const deleted = await userRepository.deleteUser(id);
-  return toUserDTO(deleted);
+export const deleteUser = async () => {
+  throw new BadRequestError(
+    'Hard deletion of user accounts is prohibited to preserve audit trail and business data integrity. Please use account deactivation (PATCH /api/users/:id/deactivate) instead.'
+  );
 };
 
 export default {
   getUsers,
   getUserById,
+  getMyProfile,
   createUser,
   updateUser,
+  updateMyProfile,
   changePassword,
+  activateUser,
+  deactivateUser,
+  blockUser,
+  unblockUser,
   updateUserStatus,
   deleteUser,
 };

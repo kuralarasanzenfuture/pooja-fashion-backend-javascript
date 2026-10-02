@@ -2513,7 +2513,7 @@ export const swaggerSpec = {
     '/users': {
       get: {
         tags: ['Users'],
-        summary: 'Get paginated list of users with multi-tenant filtering',
+        summary: 'Get paginated list of users with multi-tenant company isolation',
         parameters: [
           { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
           { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } },
@@ -2535,6 +2535,7 @@ export const swaggerSpec = {
                 'id',
                 'username',
                 'email',
+                'phone',
                 'status',
                 'company_id',
                 'branch_id',
@@ -2559,32 +2560,29 @@ export const swaggerSpec = {
       },
       post: {
         tags: ['Users'],
-        summary: 'Create a new enterprise user account',
+        summary: 'Create a new user account (Admin only)',
+        description: 'Creates a user. company_id is permanently assigned and immutable thereafter. branch_id and employee_id must belong to company_id.',
         requestBody: {
           required: true,
           content: {
             'application/json': {
               schema: {
                 type: 'object',
-                required: ['company_id', 'username', 'password'],
+                required: ['username', 'password'],
                 properties: {
-                  company_id: { type: 'integer', example: 1 },
-                  branch_id: { type: 'integer', nullable: true, example: 1 },
+                  company_id: { type: 'integer', example: 1, description: 'Permanent company assignment' },
+                  branch_id: { type: 'integer', nullable: true, example: 1, description: 'Optional; must belong to company_id' },
+                  employee_id: { type: 'integer', nullable: true, example: 1, description: 'Optional; must belong to company_id' },
                   role_id: { type: 'integer', nullable: true, example: 2 },
-                  employee_id: { type: 'integer', nullable: true },
                   username: { type: 'string', example: 'store_manager' },
                   email: { type: 'string', format: 'email', example: 'manager@poojafashion.com' },
                   phone: { type: 'string', example: '+919876543210' },
                   password: { type: 'string', format: 'password', example: 'SecureP@ss123' },
                   profile_image_url: { type: 'string', nullable: true },
-                  status: {
-                    type: 'string',
-                    enum: ['active', 'inactive', 'blocked', 'locked'],
-                    default: 'active',
-                  },
-                  is_email_verified: { type: 'boolean', default: false },
-                  is_phone_verified: { type: 'boolean', default: false },
-                  two_factor_enabled: { type: 'boolean', default: false },
+                  profile_image_key: { type: 'string', nullable: true },
+                  profile_image_name: { type: 'string', nullable: true },
+                  profile_image_mime_type: { type: 'string', nullable: true },
+                  profile_image_size: { type: 'integer', nullable: true },
                 },
               },
             },
@@ -2592,9 +2590,74 @@ export const swaggerSpec = {
         },
         responses: {
           201: { description: 'User account created successfully' },
-          400: { description: 'Validation failed or username/email duplicate' },
+          400: { description: 'Validation failed or duplicate username/email/phone' },
           401: { description: 'Authentication required' },
           403: { description: 'Admin access required' },
+        },
+      },
+    },
+    '/users/me': {
+      get: {
+        tags: ['Users'],
+        summary: 'Get current authenticated user profile',
+        responses: {
+          200: { description: 'Profile retrieved successfully' },
+          401: { description: 'Authentication required' },
+        },
+      },
+      patch: {
+        tags: ['Users'],
+        summary: 'Update current user self-profile (safe fields only)',
+        description: 'Updates safe fields. System fields (company_id, branch_id, employee_id, role_id, status, username) are rejected.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  email: { type: 'string', format: 'email' },
+                  phone: { type: 'string' },
+                  profile_image_url: { type: 'string', nullable: true },
+                  profile_image_key: { type: 'string', nullable: true },
+                  profile_image_name: { type: 'string', nullable: true },
+                  profile_image_mime_type: { type: 'string', nullable: true },
+                  profile_image_size: { type: 'integer', nullable: true },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Profile updated successfully' },
+          400: { description: 'Validation error or modification of forbidden fields' },
+          401: { description: 'Authentication required' },
+        },
+      },
+    },
+    '/users/me/password': {
+      patch: {
+        tags: ['Users'],
+        summary: 'Change current user password',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['current_password', 'new_password'],
+                properties: {
+                  current_password: { type: 'string', format: 'password' },
+                  new_password: { type: 'string', format: 'password', example: 'NewSecurePass@123' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Password changed successfully' },
+          400: { description: 'Incorrect current password or weak new password' },
+          401: { description: 'Authentication required' },
         },
       },
     },
@@ -2606,12 +2669,14 @@ export const swaggerSpec = {
         responses: {
           200: { description: 'User retrieved successfully' },
           401: { description: 'Authentication required' },
+          403: { description: 'Forbidden (cross-company access)' },
           404: { description: 'User not found' },
         },
       },
-      put: {
+      patch: {
         tags: ['Users'],
-        summary: 'Update user account details',
+        summary: 'Update user account safe details (Admin only)',
+        description: 'Updates safe fields. System fields (company_id, branch_id, employee_id, role_id, status, username) are rejected with 400 Bad Request.',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
         requestBody: {
           required: true,
@@ -2620,16 +2685,13 @@ export const swaggerSpec = {
               schema: {
                 type: 'object',
                 properties: {
-                  branch_id: { type: 'integer', nullable: true },
-                  role_id: { type: 'integer', nullable: true },
-                  employee_id: { type: 'integer', nullable: true },
-                  username: { type: 'string' },
                   email: { type: 'string', format: 'email' },
                   phone: { type: 'string' },
                   profile_image_url: { type: 'string', nullable: true },
-                  is_email_verified: { type: 'boolean' },
-                  is_phone_verified: { type: 'boolean' },
-                  two_factor_enabled: { type: 'boolean' },
+                  profile_image_key: { type: 'string', nullable: true },
+                  profile_image_name: { type: 'string', nullable: true },
+                  profile_image_mime_type: { type: 'string', nullable: true },
+                  profile_image_size: { type: 'integer', nullable: true },
                 },
               },
             },
@@ -2637,19 +2699,20 @@ export const swaggerSpec = {
         },
         responses: {
           200: { description: 'User updated successfully' },
-          400: { description: 'Validation failed or duplicate constraint' },
+          400: { description: 'Validation failed or attempt to modify immutable fields' },
+          401: { description: 'Authentication required' },
+          403: { description: 'Admin access required' },
           404: { description: 'User not found' },
         },
       },
       delete: {
         tags: ['Users'],
-        summary: 'Delete user account',
+        summary: 'Delete user account (Prohibited - Use deactivation)',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
         responses: {
-          200: { description: 'User deleted successfully' },
+          400: { description: 'Hard deletion is prohibited; informs client to use deactivation' },
           401: { description: 'Authentication required' },
           403: { description: 'Admin access required' },
-          404: { description: 'User not found' },
         },
       },
     },
@@ -2676,6 +2739,61 @@ export const swaggerSpec = {
         responses: {
           200: { description: 'Password changed successfully' },
           400: { description: 'Validation failed or current password incorrect' },
+          404: { description: 'User not found' },
+        },
+      },
+    },
+    '/users/{id}/activate': {
+      patch: {
+        tags: ['Users'],
+        summary: 'Activate user account (Admin only)',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          200: { description: 'User account activated successfully' },
+          401: { description: 'Authentication required' },
+          403: { description: 'Admin access required' },
+          404: { description: 'User not found' },
+        },
+      },
+    },
+    '/users/{id}/deactivate': {
+      patch: {
+        tags: ['Users'],
+        summary: 'Deactivate user account (Admin only)',
+        description: 'Sets status to inactive. Recommended over hard deletion to preserve audit integrity.',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          200: { description: 'User account deactivated successfully' },
+          400: { description: 'Cannot deactivate own account' },
+          401: { description: 'Authentication required' },
+          403: { description: 'Admin access required' },
+          404: { description: 'User not found' },
+        },
+      },
+    },
+    '/users/{id}/block': {
+      patch: {
+        tags: ['Users'],
+        summary: 'Block user account (Admin only)',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          200: { description: 'User account blocked successfully' },
+          400: { description: 'Cannot block own account' },
+          401: { description: 'Authentication required' },
+          403: { description: 'Admin access required' },
+          404: { description: 'User not found' },
+        },
+      },
+    },
+    '/users/{id}/unblock': {
+      patch: {
+        tags: ['Users'],
+        summary: 'Unblock user account (Admin only)',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: {
+          200: { description: 'User account unblocked successfully' },
+          401: { description: 'Authentication required' },
+          403: { description: 'Admin access required' },
           404: { description: 'User not found' },
         },
       },

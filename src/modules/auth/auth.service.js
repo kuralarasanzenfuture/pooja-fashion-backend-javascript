@@ -46,6 +46,22 @@ export const login = async ({ identifier, password, company_id = null }, clientI
     );
   }
 
+  
+  // Check assigned role status
+  if (user.role_id && user.is_role_active === false) {
+    await authRepository.recordLoginHistory({
+      userId: user.id,
+      username: user.username,
+      email: user.email,
+      status: 'blocked',
+      reason: 'Role is inactive',
+      clientInfo,
+    });
+    throw new ForbiddenError(
+      `Your assigned role '${user.role_name || 'Role'}' is inactive. Please contact your system administrator.`
+    );
+  }
+
   // 2. Check general account status
   if (user.status && user.status !== 'active') {
     await authRepository.recordLoginHistory({

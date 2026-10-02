@@ -19,6 +19,21 @@ export const errorHandler = (err, req, res, next) => {
   let message = err.message || 'Internal Server Error';
   let errors = err.details || null;
 
+  
+  // Handle PostgreSQL Unique Constraint Violations
+  if (err.code === '23505') {
+    status = 400;
+    const detail = err.detail || '';
+    const constraint = err.constraint || '';
+    if (constraint.includes('name') || detail.includes('role_name') || detail.includes('name')) {
+      message = 'A role with this name already exists';
+    } else if (constraint.includes('code') || detail.includes('role_code') || detail.includes('code')) {
+      message = 'A role with this code already exists';
+    } else {
+      message = detail ? `Duplicate record: ${detail}` : 'A record with this identifier already exists';
+    }
+  }
+
   // Handle Multer upload errors
   if (err instanceof multer.MulterError || err.name === 'MulterError') {
     status = 400;

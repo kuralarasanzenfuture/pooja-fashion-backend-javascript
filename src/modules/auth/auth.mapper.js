@@ -8,23 +8,44 @@
  * @returns {Object}
  */
 export const toAuthResponseDTO = (user, accessToken, refreshToken, session) => {
+  const roleCode = (user.role_code || 'USER').toUpperCase();
+  const roleName =
+    user.role_name ||
+    (roleCode === 'SUPERADMIN' ? 'Super Admin' : roleCode === 'ADMIN' ? 'Admin' : 'User');
+  const isSuperAdmin = roleCode === 'SUPERADMIN';
+  const isAdmin = isSuperAdmin || roleCode === 'ADMIN';
+
   return {
     user: {
       id: Number(user.id),
       companyId: user.company_id ? Number(user.company_id) : null,
+      company_id: user.company_id ? Number(user.company_id) : null,
       branchId: user.branch_id ? Number(user.branch_id) : null,
+      branch_id: user.branch_id ? Number(user.branch_id) : null,
       employeeId: user.employee_id ? Number(user.employee_id) : null,
+      employee_id: user.employee_id ? Number(user.employee_id) : null,
       roleId: user.role_id ? Number(user.role_id) : null,
+      role_id: user.role_id ? Number(user.role_id) : null,
       username: user.username,
       email: user.email || null,
       phone: user.phone || null,
       profileImageUrl: user.profile_image_url || null,
       status: user.status,
-      roleCode: user.role_code || 'USER',
-      roleName: user.role_name || 'User',
+      role: roleCode.toLowerCase(),
+      roleCode: roleCode,
+      role_code: roleCode,
+      roleName: roleName,
+      role_name: roleName,
+      isSuperAdmin,
+      is_super_admin: isSuperAdmin,
+      isAdmin,
+      is_admin: isAdmin,
       isSystemRole: Boolean(user.is_system_role),
+      is_system_role: Boolean(user.is_system_role),
       companyName: user.company_name || null,
+      company_name: user.company_name || null,
       branchName: user.branch_name || null,
+      branch_name: user.branch_name || null,
       lastLoginAt: user.last_login_at,
     },
     tokens: {

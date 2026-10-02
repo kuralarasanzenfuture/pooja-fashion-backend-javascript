@@ -30,46 +30,85 @@ export const createRoleSchema = z
     is_active: z.coerce.boolean().default(true),
   })
   .superRefine((data, ctx) => {
-    // chk_roles_system_scope:
-    // is_system_role = true  => company_id IS NULL
-    // is_system_role = false => company_id IS NOT NULL
-    if (data.is_system_role === true && data.company_id != null) {
+    // System roles creation validation:
+    // Only SUPERADMIN and ADMIN exist as core system roles. No additional system roles can be created!
+    if (data.is_system_role === true) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'System roles are global and cannot have a company_id',
-        path: ['company_id'],
+        message: 'New system roles cannot be created. Only SUPERADMIN and ADMIN are system roles.',
+        path: ['is_system_role'],
       });
     }
-    if (data.is_system_role === false && (data.company_id == null || data.company_id <= 0)) {
+
+    const codeUpper = (data.role_code || '').toUpperCase().trim();
+    if (['SUPERADMIN', 'ADMIN'].includes(codeUpper)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'Company ID is required for company-specific custom roles',
-        path: ['company_id'],
+        message: `'${data.role_code}' is a reserved system role code and cannot be created`,
+        path: ['role_code'],
+      });
+    }
+
+    const nameUpper = (data.role_name || '').toUpperCase().trim();
+    if (['SUPERADMIN', 'ADMIN', 'SUPER ADMIN'].includes(nameUpper)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `'${data.role_name}' is a reserved system role name and cannot be created`,
+        path: ['role_name'],
       });
     }
   });
 
-export const updateRoleSchema = z.object({
-  role_name: z
-    .string()
-    .trim()
-    .min(2, 'Role name must be at least 2 characters')
-    .max(100, 'Role name cannot exceed 100 characters')
-    .optional(),
-  role_code: z
-    .string()
-    .trim()
-    .min(2, 'Role code must be at least 2 characters')
-    .max(50, 'Role code cannot exceed 50 characters')
-    .regex(
-      /^[A-Za-z0-9_-]+$/,
-      'Role code must only contain letters, numbers, hyphens, and underscores'
-    )
-    .transform((val) => val.toUpperCase())
-    .optional(),
-  description: z.string().trim().max(1000).nullable().optional(),
-  is_active: z.coerce.boolean().optional(),
-});
+export const updateRoleSchema = z
+  .object({
+    role_name: z
+      .string()
+      .trim()
+      .min(2, 'Role name must be at least 2 characters')
+      .max(100, 'Role name cannot exceed 100 characters')
+      .optional(),
+    role_code: z
+      .string()
+      .trim()
+      .min(2, 'Role code must be at least 2 characters')
+      .max(50, 'Role code cannot exceed 50 characters')
+      .regex(
+        /^[A-Za-z0-9_-]+$/,
+        'Role code must only contain letters, numbers, hyphens, and underscores'
+      )
+      .transform((val) => val.toUpperCase())
+      .optional(),
+    description: z.string().trim().max(1000).nullable().optional(),
+    is_system_role: z.coerce.boolean().optional(),
+    is_active: z.coerce.boolean().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.is_system_role === true) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Roles cannot be promoted to system roles. Only SUPERADMIN and ADMIN are system roles.',
+        path: ['is_system_role'],
+      });
+    }
+
+    const codeUpper = (data.role_code || '').toUpperCase().trim();
+    if (['SUPERADMIN', 'ADMIN'].includes(codeUpper)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `'${data.role_code}' is a reserved system role code`,
+        path: ['role_code'],
+      });
+    }
+
+    const nameUpper = (data.role_name || '').toUpperCase().trim();
+    if (['SUPERADMIN', 'ADMIN', 'SUPER ADMIN'].includes(nameUpper)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `'${data.role_name}' is a reserved system role name`,
+        path: ['role_name'],
+      });
+    }
+  });
 
 export const updateRoleStatusSchema = z.object({
   is_active: z.coerce.boolean({

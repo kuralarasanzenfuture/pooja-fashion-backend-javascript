@@ -4,7 +4,7 @@ CREATE TABLE
         -- =========================================================
         -- ORGANIZATION
         -- =========================================================
-        company_id BIGINT NOT NULL,
+        company_id BIGINT NULL,
         branch_id BIGINT NULL,
         employee_id BIGINT NULL,
         role_id BIGINT NULL,
@@ -83,8 +83,13 @@ CREATE TABLE
     );
 
 -- Unique constraints
+CREATE UNIQUE INDEX IF NOT EXISTS uq_users_global_username
+    ON users(LOWER(username))
+    WHERE company_id IS NULL;
+
 CREATE UNIQUE INDEX IF NOT EXISTS uq_users_company_username
-    ON users(company_id, LOWER(username));
+    ON users(company_id, LOWER(username))
+    WHERE company_id IS NOT NULL;
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_users_email
     ON users(LOWER(email))

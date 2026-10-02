@@ -9,7 +9,7 @@ const getPool = () => {
 };
 
 /**
- * Find paginated list of users with multi-tenant filtering, role and branch joins, and search
+ * Find paginated list of users with multi-tenant filtering, role, branch, company, employee joins, and search
  */
 export const findAll = async ({
   limit = 10,
@@ -61,6 +61,7 @@ export const findAll = async ({
     id: 'u.id',
     username: 'u.username',
     email: 'u.email',
+    phone: 'u.phone',
     status: 'u.status',
     company_id: 'u.company_id',
     branch_id: 'u.branch_id',
@@ -78,11 +79,13 @@ export const findAll = async ({
       u.*,
       c.company_name, c.company_code,
       b.branch_name, b.branch_code,
-      r.role_code, r.role_name, r.is_system_role
+      r.role_code, r.role_name, r.is_system_role,
+      e.employee_code, e.display_name, e.first_name, e.last_name
     FROM users u
     LEFT JOIN companies c ON c.id = u.company_id
     LEFT JOIN branches b ON b.id = u.branch_id
     LEFT JOIN roles r ON r.id = u.role_id
+    LEFT JOIN employees e ON e.id = u.employee_id
     ${whereClause}
     ORDER BY ${orderColumn} ${direction}
     LIMIT $${paramIndex++} OFFSET $${paramIndex++}
@@ -98,7 +101,7 @@ export const findAll = async ({
 };
 
 /**
- * Find user by primary ID with role, branch, and company details
+ * Find user by primary ID with role, branch, company, and employee details
  */
 export const findById = async (id) => {
   const pool = getPool();
@@ -107,11 +110,13 @@ export const findById = async (id) => {
       u.*,
       c.company_name, c.company_code,
       b.branch_name, b.branch_code,
-      r.role_code, r.role_name, r.is_system_role
+      r.role_code, r.role_name, r.is_system_role,
+      e.employee_code, e.display_name, e.first_name, e.last_name
     FROM users u
     LEFT JOIN companies c ON c.id = u.company_id
     LEFT JOIN branches b ON b.id = u.branch_id
     LEFT JOIN roles r ON r.id = u.role_id
+    LEFT JOIN employees e ON e.id = u.employee_id
     WHERE u.id = $1
   `;
   const result = await pool.query(query, [id]);
@@ -124,7 +129,7 @@ export const findById = async (id) => {
 export const findByUsername = async (companyId, username) => {
   const pool = getPool();
   const query = `
-    SELECT u.*, r.role_code, r.role_name
+    SELECT u.*, r.role_code, r.role_name, r.is_system_role
     FROM users u
     LEFT JOIN roles r ON r.id = u.role_id
     WHERE u.company_id = $1 AND LOWER(u.username) = LOWER($2)
@@ -134,12 +139,13 @@ export const findByUsername = async (companyId, username) => {
 };
 
 /**
- * Find user by email
+ * Find user by email (case-insensitive)
  */
 export const findByEmail = async (email) => {
+  if (!email) return null;
   const pool = getPool();
   const query = `
-    SELECT u.*, r.role_code, r.role_name
+    SELECT u.*, r.role_code, r.role_name, r.is_system_role
     FROM users u
     LEFT JOIN roles r ON r.id = u.role_id
     WHERE LOWER(u.email) = LOWER($1)
@@ -149,12 +155,13 @@ export const findByEmail = async (email) => {
 };
 
 /**
- * Find user by phone number
+ * Find user by phone number within company
  */
 export const findByPhone = async (companyId, phone) => {
+  if (!phone) return null;
   const pool = getPool();
   const query = `
-    SELECT u.*, r.role_code, r.role_name
+    SELECT u.*, r.role_code, r.role_name, r.is_system_role
     FROM users u
     LEFT JOIN roles r ON r.id = u.role_id
     WHERE u.company_id = $1 AND u.phone = $2
@@ -164,7 +171,7 @@ export const findByPhone = async (companyId, phone) => {
 };
 
 /**
- * Check if username already exists for this company
+ * Check if username already exists for this company (case-insensitive)
  */
 export const existsByUsername = async (companyId, username, excludeId = null) => {
   const pool = getPool();
@@ -181,7 +188,7 @@ export const existsByUsername = async (companyId, username, excludeId = null) =>
 };
 
 /**
- * Check if email already exists globally
+ * Check if email already exists globally (case-insensitive)
  */
 export const existsByEmail = async (email, excludeId = null) => {
   if (!email) return false;
@@ -231,10 +238,13 @@ export const create = async (data) => {
     'phone',
     'password_hash',
     'profile_image_url',
+    'profile_image_key',
+    'profile_image_name',
+    'profile_image_mime_type',
+    'profile_image_size',
     'status',
     'is_email_verified',
     'is_phone_verified',
-    'two_factor_enabled',
     'created_by',
     'updated_by',
   ];
@@ -249,10 +259,13 @@ export const create = async (data) => {
     data.phone ? data.phone.trim() : null,
     data.password_hash,
     data.profile_image_url || null,
+    data.profile_image_key || null,
+    data.profile_image_name || null,
+    data.profile_image_mime_type || null,
+    data.profile_image_size || null,
     data.status || 'active',
     Boolean(data.is_email_verified),
     Boolean(data.is_phone_verified),
-    Boolean(data.two_factor_enabled),
     data.created_by || null,
     data.updated_by || null,
   ];
@@ -265,25 +278,27 @@ export const create = async (data) => {
   `;
 
   const result = await pool.query(query, values);
-  return result.rows[0];
+  return findById(result.rows[0].id);
 };
 
 /**
- * Update an existing user's profile details
+ * Update allowed profile fields on user record
+ * Enforces that company_id, branch_id, employee_id, role_id, status, and username are NOT editable here.
  */
 export const update = async (id, data) => {
   const pool = getPool();
   const allowedFields = [
-    'branch_id',
-    'employee_id',
-    'role_id',
-    'username',
     'email',
     'phone',
     'profile_image_url',
+    'profile_image_key',
+    'profile_image_name',
+    'profile_image_mime_type',
+    'profile_image_size',
     'is_email_verified',
     'is_phone_verified',
-    'two_factor_enabled',
+    'email_verified_at',
+    'phone_verified_at',
     'updated_by',
   ];
 
@@ -309,17 +324,18 @@ export const update = async (id, data) => {
     UPDATE users
     SET ${setClauses.join(', ')}
     WHERE id = $${paramIndex}
-    RETURNING *
+    RETURNING id
   `;
 
   const result = await pool.query(query, values);
-  return result.rows[0] || null;
+  if (!result.rows[0]) return null;
+  return findById(result.rows[0].id);
 };
 
 /**
  * Update user password, log to password_history, and increment token_version to invalidate old sessions
  */
-export const updatePassword = async (id, passwordHash, mustChangePassword = false) => {
+export const updatePassword = async (id, passwordHash) => {
   const pool = getPool();
   const client = await pool.connect();
 
@@ -332,14 +348,16 @@ export const updatePassword = async (id, passwordHash, mustChangePassword = fals
       SET 
         password_hash = $1,
         password_changed_at = CURRENT_TIMESTAMP,
-        must_change_password = $2,
+        must_change_password = FALSE,
         token_version = token_version + 1,
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $3
-      RETURNING *
+      WHERE id = $2
+      RETURNING id
     `;
-    const updateRes = await client.query(updateQuery, [passwordHash, mustChangePassword, id]);
-    const updatedUser = updateRes.rows[0];
+    const updateRes = await client.query(updateQuery, [passwordHash, id]);
+    if (!updateRes.rows[0]) {
+      throw new Error(`User with ID ${id} not found`);
+    }
 
     // 2. Insert into password_history table
     await client.query('INSERT INTO password_history (user_id, password_hash) VALUES ($1, $2)', [
@@ -356,7 +374,7 @@ export const updatePassword = async (id, passwordHash, mustChangePassword = fals
     );
 
     await client.query('COMMIT');
-    return updatedUser;
+    return findById(id);
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -366,21 +384,23 @@ export const updatePassword = async (id, passwordHash, mustChangePassword = fals
 };
 
 /**
- * Update user account status (active, inactive, blocked, locked)
+ * Update user account status (active, inactive, blocked, locked) with audit
  */
-export const updateStatus = async (id, status, lockedUntil = null) => {
+export const updateStatus = async (id, status, lockedUntil = null, updatedBy = null) => {
   const pool = getPool();
   const query = `
     UPDATE users
     SET 
       status = $1,
       locked_until = $2,
+      updated_by = $3,
       updated_at = CURRENT_TIMESTAMP
-    WHERE id = $3
-    RETURNING *
+    WHERE id = $4
+    RETURNING id
   `;
-  const result = await pool.query(query, [status, lockedUntil, id]);
-  return result.rows[0] || null;
+  const result = await pool.query(query, [status, lockedUntil, updatedBy, id]);
+  if (!result.rows[0]) return null;
+  return findById(result.rows[0].id);
 };
 
 /**
@@ -429,16 +449,6 @@ export const recordLoginAttempt = async (
   return result.rows[0] || null;
 };
 
-/**
- * Delete a user record
- */
-export const deleteUser = async (id) => {
-  const pool = getPool();
-  const query = 'DELETE FROM users WHERE id = $1 RETURNING *';
-  const result = await pool.query(query, [id]);
-  return result.rows[0] || null;
-};
-
 export default {
   findAll,
   findById,
@@ -453,6 +463,4 @@ export default {
   updatePassword,
   updateStatus,
   recordLoginAttempt,
-  deleteUser,
-  delete: deleteUser,
 };

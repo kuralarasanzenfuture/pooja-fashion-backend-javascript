@@ -28,31 +28,41 @@ export const findAll = async ({
   const values = [];
   let paramIndex = 1;
 
-  if (companyId !== null && companyId !== undefined) {
+  // 1. System Role Scope filtering:
+  const isSysBool = isSystemRole === true || isSystemRole === 'true' || isSystemRole === 1 || isSystemRole === '1';
+  const isCustomBool = isSystemRole === false || isSystemRole === 'false' || isSystemRole === 0 || isSystemRole === '0';
+
+  if (isSystemRole !== null && isSystemRole !== undefined && isSysBool) {
+    conditions.push('roles.is_system_role = TRUE');
+  } else if (isSystemRole !== null && isSystemRole !== undefined && isCustomBool) {
+    conditions.push('roles.is_system_role = FALSE');
+    if (companyId !== null && companyId !== undefined) {
+      conditions.push(`roles.company_id = $${paramIndex++}`);
+      values.push(companyId);
+    }
+  } else if (companyId !== null && companyId !== undefined) {
     if (includeGlobal) {
       conditions.push(
-        `(company_id = $${paramIndex++} OR (is_system_role = TRUE AND company_id IS NULL))`
+        `(roles.company_id = $${paramIndex++} OR (roles.is_system_role = TRUE AND roles.company_id IS NULL))`
       );
       values.push(companyId);
     } else {
-      conditions.push(`company_id = $${paramIndex++}`);
+      conditions.push(`roles.company_id = $${paramIndex++}`);
       values.push(companyId);
     }
   }
 
-  if (isActive !== null && isActive !== undefined) {
-    conditions.push(`is_active = $${paramIndex++}`);
-    values.push(isActive);
+  // 2. Active status filtering:
+  if (isActive !== null && isActive !== undefined && isActive !== '') {
+    const activeBool = isActive === true || isActive === 'true' || isActive === 1 || isActive === '1';
+    conditions.push(`roles.is_active = $${paramIndex++}`);
+    values.push(activeBool);
   }
 
-  if (isSystemRole !== null && isSystemRole !== undefined) {
-    conditions.push(`is_system_role = $${paramIndex++}`);
-    values.push(isSystemRole);
-  }
-
+  // 3. Search query:
   if (search) {
     conditions.push(
-      `(role_name ILIKE $${paramIndex} OR role_code ILIKE $${paramIndex} OR description ILIKE $${paramIndex})`
+      `(roles.role_name ILIKE $${paramIndex} OR roles.role_code ILIKE $${paramIndex} OR roles.description ILIKE $${paramIndex} OR companies.company_name ILIKE $${paramIndex})`
     );
     values.push(`%${search}%`);
     paramIndex++;
@@ -73,11 +83,18 @@ export const findAll = async ({
   const orderColumn = allowedSortColumns[sortBy] || 'id';
   const direction = String(sortOrder).toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
 
-  const countQuery = `SELECT COUNT(*) AS total FROM roles ${whereClause}`;
-  const dataQuery = `
-    SELECT * FROM roles
+  const countQuery = `
+    SELECT COUNT(*) AS total 
+    FROM roles 
+    LEFT JOIN companies ON roles.company_id = companies.id
     ${whereClause}
-    ORDER BY ${orderColumn} ${direction}
+  `;
+  const dataQuery = `
+    SELECT roles.*, companies.company_name AS company_name 
+    FROM roles 
+    LEFT JOIN companies ON roles.company_id = companies.id
+    ${whereClause}
+    ORDER BY roles.${orderColumn} ${direction}
     LIMIT $${paramIndex++} OFFSET $${paramIndex++}
   `;
 
@@ -95,7 +112,12 @@ export const findAll = async ({
  */
 export const findById = async (id) => {
   const pool = getPool();
-  const query = 'SELECT * FROM roles WHERE id = $1';
+  const query = `
+    SELECT roles.*, companies.company_name AS company_name 
+    FROM roles 
+    LEFT JOIN companies ON roles.company_id = companies.id 
+    WHERE roles.id = $1
+  `;
   const result = await pool.query(query, [id]);
   return result.rows[0] || null;
 };
@@ -155,13 +177,21 @@ export const findByCompanyId = async (companyId, includeGlobal = true) => {
 
   if (includeGlobal) {
     query = `
-      SELECT * FROM roles 
-      WHERE company_id = $1 OR (is_system_role = TRUE AND company_id IS NULL)
-      ORDER BY is_system_role DESC, id ASC
+      SELECT roles.*, companies.company_name AS company_name 
+      FROM roles 
+      LEFT JOIN companies ON roles.company_id = companies.id 
+      WHERE roles.company_id = $1 OR (roles.is_system_role = TRUE AND roles.company_id IS NULL)
+      ORDER BY roles.is_system_role DESC, roles.id ASC
     `;
     params = [companyId];
   } else {
-    query = 'SELECT * FROM roles WHERE company_id = $1 ORDER BY id ASC';
+    query = `
+      SELECT roles.*, companies.company_name AS company_name 
+      FROM roles 
+      LEFT JOIN companies ON roles.company_id = companies.id 
+      WHERE roles.company_id = $1 
+      ORDER BY roles.id ASC
+    `;
     params = [companyId];
   }
 
@@ -191,7 +221,7 @@ export const existsByCode = async (companyId, roleCode, excludeId = null) => {
     query = 'SELECT id FROM roles WHERE company_id IS NULL AND LOWER(role_code) = LOWER($1)';
     params.push(roleCode);
   } else {
-    query = 'SELECT id FROM roles WHERE company_id = $1 AND LOWER(role_code) = LOWER($2)';
+    query = 'SELECT id FROM roles WHERE (company_id = $1 OR (is_system_role = TRUE AND company_id IS NULL)) AND LOWER(role_code) = LOWER($2)';
     params.push(companyId, roleCode);
   }
 
@@ -216,7 +246,7 @@ export const existsByName = async (companyId, roleName, excludeId = null) => {
     query = 'SELECT id FROM roles WHERE company_id IS NULL AND LOWER(role_name) = LOWER($1)';
     params.push(roleName);
   } else {
-    query = 'SELECT id FROM roles WHERE company_id = $1 AND LOWER(role_name) = LOWER($2)';
+    query = 'SELECT id FROM roles WHERE (company_id = $1 OR (is_system_role = TRUE AND company_id IS NULL)) AND LOWER(role_name) = LOWER($2)';
     params.push(companyId, roleName);
   }
 
@@ -318,10 +348,37 @@ export const updateStatus = async (id, isActive) => {
     UPDATE roles
     SET is_active = $1, updated_at = CURRENT_TIMESTAMP
     WHERE id = $2
-    RETURNING *
+    RETURNING roles.*, (SELECT company_name FROM companies WHERE companies.id = roles.company_id) AS company_name
   `;
   const result = await pool.query(query, [Boolean(isActive), id]);
   return result.rows[0] || null;
+};
+
+/**
+ * Cascade: Deactivate all users assigned to a given role and revoke their active tokens
+ */
+export const deactivateUsersByRoleId = async (roleId, updatedBy = null) => {
+  const pool = getPool();
+  const query = `
+    UPDATE users
+    SET status = 'inactive',
+        token_version = token_version + 1,
+        updated_at = CURRENT_TIMESTAMP,
+        updated_by = COALESCE($2, updated_by)
+    WHERE role_id = $1 AND status != 'inactive'
+    RETURNING id
+  `;
+  const result = await pool.query(query, [roleId, updatedBy]);
+
+  if (result.rowCount > 0) {
+    const userIds = result.rows.map((row) => row.id);
+    await pool.query(
+      'DELETE FROM user_refresh_tokens WHERE user_id = ANY($1::bigint[])',
+      [userIds]
+    );
+  }
+
+  return result.rowCount;
 };
 
 /**

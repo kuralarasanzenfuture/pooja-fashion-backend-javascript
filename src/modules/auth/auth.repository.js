@@ -29,6 +29,7 @@ export const findUserForAuth = async (identifier, companyId = null) => {
       r.role_code,
       r.role_name,
       r.is_system_role,
+      r.is_active AS is_role_active,
       c.company_name,
       c.company_code,
       b.branch_name,

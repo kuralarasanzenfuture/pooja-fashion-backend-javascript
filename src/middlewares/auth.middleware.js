@@ -122,7 +122,7 @@ export const verifyToken = async (req, res, next) => {
       try {
         // Query user with joined role details
         const userQuery = `
-          SELECT u.id, u.company_id, u.email, u.status, u.role_id,
+          SELECT u.id, u.company_id, u.branch_id, u.email, u.status, u.role_id,
                  r.role_code, r.role_name, r.is_system_role
           FROM users u
           LEFT JOIN roles r ON r.id = u.role_id
@@ -199,6 +199,7 @@ export const verifyToken = async (req, res, next) => {
     req.user = {
       id: Number(userId),
       companyId: dbUser?.company_id ? Number(dbUser.company_id) : decoded.company_id || null,
+      branchId: dbUser?.branch_id ? Number(dbUser.branch_id) : decoded.branch_id || null,
       email: dbUser?.email || decoded.email || null,
       roleId: dbUser?.role_id ? Number(dbUser.role_id) : decoded.role_id || null,
       role: normalizedRole,

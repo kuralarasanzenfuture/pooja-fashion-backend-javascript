@@ -6,11 +6,11 @@ import env from '../../src/config/env.js';
 const SECRET = env.JWT_ACCESS_SECRET || 'local-dev-access-secret';
 
 describe('Users API Endpoints Validation & Access Control', () => {
-  const adminToken = jwt.sign({ id: 1, role: 'admin', role_code: 'ADMIN' }, SECRET, {
+  const adminToken = jwt.sign({ id: 1, role: 'admin', role_code: 'ADMIN', companyId: 1 }, SECRET, {
     expiresIn: '1h',
   });
 
-  const cashierToken = jwt.sign({ id: 2, role: 'cashier', role_code: 'CASHIER' }, SECRET, {
+  const cashierToken = jwt.sign({ id: 2, role: 'cashier', role_code: 'CASHIER', companyId: 1 }, SECRET, {
     expiresIn: '1h',
   });
 
@@ -85,5 +85,84 @@ describe('Users API Endpoints Validation & Access Control', () => {
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);
     expect(res.body.message).toBe('Validation Error');
+  });
+
+  it('PATCH /api/users/:id with company_id should reject with 400', async () => {
+    const res = await request(app)
+      .patch('/api/users/1')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ company_id: 99 });
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(JSON.stringify(res.body)).toMatch(/company_id cannot be modified/i);
+  });
+
+  it('PATCH /api/users/:id with branch_id should reject with 400', async () => {
+    const res = await request(app)
+      .patch('/api/users/1')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ branch_id: 99 });
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(JSON.stringify(res.body)).toMatch(/branch_id cannot be modified/i);
+  });
+
+  it('PATCH /api/users/:id with employee_id should reject with 400', async () => {
+    const res = await request(app)
+      .patch('/api/users/1')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ employee_id: 99 });
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(JSON.stringify(res.body)).toMatch(/employee_id cannot be modified/i);
+  });
+
+  it('PATCH /api/users/:id with role_id should reject with 400', async () => {
+    const res = await request(app)
+      .patch('/api/users/1')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ role_id: 99 });
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(JSON.stringify(res.body)).toMatch(/role_id cannot be modified/i);
+  });
+
+  it('PATCH /api/users/:id with status should reject with 400', async () => {
+    const res = await request(app)
+      .patch('/api/users/1')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ status: 'active' });
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(JSON.stringify(res.body)).toMatch(/status cannot be modified through generic update/i);
+  });
+
+  it('PATCH /api/users/:id with username should reject with 400', async () => {
+    const res = await request(app)
+      .patch('/api/users/1')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ username: 'newname' });
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(JSON.stringify(res.body)).toMatch(/username cannot be modified/i);
+  });
+
+  it('DELETE /api/users/:id should reject hard delete with 400', async () => {
+    const res = await request(app)
+      .delete('/api/users/1')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toMatch(/hard deletion of user accounts is prohibited/i);
+  });
+
+  it('PATCH /api/users/me with forbidden field should reject with 400', async () => {
+    const res = await request(app)
+      .patch('/api/users/me')
+      .set('Authorization', `Bearer ${cashierToken}`)
+      .send({ company_id: 5 });
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(JSON.stringify(res.body)).toMatch(/company_id cannot be modified through profile update/i);
   });
 });

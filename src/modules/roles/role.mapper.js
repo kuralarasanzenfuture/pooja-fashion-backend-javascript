@@ -11,6 +11,7 @@ export const toRoleDTO = (row) => {
   return {
     id: Number(row.id),
     companyId: row.company_id !== null ? Number(row.company_id) : null,
+    companyName: row.company_name || null,
     roleCode: row.role_code,
     roleName: row.role_name,
     description: row.description || null,

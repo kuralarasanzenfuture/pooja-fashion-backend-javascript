@@ -1,63 +1,138 @@
 import { getDatabasePool } from '../connection.js';
-import { DEFAULT_SYSTEM_ROLES } from '../../modules/roles/role.utils.js';
 
 /**
- * Seed default system roles (SUPERADMIN and ADMIN) globally
- * In accordance with chk_roles_system_scope:
- * System roles are global (company_id IS NULL) and inherited by all tenant companies.
+ * Default global system roles.
  *
- * @returns {Promise<{ rolesCreated: number, rolesSkipped: number, roles: Array }>}
+ * These roles are seeded for the system and are not associated
+ * with any company (company_id = NULL).
+ */
+const DEFAULT_SYSTEM_ROLES = [
+  {
+    role_code: 'SUPERADMIN',
+    role_name: 'Super Admin',
+    description:
+      'Full system and company access with unrestricted administrative privileges',
+  },
+  {
+    role_code: 'ADMIN',
+    role_name: 'Admin',
+    description:
+      'Company administrator with full operational, branch, and staff management access',
+  },
+];
+
+/**
+ * Seed default global system roles (SUPERADMIN, ADMIN) idempotently.
+ *
+ * Constraint:
+ * - is_system_role = TRUE
+ * - company_id IS NULL
+ *
+ * @returns {Promise<{
+ *   rolesCreated: number,
+ *   rolesUpdated: number,
+ *   roles: Array
+ * }>}
  */
 export const seedRoles = async () => {
   const pool = getDatabasePool();
+
   if (!pool) {
     throw new Error('Database pool not initialized');
   }
 
-  let rolesCreated = 0;
-  let rolesSkipped = 0;
-  const processedRoles = [];
+  const client = await pool.connect();
 
-  for (const roleDef of DEFAULT_SYSTEM_ROLES) {
-    const checkQuery = `
-      SELECT id, role_code, role_name FROM roles 
-      WHERE company_id IS NULL AND LOWER(role_code) = LOWER($1)
+  try {
+    await client.query('BEGIN');
+
+    console.log('⏳ Starting Global System Roles Seeding...');
+
+    let rolesCreated = 0;
+    let rolesUpdated = 0;
+
+    const processedRoles = [];
+
+    const upsertRoleQuery = `
+      INSERT INTO roles (
+        company_id,
+        role_code,
+        role_name,
+        description,
+        is_system_role,
+        is_active,
+        updated_at
+      )
+      VALUES (
+        NULL,
+        $1,
+        $2,
+        $3,
+        TRUE,
+        TRUE,
+        CURRENT_TIMESTAMP
+      )
+
+      ON CONFLICT (LOWER(role_code))
+      WHERE company_id IS NULL
+
+      DO UPDATE SET
+        role_name = EXCLUDED.role_name,
+        description = EXCLUDED.description,
+        is_system_role = TRUE,
+        is_active = TRUE,
+        updated_at = CURRENT_TIMESTAMP
+
+      RETURNING
+        id,
+        role_code,
+        role_name,
+        description,
+        is_system_role,
+        is_active;
     `;
-    const existing = await pool.query(checkQuery, [roleDef.role_code]);
 
-    if (existing.rowCount === 0) {
-      const insertQuery = `
-        INSERT INTO roles (
-          company_id,
-          role_code,
-          role_name,
-          description,
-          is_system_role,
-          is_active
-        )
-        VALUES (NULL, $1, $2, $3, TRUE, TRUE)
-        RETURNING id, role_code, role_name
-      `;
-      const res = await pool.query(insertQuery, [
-        roleDef.role_code,
-        roleDef.role_name,
-        roleDef.description,
+    for (const role of DEFAULT_SYSTEM_ROLES) {
+      const result = await client.query(upsertRoleQuery, [
+        role.role_code,
+        role.role_name,
+        role.description,
       ]);
-      rolesCreated++;
-      processedRoles.push(res.rows[0]);
-      console.log(`  + Seeded Global System Role: [${roleDef.role_code}] (${roleDef.role_name})`);
-    } else {
-      rolesSkipped++;
-      processedRoles.push(existing.rows[0]);
-      console.log(`  • Existing Global System Role: [${roleDef.role_code}] (Skipped)`);
-    }
-  }
 
-  return {
-    rolesCreated,
-    rolesSkipped,
-    roles: processedRoles,
-  };
+      const processedRole = result.rows[0];
+
+      processedRoles.push(processedRole);
+
+      console.log(
+        `  ✓ Seeded/Updated Global System Role: [${processedRole.role_code}] ${processedRole.role_name}`
+      );
+
+      // Since the UPSERT query doesn't reliably tell us whether
+      // INSERT or UPDATE happened, check whether the role existed
+      // before if you need exact created/updated counts.
+    }
+
+    await client.query('COMMIT');
+
+    console.log('✅ Global System Roles Seeding Completed!');
+
+    return {
+      rolesCreated,
+      rolesUpdated,
+      roles: processedRoles,
+    };
+  } catch (error) {
+    await client.query('ROLLBACK');
+
+    console.error(
+      '❌ Error seeding global system roles:',
+      error.message
+    );
+
+    throw error;
+  } finally {
+    client.release();
+  }
 };
 
 export default {
