@@ -5,9 +5,7 @@ export const userStatusEnum = z.enum(['active', 'inactive', 'blocked', 'locked']
 const FORBIDDEN_UPDATE_FIELDS = [
   'id',
   'company_id',
-  'branch_id',
   'employee_id',
-  'role_id',
   'status',
   'username',
   'password',
@@ -23,7 +21,6 @@ const FORBIDDEN_UPDATE_FIELDS = [
   'password_changed_at',
   'must_change_password',
   'token_version',
-  'two_factor_enabled',
   'two_factor_enabled_at',
   'created_by',
   'updated_by',
@@ -34,7 +31,6 @@ const FORBIDDEN_UPDATE_FIELDS = [
 const FORBIDDEN_CREATE_FIELDS = [
   'id',
   'password_hash',
-  'status',
   'is_email_verified',
   'is_phone_verified',
   'email_verified_at',
@@ -46,7 +42,6 @@ const FORBIDDEN_CREATE_FIELDS = [
   'password_changed_at',
   'must_change_password',
   'token_version',
-  'two_factor_enabled',
   'two_factor_enabled_at',
   'created_by',
   'updated_by',
@@ -83,6 +78,8 @@ export const createUserSchema = z
       .positive('Role ID must be a positive integer')
       .nullable()
       .optional(),
+    status: userStatusEnum.default('active').optional(),
+    two_factor_enabled: z.boolean().default(false).optional(),
     username: z
       .string({ required_error: 'Username is required' })
       .trim()
@@ -145,6 +142,9 @@ export const createUserSchema = z
  */
 export const updateUserSchema = z
   .object({
+    role_id: z.coerce.number().int().positive().nullable().optional(),
+    branch_id: z.coerce.number().int().positive().nullable().optional(),
+    two_factor_enabled: z.boolean().optional(),
     email: z
       .string()
       .trim()
@@ -192,13 +192,7 @@ export const updateUserSchema = z
         path: ['employee_id'],
       });
     }
-    if (data.role_id !== undefined) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'role_id cannot be modified through generic user update',
-        path: ['role_id'],
-      });
-    }
+// role_id update is permitted for non-system roles and validated in userService
     if (data.status !== undefined) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -306,28 +300,26 @@ export const userIdParamSchema = z.object({
 });
 
 export const getUsersQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(10),
-  company_id: z.coerce.number().int().positive().optional(),
-  branch_id: z.coerce.number().int().positive().optional(),
-  role_id: z.coerce.number().int().positive().optional(),
-  status: userStatusEnum.optional(),
-  search: z.string().trim().optional(),
-  sortBy: z
-    .enum([
-      'id',
-      'username',
-      'email',
-      'phone',
-      'status',
-      'company_id',
-      'branch_id',
-      'role_id',
-      'created_at',
-      'last_login_at',
-    ])
-    .default('id'),
-  sortOrder: z.enum(['asc', 'desc', 'ASC', 'DESC']).default('asc'),
+  page: z.preprocess((val) => (val === '' || val === null ? undefined : val), z.coerce.number().int().min(1).default(1)),
+  limit: z.preprocess((val) => (val === '' || val === null ? undefined : val), z.coerce.number().int().min(1).max(100).default(10)),
+  company_id: z.preprocess((val) => (val === '' || val === null ? undefined : val), z.coerce.number().int().positive().optional()),
+  branch_id: z.preprocess((val) => (val === '' || val === null ? undefined : val), z.coerce.number().int().positive().optional()),
+  role_id: z.preprocess((val) => (val === '' || val === null ? undefined : val), z.coerce.number().int().positive().optional()),
+  status: z.preprocess((val) => (val === '' || val === null ? undefined : val), userStatusEnum.optional()),
+  search: z.preprocess((val) => (val === '' || val === null ? undefined : val), z.string().trim().optional()),
+  sortBy: z.preprocess((val) => (val === '' || val === null ? undefined : val), z.enum([
+    'id',
+    'username',
+    'email',
+    'phone',
+    'status',
+    'company_id',
+    'branch_id',
+    'role_id',
+    'created_at',
+    'last_login_at',
+  ]).default('id')),
+  sortOrder: z.preprocess((val) => (val === '' || val === null ? undefined : val), z.enum(['asc', 'desc', 'ASC', 'DESC']).default('asc')),
 });
 
 export default {

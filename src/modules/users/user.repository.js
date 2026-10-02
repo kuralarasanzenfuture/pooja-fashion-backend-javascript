@@ -28,34 +28,34 @@ export const findAll = async ({
   let paramIndex = 1;
 
   if (companyId !== null && companyId !== undefined) {
-    conditions.push(`u.company_id = $${paramIndex++}`);
+    conditions.push('u.company_id = $' + (paramIndex++));
     values.push(companyId);
   }
 
   if (branchId !== null && branchId !== undefined) {
-    conditions.push(`u.branch_id = $${paramIndex++}`);
+    conditions.push('u.branch_id = $' + (paramIndex++));
     values.push(branchId);
   }
 
   if (roleId !== null && roleId !== undefined) {
-    conditions.push(`u.role_id = $${paramIndex++}`);
+    conditions.push('u.role_id = $' + (paramIndex++));
     values.push(roleId);
   }
 
   if (status) {
-    conditions.push(`u.status = $${paramIndex++}`);
+    conditions.push('u.status = $' + (paramIndex++));
     values.push(status);
   }
 
   if (search) {
     conditions.push(
-      `(u.username ILIKE $${paramIndex} OR u.email ILIKE $${paramIndex} OR u.phone ILIKE $${paramIndex})`
+      '(u.username ILIKE $' + paramIndex + ' OR u.email ILIKE $' + paramIndex + ' OR u.phone ILIKE $' + paramIndex + ')'
     );
-    values.push(`%${search}%`);
+    values.push('%' + search + '%');
     paramIndex++;
   }
 
-  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
 
   const allowedSortColumns = {
     id: 'u.id',
@@ -73,7 +73,7 @@ export const findAll = async ({
   const orderColumn = allowedSortColumns[sortBy] || 'u.id';
   const direction = String(sortOrder).toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
 
-  const countQuery = `SELECT COUNT(*) AS total FROM users u ${whereClause}`;
+  const countQuery = 'SELECT COUNT(*) AS total FROM users u ' + whereClause;
   const dataQuery = `
     SELECT 
       u.*,
@@ -155,7 +155,7 @@ export const findByEmail = async (email) => {
 };
 
 /**
- * Find user by phone number within company
+ * Find user by company ID and phone
  */
 export const findByPhone = async (companyId, phone) => {
   if (!phone) return null;
@@ -171,16 +171,24 @@ export const findByPhone = async (companyId, phone) => {
 };
 
 /**
- * Check if username already exists for this company (case-insensitive)
+ * Check if username already exists for this company or globally as system account
  */
 export const existsByUsername = async (companyId, username, excludeId = null) => {
   const pool = getPool();
-  let query = 'SELECT id FROM users WHERE company_id = $1 AND LOWER(username) = LOWER($2)';
-  const params = [companyId, username];
+  let query = 'SELECT id FROM users WHERE ';
+  const params = [];
+  let paramIndex = 1;
+
+  if (companyId) {
+    query += '(company_id = $' + (paramIndex++) + ' OR company_id IS NULL) AND ';
+    params.push(Number(companyId));
+  }
+  query += 'LOWER(username) = LOWER($' + (paramIndex++) + ')';
+  params.push(String(username).trim());
 
   if (excludeId) {
-    query += ' AND id != $3';
-    params.push(excludeId);
+    query += ' AND id != $' + (paramIndex++);
+    params.push(Number(excludeId));
   }
 
   const result = await pool.query(query, params);
@@ -194,11 +202,11 @@ export const existsByEmail = async (email, excludeId = null) => {
   if (!email) return false;
   const pool = getPool();
   let query = 'SELECT id FROM users WHERE LOWER(email) = LOWER($1)';
-  const params = [email];
+  const params = [String(email).trim()];
 
   if (excludeId) {
     query += ' AND id != $2';
-    params.push(excludeId);
+    params.push(Number(excludeId));
   }
 
   const result = await pool.query(query, params);
@@ -243,6 +251,7 @@ export const create = async (data) => {
     'profile_image_mime_type',
     'profile_image_size',
     'status',
+    'two_factor_enabled',
     'is_email_verified',
     'is_phone_verified',
     'created_by',
@@ -264,13 +273,14 @@ export const create = async (data) => {
     data.profile_image_mime_type || null,
     data.profile_image_size || null,
     data.status || 'active',
+    Boolean(data.two_factor_enabled),
     Boolean(data.is_email_verified),
     Boolean(data.is_phone_verified),
     data.created_by || null,
     data.updated_by || null,
   ];
 
-  const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
+  const placeholders = values.map((_, i) => '$' + (i + 1)).join(', ');
   const query = `
     INSERT INTO users (${columns.join(', ')})
     VALUES (${placeholders})
@@ -290,6 +300,8 @@ export const update = async (id, data) => {
   const allowedFields = [
     'email',
     'phone',
+    'role_id',
+    'branch_id',
     'profile_image_url',
     'profile_image_key',
     'profile_image_name',
@@ -308,7 +320,7 @@ export const update = async (id, data) => {
 
   for (const field of allowedFields) {
     if (data[field] !== undefined) {
-      setClauses.push(`${field} = $${paramIndex++}`);
+      setClauses.push(field + ' = $' + (paramIndex++));
       values.push(data[field]);
     }
   }
@@ -317,7 +329,7 @@ export const update = async (id, data) => {
     return findById(id);
   }
 
-  setClauses.push(`updated_at = CURRENT_TIMESTAMP`);
+  setClauses.push('updated_at = CURRENT_TIMESTAMP');
   values.push(id);
 
   const query = `
@@ -449,6 +461,67 @@ export const recordLoginAttempt = async (
   return result.rows[0] || null;
 };
 
+
+/**
+ * Find existing user by role ID or role code, with company scoping and exclude user support.
+ * Used to enforce single-user constraint on system roles (SUPERADMIN, ADMIN).
+ */
+
+/**
+ * Find existing user by role ID or role code, with company scoping and exclude user support.
+ * Used to enforce single-user constraint on system roles (SUPERADMIN, ADMIN).
+ */
+export const findUserByRoleOrCode = async ({
+  roleId = null,
+  roleCode = null,
+  companyId = null,
+  excludeUserId = null,
+} = {}) => {
+  const pool = getPool();
+  const conditions = [];
+  const values = [];
+  let idx = 1;
+
+  if (roleId && roleCode) {
+    conditions.push('(u.role_id = $' + idx + ' OR UPPER(r.role_code::text) = UPPER($' + (idx + 1) + '::text))');
+    values.push(Number(roleId), String(roleCode));
+    idx += 2;
+  } else if (roleId) {
+    conditions.push('u.role_id = $' + idx);
+    values.push(Number(roleId));
+    idx += 1;
+  } else if (roleCode) {
+    conditions.push('UPPER(r.role_code::text) = UPPER($' + idx + '::text)');
+    values.push(String(roleCode));
+    idx += 1;
+  } else {
+    return null;
+  }
+
+  if (companyId !== null && companyId !== undefined) {
+    conditions.push('(u.company_id = $' + idx + ' OR u.company_id IS NULL)');
+    values.push(Number(companyId));
+    idx += 1;
+  }
+
+  if (excludeUserId !== null && excludeUserId !== undefined) {
+    conditions.push('u.id != $' + idx);
+    values.push(Number(excludeUserId));
+    idx += 1;
+  }
+
+  const query = 
+    'SELECT u.id, u.username, u.email, u.role_id, u.company_id, u.status, r.role_name, r.role_code, r.is_system_role ' +
+    'FROM users u ' +
+    'LEFT JOIN roles r ON u.role_id = r.id ' +
+    'WHERE ' + conditions.join(' AND ') + ' ' +
+    'ORDER BY u.id ASC ' +
+    'LIMIT 1';
+
+  const result = await pool.query(query, values);
+  return result.rows[0] || null;
+};
+
 export default {
   findAll,
   findById,
@@ -463,4 +536,5 @@ export default {
   updatePassword,
   updateStatus,
   recordLoginAttempt,
+  findUserByRoleOrCode,
 };

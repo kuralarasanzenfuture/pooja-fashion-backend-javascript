@@ -90,6 +90,85 @@ export const getMyProfile = async (currentUser) => {
 /**
  * Create a new user with auto-resolved company_id for Admin and SuperAdmin
  */
+
+/**
+ * Check if username is available for a company or globally
+ */
+export const checkUsernameAvailability = async ({ username, companyId = null, excludeId = null, user = null }) => {
+  if (!username || !username.trim()) {
+    return { exists: false, message: 'Username is required' };
+  }
+
+  const clean = username.trim().toLowerCase();
+  const reserved = ['superadmin', 'admin', 'administrator', 'root', 'system'];
+  if (reserved.includes(clean) && !excludeId) {
+    return {
+      exists: true,
+      username: username.trim(),
+      message: `'${username.trim()}' is a reserved system username and cannot be used`,
+    };
+  }
+
+  let targetCompanyId = companyId ? Number(companyId) : null;
+  if (!targetCompanyId && user?.companyId && user.roleCode !== 'SUPERADMIN') {
+    targetCompanyId = Number(user.companyId);
+  }
+
+  const exists = await userRepository.existsByUsername(
+    targetCompanyId,
+    username.trim(),
+    excludeId ? Number(excludeId) : null
+  );
+
+  return {
+    exists,
+    username: username.trim(),
+    message: exists
+      ? `Username '${username.trim()}' is already taken${targetCompanyId ? ' for this company' : ''}`
+      : 'Username is available',
+  };
+};
+
+/**
+ * Check if email is available globally
+ */
+export const checkEmailAvailability = async ({ email, excludeId = null }) => {
+  if (!email || !email.trim()) {
+    return { exists: false, message: 'Email is required' };
+  }
+
+  const clean = email.trim().toLowerCase();
+  const exists = await userRepository.existsByEmail(clean, excludeId ? Number(excludeId) : null);
+  return {
+    exists,
+    email: clean,
+    message: exists
+      ? `Email '${clean}' is already registered`
+      : 'Email is available',
+  };
+};
+
+/**
+ * Combined availability check for username and email
+ */
+export const checkAvailability = async ({ username, email, companyId = null, excludeId = null, user = null }) => {
+  let usernameResult = { exists: false, message: '' };
+  let emailResult = { exists: false, message: '' };
+
+  if (username && username.trim()) {
+    usernameResult = await checkUsernameAvailability({ username, companyId, excludeId, user });
+  }
+
+  if (email && email.trim()) {
+    emailResult = await checkEmailAvailability({ email, excludeId });
+  }
+
+  return {
+    username: usernameResult,
+    email: emailResult,
+  };
+};
+
 export const createUser = async (data, createdBy = null, currentUser = null) => {
   // 1. Resolve company_id
   let targetCompanyId = data.company_id ? Number(data.company_id) : null;
@@ -156,6 +235,32 @@ export const createUser = async (data, createdBy = null, currentUser = null) => 
         `Role ${data.role_id} does not belong to company ${data.company_id}`
       );
     }
+    if (role.is_active === false) {
+      throw new BadRequestError(
+        `Cannot assign inactive role '${role.role_name}' to user. Please select an active role.`
+      );
+    }
+
+    // System role constraint: each system role (SUPERADMIN, ADMIN) can only have ONE user assigned
+    const isSystemRole =
+      Boolean(role.is_system_role) ||
+      ['SUPERADMIN', 'ADMIN'].includes(String(role.role_code).toUpperCase());
+
+    if (isSystemRole) {
+      const scopeCompanyId =
+        String(role.role_code).toUpperCase() === 'SUPERADMIN' ? null : data.company_id;
+      const existingUserWithRole = await userRepository.findUserByRoleOrCode({
+        roleId: role.id,
+        roleCode: role.role_code,
+        companyId: scopeCompanyId,
+      });
+
+      if (existingUserWithRole) {
+        throw new BadRequestError(
+          `System role '${role.role_name}' (${role.role_code}) can only be assigned to one user. Account '${existingUserWithRole.username}' already holds this role.`
+        );
+      }
+    }
   }
 
   // 6. Validate username uniqueness per company (case-insensitive)
@@ -219,6 +324,79 @@ export const updateUser = async (id, data, updatedBy = null, currentUser = null)
   const updatePayload = {
     updated_by: updatedBy,
   };
+
+  // Support updating role_id with system role immutability and single-user constraint
+  if (data.role_id !== undefined) {
+    if (data.role_id === null) {
+      throw new BadRequestError('User must have an assigned role');
+    }
+
+    // Rule: System role accounts cannot have their role changed / edited
+    const isExistingSystemUser =
+      Boolean(existing.is_system_role) ||
+      ['SUPERADMIN', 'ADMIN'].includes(String(existing.role_code).toUpperCase());
+
+    if (isExistingSystemUser && Number(data.role_id) !== Number(existing.role_id)) {
+      throw new BadRequestError(
+        `The role for system account '${existing.username}' (${existing.role_name || existing.role_code}) cannot be edited or modified.`
+      );
+    }
+
+    const role = await roleRepository.findById(data.role_id);
+    if (!role) {
+      throw new NotFoundError(`Role with ID ${data.role_id} not found`);
+    }
+    if (role.company_id !== null && Number(role.company_id) !== Number(existing.company_id)) {
+      throw new BadRequestError(
+        `Role ${data.role_id} does not belong to company ${existing.company_id}`
+      );
+    }
+    if (role.is_active === false) {
+      throw new BadRequestError(
+        `Cannot assign inactive role '${role.role_name}' to user. Please select an active role.`
+      );
+    }
+
+    // If changing role to a system role, check that no other user holds that system role
+    const isTargetSystemRole =
+      Boolean(role.is_system_role) ||
+      ['SUPERADMIN', 'ADMIN'].includes(String(role.role_code).toUpperCase());
+
+    if (isTargetSystemRole && Number(data.role_id) !== Number(existing.role_id)) {
+      const scopeCompanyId =
+        String(role.role_code).toUpperCase() === 'SUPERADMIN' ? null : existing.company_id;
+      const existingUserWithRole = await userRepository.findUserByRoleOrCode({
+        roleId: role.id,
+        roleCode: role.role_code,
+        companyId: scopeCompanyId,
+        excludeUserId: id,
+      });
+
+      if (existingUserWithRole) {
+        throw new BadRequestError(
+          `System role '${role.role_name}' (${role.role_code}) can only be assigned to one user. Account '${existingUserWithRole.username}' already holds this role.`
+        );
+      }
+    }
+
+    updatePayload.role_id = Number(data.role_id);
+  }
+
+  // Support updating branch_id
+  if (data.branch_id !== undefined) {
+    if (data.branch_id) {
+      const branch = await branchRepository.findById(data.branch_id);
+      if (!branch) {
+        throw new NotFoundError(`Branch with ID ${data.branch_id} not found`);
+      }
+      if (Number(branch.company_id) !== Number(existing.company_id)) {
+        throw new BadRequestError(`Branch ${data.branch_id} does not belong to company ${existing.company_id}`);
+      }
+      updatePayload.branch_id = Number(data.branch_id);
+    } else {
+      updatePayload.branch_id = null;
+    }
+  }
 
   // Safe email update with re-verification reset
   if (data.email !== undefined) {
@@ -345,6 +523,16 @@ export const activateUser = async (id, updatedBy = null, currentUser = null) => 
     }
   }
 
+  // Validate that assigned role is active before activating user
+  if (existing.role_id) {
+    const role = await roleRepository.findById(existing.role_id);
+    if (role && role.is_active === false) {
+      throw new BadRequestError(
+        `Cannot activate user because assigned role '${role.role_name}' is inactive. Please activate the role first.`
+      );
+    }
+  }
+
   const updated = await userRepository.updateStatus(id, 'active', null, updatedBy);
   return toUserDTO(updated);
 };
@@ -365,6 +553,16 @@ export const deactivateUser = async (id, updatedBy = null, currentUser = null) =
     throw new BadRequestError('You cannot deactivate your own account');
   }
 
+  // Protect system role accounts from deactivation
+  const isSystemUser =
+    Boolean(existing.is_system_role) ||
+    ['SUPERADMIN', 'ADMIN'].includes(String(existing.role_code).toUpperCase());
+  if (isSystemUser) {
+    throw new BadRequestError(
+      `System role accounts (${existing.role_name || existing.role_code}) cannot be deactivated or deleted`
+    );
+  }
+
   const updated = await userRepository.updateStatus(id, 'inactive', null, updatedBy);
   return toUserDTO(updated);
 };
@@ -383,6 +581,16 @@ export const blockUser = async (id, updatedBy = null, currentUser = null) => {
 
   if (currentUser && Number(currentUser.id) === Number(id)) {
     throw new BadRequestError('You cannot block your own account');
+  }
+
+  // Protect system role accounts from being blocked
+  const isSystemUser =
+    Boolean(existing.is_system_role) ||
+    ['SUPERADMIN', 'ADMIN'].includes(String(existing.role_code).toUpperCase());
+  if (isSystemUser) {
+    throw new BadRequestError(
+      `System role accounts (${existing.role_name || existing.role_code}) cannot be blocked`
+    );
   }
 
   const updated = await userRepository.updateStatus(id, 'blocked', null, updatedBy);
@@ -424,6 +632,26 @@ export const updateUserStatus = async (id, status, lockMinutes = null, updatedBy
     throw new BadRequestError('You cannot deactivate, block, or lock your own account');
   }
 
+  // Protect system role accounts from deactivation or locking
+  const isSystemUser =
+    Boolean(existing.is_system_role) ||
+    ['SUPERADMIN', 'ADMIN'].includes(String(existing.role_code).toUpperCase());
+  if (isSystemUser && (status === 'blocked' || status === 'locked' || status === 'inactive')) {
+    throw new BadRequestError(
+      `System role accounts (${existing.role_name || existing.role_code}) cannot be deactivated, blocked, or locked`
+    );
+  }
+
+  // If activating, verify role is active
+  if (status === 'active' && existing.role_id) {
+    const role = await roleRepository.findById(existing.role_id);
+    if (role && role.is_active === false) {
+      throw new BadRequestError(
+        `Cannot activate user because assigned role '${role.role_name}' is inactive. Please activate the role first.`
+      );
+    }
+  }
+
   let lockedUntil = null;
   if (status === 'locked') {
     const duration = lockMinutes ? Number(lockMinutes) : 30;
@@ -438,13 +666,29 @@ export const updateUserStatus = async (id, status, lockMinutes = null, updatedBy
  * Hard delete prohibition rule:
  * Users must not be hard deleted; they should be deactivated to preserve audit history and relational integrity.
  */
-export const deleteUser = async () => {
+export const deleteUser = async (id = null) => {
+  if (id) {
+    const existing = await userRepository.findById(id);
+    if (existing) {
+      const isSystemUser =
+        Boolean(existing.is_system_role) ||
+        ['SUPERADMIN', 'ADMIN'].includes(String(existing.role_code).toUpperCase());
+      if (isSystemUser) {
+        throw new BadRequestError(
+          `System role account '${existing.username}' (${existing.role_name || existing.role_code}) cannot be deleted.`
+        );
+      }
+    }
+  }
   throw new BadRequestError(
     'Hard deletion of user accounts is prohibited to preserve audit trail and business data integrity. Please use account deactivation (PATCH /api/users/:id/deactivate) instead.'
   );
 };
 
 export default {
+  checkUsernameAvailability,
+  checkEmailAvailability,
+  checkAvailability,
   getUsers,
   getUserById,
   getMyProfile,

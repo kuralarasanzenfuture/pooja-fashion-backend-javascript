@@ -1,5 +1,8 @@
 import { Router } from 'express';
 import {
+  checkUsername,
+  checkEmail,
+  checkAvailability,
   getAll,
   getMyProfile,
   getById,
@@ -51,6 +54,20 @@ router.get('/', verifyToken, adminOnly, validate(getUsersQuerySchema, 'query'), 
 
 // POST /api/users - Create new user account (Admin only)
 router.post('/', verifyToken, adminOnly, validate(createUserSchema, 'body'), create);
+
+// =========================================================================
+// =========================================================================
+// AVAILABILITY & VALIDATION ENDPOINTS (Must precede /:id)
+// =========================================================================
+
+// GET /api/users/check-username - Check if username is available
+router.get('/check-username', verifyToken, adminOnly, checkUsername);
+
+// GET /api/users/check-email - Check if email is available
+router.get('/check-email', verifyToken, adminOnly, checkEmail);
+
+// GET /api/users/check-availability - Check both username and email availability
+router.get('/check-availability', verifyToken, adminOnly, checkAvailability);
 
 // =========================================================================
 // SPECIFIC USER BY ID ROUTES (/:id)

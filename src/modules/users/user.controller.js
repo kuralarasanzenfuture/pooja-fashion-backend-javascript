@@ -195,7 +195,73 @@ export const deleteUser = async (req, res, next) => {
   }
 };
 
+
+/**
+ * GET /api/users/check-username
+ * Check if a username is available or taken.
+ */
+export const checkUsername = async (req, res, next) => {
+  try {
+    const username = req.query.username;
+    const companyId = req.query.company_id ? Number(req.query.company_id) : null;
+    const excludeId = req.query.exclude_id ? Number(req.query.exclude_id) : null;
+
+    const result = await userService.checkUsernameAvailability({
+      username,
+      companyId,
+      excludeId,
+      user: req.user,
+    });
+    return sendSuccess(res, result, result.message);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/users/check-email
+ * Check if an email is available or already registered.
+ */
+export const checkEmail = async (req, res, next) => {
+  try {
+    const email = req.query.email;
+    const excludeId = req.query.exclude_id ? Number(req.query.exclude_id) : null;
+
+    const result = await userService.checkEmailAvailability({
+      email,
+      excludeId,
+    });
+    return sendSuccess(res, result, result.message);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/users/check-availability
+ * Check both username and email availability in a single call.
+ */
+export const checkAvailability = async (req, res, next) => {
+  try {
+    const { username, email, company_id, exclude_id } = req.query;
+
+    const result = await userService.checkAvailability({
+      username,
+      email,
+      companyId: company_id ? Number(company_id) : null,
+      excludeId: exclude_id ? Number(exclude_id) : null,
+      user: req.user,
+    });
+    return sendSuccess(res, result, 'Availability check completed');
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export default {
+  checkUsername,
+  checkEmail,
+  checkAvailability,
   getAll,
   getMyProfile,
   getById,
