@@ -297,3 +297,80 @@ Deletes a category if no child subcategories or products are linked to it.
   }
 }
 ```
+
+---
+
+### 11. Check Category Name Already Exists
+Checks whether a category name already exists in the given company scope (used for live UI validation during category creation and editing).
+
+- **URL:** `GET /api/product-master/categories/check-name`
+- **Query Parameters:**
+  - `category_name` *(string, required if `name` is omitted)*: The category name to check.
+  - `name` *(string, alternative)*: Synonym for `category_name`.
+  - `company_id` *(number, optional)*: Company ID (defaults to authenticated user's company).
+  - `exclude_id` *(number, optional)*: Category ID to exclude from duplicate check (used when updating an existing category).
+- **Response `200 OK` (Available):**
+```json
+{
+  "success": true,
+  "message": "Category name is available",
+  "data": {
+    "exists": false,
+    "categoryName": "Designer Sarees",
+    "companyId": 1,
+    "message": "Category name is available"
+  }
+}
+```
+- **Response `200 OK` (Already Exists):**
+```json
+{
+  "success": true,
+  "message": "Category name 'Women's Ethnic Wear' already exists for this company",
+  "data": {
+    "exists": true,
+    "categoryName": "Women's Ethnic Wear",
+    "companyId": 1,
+    "message": "Category name 'Women's Ethnic Wear' already exists for this company"
+  }
+}
+```
+
+---
+
+### 12. Check Category Code Already Exists
+Checks whether a category code already exists in the given company scope.
+
+- **URL:** `GET /api/product-master/categories/check-code`
+- **Query Parameters:**
+  - `category_code` *(string, required if `code` is omitted)*: The category code to check.
+  - `code` *(string, alternative)*: Synonym for `category_code`.
+  - `company_id` *(number, optional)*: Company ID (defaults to authenticated user's company).
+  - `exclude_id` *(number, optional)*: Category ID to exclude from duplicate check (used when updating).
+- **Response `200 OK` (Available):**
+```json
+{
+  "success": true,
+  "message": "Category code is available",
+  "data": {
+    "exists": false,
+    "categoryCode": "SAREES",
+    "companyId": 1,
+    "message": "Category code is available"
+  }
+}
+```
+- **Response `200 OK` (Already Exists):**
+```json
+{
+  "success": true,
+  "message": "Category code 'WOMENS_ETHNIC' already exists for this company",
+  "data": {
+    "exists": true,
+    "categoryCode": "WOMENS_ETHNIC",
+    "companyId": 1,
+    "message": "Category code 'WOMENS_ETHNIC' already exists for this company"
+  }
+}
+```
+

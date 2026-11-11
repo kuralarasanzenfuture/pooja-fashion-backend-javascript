@@ -332,3 +332,83 @@ Deletes subcategory if no child products are attached.
   }
 }
 ```
+
+---
+
+### 12. Check Subcategory Name Already Exists
+Checks whether a subcategory name already exists in a given category or company scope (used for live UI validation during subcategory creation and editing).
+
+- **URL:** `GET /api/product-master/subcategories/check-name`
+- **Query Parameters:**
+  - `subcategory_name` *(string, required if `name` is omitted)*: The subcategory name to check.
+  - `name` *(string, alternative)*: Synonym for `subcategory_name`.
+  - `category_id` *(number, optional)*: Category ID to check within (subcategory names are unique per category).
+  - `company_id` *(number, optional)*: Company ID (defaults to authenticated user's company).
+  - `exclude_id` *(number, optional)*: Subcategory ID to exclude from duplicate check (used when updating an existing subcategory).
+- **Response `200 OK` (Available):**
+```json
+{
+  "success": true,
+  "message": "Subcategory name is available in this category",
+  "data": {
+    "exists": false,
+    "subcategoryName": "Banarasi Sarees",
+    "categoryId": 2,
+    "companyId": 1,
+    "message": "Subcategory name is available in this category"
+  }
+}
+```
+- **Response `200 OK` (Already Exists):**
+```json
+{
+  "success": true,
+  "message": "Subcategory name 'Banarasi Sarees' already exists in this category",
+  "data": {
+    "exists": true,
+    "subcategoryName": "Banarasi Sarees",
+    "categoryId": 2,
+    "companyId": 1,
+    "message": "Subcategory name 'Banarasi Sarees' already exists in this category"
+  }
+}
+```
+
+---
+
+### 13. Check Subcategory Code Already Exists
+Checks whether a subcategory code already exists in the given company scope.
+
+- **URL:** `GET /api/product-master/subcategories/check-code`
+- **Query Parameters:**
+  - `subcategory_code` *(string, required if `code` is omitted)*: The subcategory code to check.
+  - `code` *(string, alternative)*: Synonym for `subcategory_code`.
+  - `company_id` *(number, optional)*: Company ID (defaults to authenticated user's company).
+  - `exclude_id` *(number, optional)*: Subcategory ID to exclude from duplicate check (used when updating).
+- **Response `200 OK` (Available):**
+```json
+{
+  "success": true,
+  "message": "Subcategory code is available",
+  "data": {
+    "exists": false,
+    "subcategoryCode": "BANARASI_SAREES",
+    "companyId": 1,
+    "message": "Subcategory code is available"
+  }
+}
+```
+- **Response `200 OK` (Already Exists):**
+```json
+{
+  "success": true,
+  "message": "Subcategory code 'BANARASI_SAREES' already exists for this company",
+  "data": {
+    "exists": true,
+    "subcategoryCode": "BANARASI_SAREES",
+    "companyId": 1,
+    "message": "Subcategory code 'BANARASI_SAREES' already exists for this company"
+  }
+}
+```
+

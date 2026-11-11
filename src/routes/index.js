@@ -13,6 +13,8 @@ import roleRoutes from '../modules/roles/role.routes.js';
 import userRoutes from '../modules/users/user.routes.js';
 import employeeRoutes from '../modules/employees/employee.routes.js';
 import productMasterRoutes from '../modules/product-master/productMaster.routes.js';
+import categoryRoutes from '../modules/product-master/categories/category.routes.js';
+import subCategoryRoutes from '../modules/product-master/subCategories/subCategory.routes.js';
 import brandRoutes from '../modules/product-master/brands/brand.routes.js';
 import sizeGroupRoutes from '../modules/product-master/sizeGroups/sizeGroup.routes.js';
 import sizeRoutes from '../modules/product-master/sizes/size.routes.js';
@@ -28,7 +30,6 @@ import productPriceRoutes from '../modules/product-master/productPrices/productP
 import taxRoutes from '../modules/product-master/taxes/tax.routes.js';
 import productTaxRoutes from '../modules/product-master/productTaxes/productTax.routes.js';
 import discountRoutes from '../modules/product-master/discounts/discount.routes.js';
-import productDiscountRoutes from '../modules/product-master/productDiscounts/productDiscount.routes.js';
 import authRoutes from '../modules/auth/auth.routes.js';
 
 const router = Router();
@@ -54,6 +55,9 @@ router.use('/branch-contacts', branchContactRoutes);
 router.use('/roles', roleRoutes);
 router.use('/users', userRoutes);
 router.use('/employees', employeeRoutes);
+router.use('/categories', categoryRoutes);
+router.use('/subcategories', subCategoryRoutes);
+router.use('/sub-categories', subCategoryRoutes);
 router.use('/brands', brandRoutes);
 router.use('/size-groups', sizeGroupRoutes);
 router.use('/sizes', sizeRoutes);
@@ -69,7 +73,6 @@ router.use('/product-prices', productPriceRoutes);
 router.use('/taxes', taxRoutes);
 router.use('/product-taxes', productTaxRoutes);
 router.use('/discounts', discountRoutes);
-router.use('/product-discounts', productDiscountRoutes);
 router.use('/product-master', productMasterRoutes);
 
 export default router;

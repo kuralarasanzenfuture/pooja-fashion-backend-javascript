@@ -10,6 +10,8 @@ import {
   createSubcategorySchema,
   updateSubcategorySchema,
   getSubcategoriesQuerySchema,
+  checkSubcategoryNameQuerySchema,
+  checkSubcategoryCodeQuerySchema,
 } from '../../src/modules/product-master/subCategories/subCategory.validation.js';
 
 describe('Product Master: Subcategories Unit Tests', () => {
@@ -74,22 +76,38 @@ describe('Product Master: Subcategories Unit Tests', () => {
       expect(dto).toEqual({
         id: 10,
         companyId: 1,
+        company_id: 1,
         companyName: 'Pooja Fashion Retail',
+        company_name: 'Pooja Fashion Retail',
         companyCode: 'PF-01',
+        company_code: 'PF-01',
         categoryId: 2,
+        category_id: 2,
         categoryName: "Women's Ethnic Wear",
+        category_name: "Women's Ethnic Wear",
         categoryCode: 'WOMENS_ETHNIC',
+        category_code: 'WOMENS_ETHNIC',
         subcategoryCode: 'BANARASI_SAREES',
+        subcategory_code: 'BANARASI_SAREES',
         subcategoryName: 'Banarasi Sarees',
+        subcategory_name: 'Banarasi Sarees',
         description: 'Traditional brocade silk sarees',
         imageUrl: '/uploads/subcategories/banarasi-sarees/banarasi.png',
+        image_url: '/uploads/subcategories/banarasi-sarees/banarasi.png',
         imageKey: 'subcategories/banarasi-sarees/banarasi.png',
+        image_key: 'subcategories/banarasi-sarees/banarasi.png',
         displayOrder: 1,
+        display_order: 1,
         isActive: true,
+        is_active: true,
         createdBy: 3,
+        created_by: 3,
         updatedBy: null,
+        updated_by: null,
         createdAt: '2026-09-22T10:00:00.000Z',
+        created_at: '2026-09-22T10:00:00.000Z',
         updatedAt: '2026-09-22T10:00:00.000Z',
+        updated_at: '2026-09-22T10:00:00.000Z',
       });
     });
 
@@ -148,6 +166,46 @@ describe('Product Master: Subcategories Unit Tests', () => {
       expect(parsed.category_id).toBe(5);
       expect(parsed.sortBy).toBe('display_order');
       expect(parsed.sortOrder).toBe('asc');
+    });
+
+    it('should validate checkSubcategoryNameQuerySchema with subcategory_name or name', () => {
+      const parsed1 = checkSubcategoryNameQuerySchema.parse({
+        subcategory_name: 'Banarasi Sarees',
+        category_id: '2',
+      });
+      expect(parsed1.subcategory_name).toBe('Banarasi Sarees');
+      expect(parsed1.category_id).toBe(2);
+
+      const parsed2 = checkSubcategoryNameQuerySchema.parse({
+        name: 'Chanderi Sarees',
+        company_id: '1',
+        exclude_id: '10',
+      });
+      expect(parsed2.name).toBe('Chanderi Sarees');
+      expect(parsed2.company_id).toBe(1);
+      expect(parsed2.exclude_id).toBe(10);
+
+      expect(() => checkSubcategoryNameQuerySchema.parse({})).toThrow();
+      expect(() => checkSubcategoryNameQuerySchema.parse({ subcategory_name: '   ' })).toThrow();
+    });
+
+    it('should validate checkSubcategoryCodeQuerySchema with subcategory_code or code', () => {
+      const parsed1 = checkSubcategoryCodeQuerySchema.parse({
+        subcategory_code: 'BANARASI',
+        company_id: '1',
+      });
+      expect(parsed1.subcategory_code).toBe('BANARASI');
+      expect(parsed1.company_id).toBe(1);
+
+      const parsed2 = checkSubcategoryCodeQuerySchema.parse({
+        code: 'CHANDERI',
+        exclude_id: '5',
+      });
+      expect(parsed2.code).toBe('CHANDERI');
+      expect(parsed2.exclude_id).toBe(5);
+
+      expect(() => checkSubcategoryCodeQuerySchema.parse({})).toThrow();
+      expect(() => checkSubcategoryCodeQuerySchema.parse({ subcategory_code: '' })).toThrow();
     });
   });
 });

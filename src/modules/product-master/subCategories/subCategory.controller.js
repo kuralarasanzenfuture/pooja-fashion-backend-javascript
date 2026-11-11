@@ -7,7 +7,7 @@ import { sendSuccess, sendCreated } from '../../../shared/utils/response.js';
  */
 export const getAll = async (req, res, next) => {
   try {
-    const { subcategories, meta } = await subCategoryService.getSubcategories(req.query);
+    const { subcategories, meta } = await subCategoryService.getSubcategories(req.query, req.user);
     return sendSuccess(res, subcategories, 'Subcategories retrieved successfully', 200, meta);
   } catch (error) {
     return next(error);
@@ -20,7 +20,7 @@ export const getAll = async (req, res, next) => {
  */
 export const getById = async (req, res, next) => {
   try {
-    const subcategory = await subCategoryService.getSubcategoryById(req.params.id);
+    const subcategory = await subCategoryService.getSubcategoryById(req.params.id, req.user);
     return sendSuccess(res, subcategory, 'Subcategory retrieved successfully');
   } catch (error) {
     return next(error);
@@ -35,7 +35,8 @@ export const getByCode = async (req, res, next) => {
   try {
     const subcategory = await subCategoryService.getSubcategoryByCode(
       req.params.companyId,
-      req.params.subcategoryCode
+      req.params.subcategoryCode,
+      req.user
     );
     return sendSuccess(res, subcategory, 'Subcategory retrieved successfully');
   } catch (error) {
@@ -53,7 +54,8 @@ export const getByCategoryId = async (req, res, next) => {
       req.params.categoryId,
       {
         isActive: req.query.is_active !== undefined ? req.query.is_active === 'true' : null,
-      }
+      },
+      req.user
     );
     return sendSuccess(res, subcategories, 'Category subcategories retrieved successfully');
   } catch (error) {
@@ -71,7 +73,8 @@ export const getByCompanyId = async (req, res, next) => {
       req.params.companyId,
       {
         isActive: req.query.is_active !== undefined ? req.query.is_active === 'true' : null,
-      }
+      },
+      req.user
     );
     return sendSuccess(res, subcategories, 'Company subcategories retrieved successfully');
   } catch (error) {
@@ -92,7 +95,8 @@ export const create = async (req, res, next) => {
     const subcategory = await subCategoryService.createSubcategory(
       data,
       req.files,
-      req.subcategoryUploadSlug
+      req.subcategoryUploadSlug,
+      req.user
     );
     return sendCreated(res, subcategory, 'Subcategory created successfully');
   } catch (error) {
@@ -114,7 +118,8 @@ export const update = async (req, res, next) => {
       req.params.id,
       data,
       req.files,
-      req.subcategoryUploadSlug
+      req.subcategoryUploadSlug,
+      req.user
     );
     return sendSuccess(res, subcategory, 'Subcategory updated successfully');
   } catch (error) {
@@ -132,7 +137,8 @@ export const updateStatus = async (req, res, next) => {
     const subcategory = await subCategoryService.updateSubcategoryStatus(
       req.params.id,
       req.body.is_active,
-      updatedBy
+      updatedBy,
+      req.user
     );
     return sendSuccess(res, subcategory, 'Subcategory status updated successfully');
   } catch (error) {
@@ -149,7 +155,8 @@ export const uploadImage = async (req, res, next) => {
     const subcategory = await subCategoryService.uploadSubcategoryImage(
       req.params.id,
       req.files,
-      req.subcategoryUploadSlug
+      req.subcategoryUploadSlug,
+      req.user
     );
     return sendSuccess(res, subcategory, 'Subcategory image uploaded successfully');
   } catch (error) {
@@ -163,7 +170,7 @@ export const uploadImage = async (req, res, next) => {
  */
 export const deleteImage = async (req, res, next) => {
   try {
-    const subcategory = await subCategoryService.deleteSubcategoryImage(req.params.id);
+    const subcategory = await subCategoryService.deleteSubcategoryImage(req.params.id, req.user);
     return sendSuccess(res, subcategory, 'Subcategory image deleted successfully');
   } catch (error) {
     return next(error);
@@ -176,8 +183,56 @@ export const deleteImage = async (req, res, next) => {
  */
 export const deleteSubcategory = async (req, res, next) => {
   try {
-    const result = await subCategoryService.deleteSubcategory(req.params.id);
+    const result = await subCategoryService.deleteSubcategory(req.params.id, req.user);
     return sendSuccess(res, result, 'Subcategory deleted successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/product-master/subcategories/check-name
+ * Check whether a subcategory name already exists in a category or company
+ */
+export const checkSubcategoryName = async (req, res, next) => {
+  try {
+    const subcategoryName = req.query.subcategory_name || req.query.name;
+    const categoryId = req.query.category_id || req.query.categoryId;
+    const companyId = req.query.company_id || req.query.companyId;
+    const excludeId = req.query.exclude_id || req.query.excludeId;
+
+    const result = await subCategoryService.checkSubcategoryNameExists({
+      subcategoryName,
+      categoryId,
+      companyId,
+      excludeId,
+      user: req.user,
+    });
+
+    return sendSuccess(res, result, result.message);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/product-master/subcategories/check-code
+ * Check whether a subcategory code already exists for a company
+ */
+export const checkSubcategoryCode = async (req, res, next) => {
+  try {
+    const subcategoryCode = req.query.subcategory_code || req.query.code;
+    const companyId = req.query.company_id || req.query.companyId;
+    const excludeId = req.query.exclude_id || req.query.excludeId;
+
+    const result = await subCategoryService.checkSubcategoryCodeExists({
+      subcategoryCode,
+      companyId,
+      excludeId,
+      user: req.user,
+    });
+
+    return sendSuccess(res, result, result.message);
   } catch (error) {
     return next(error);
   }
@@ -195,4 +250,6 @@ export default {
   uploadImage,
   deleteImage,
   deleteSubcategory,
+  checkSubcategoryName,
+  checkSubcategoryCode,
 };

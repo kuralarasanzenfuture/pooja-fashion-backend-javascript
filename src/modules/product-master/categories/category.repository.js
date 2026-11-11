@@ -17,6 +17,7 @@ export const findAll = async ({
   search,
   companyId,
   isActive,
+  hasImage,
   sortBy = 'display_order',
   sortOrder = 'ASC',
 } = {}) => {
@@ -30,6 +31,14 @@ export const findAll = async ({
     values.push(companyId);
   }
 
+  if (hasImage !== undefined && hasImage !== null && hasImage !== '') {
+    if (hasImage === true || hasImage === 'true' || hasImage === 'with_image') {
+      conditions.push(`(cat.image_url IS NOT NULL AND cat.image_url <> '')`);
+    } else if (hasImage === false || hasImage === 'false' || hasImage === 'without_image') {
+      conditions.push(`(cat.image_url IS NULL OR cat.image_url = '')`);
+    }
+  }
+
   if (isActive !== undefined && isActive !== null) {
     conditions.push(`cat.is_active = $${paramIndex++}`);
     values.push(isActive);
@@ -37,7 +46,7 @@ export const findAll = async ({
 
   if (search) {
     conditions.push(
-      `(cat.category_name ILIKE $${paramIndex} OR cat.category_code ILIKE $${paramIndex} OR cat.description ILIKE $${paramIndex})`
+      `(cat.category_name ILIKE $${paramIndex} OR cat.category_code ILIKE $${paramIndex} OR cat.description ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`
     );
     values.push(`%${search}%`);
     paramIndex++;
@@ -47,10 +56,12 @@ export const findAll = async ({
 
   const allowedSortColumns = {
     id: 'cat.id',
+    company_id: 'cat.company_id',
     category_code: 'cat.category_code',
     category_name: 'cat.category_name',
     display_order: 'cat.display_order',
     created_at: 'cat.created_at',
+    updated_at: 'cat.updated_at',
     is_active: 'cat.is_active',
   };
 
@@ -60,6 +71,7 @@ export const findAll = async ({
   const countQuery = `
     SELECT COUNT(*) AS total
     FROM categories cat
+    LEFT JOIN companies c ON c.id = cat.company_id
     ${whereClause}
   `;
 
@@ -69,7 +81,7 @@ export const findAll = async ({
       c.company_name,
       c.company_code
     FROM categories cat
-    JOIN companies c ON c.id = cat.company_id
+    LEFT JOIN companies c ON c.id = cat.company_id
     ${whereClause}
     ORDER BY ${orderColumn} ${direction}, cat.category_name ASC
     LIMIT $${paramIndex++} OFFSET $${paramIndex++}
@@ -95,7 +107,7 @@ export const findById = async (id) => {
       c.company_name,
       c.company_code
     FROM categories cat
-    JOIN companies c ON c.id = cat.company_id
+    LEFT JOIN companies c ON c.id = cat.company_id
     WHERE cat.id = $1
   `;
   const result = await pool.query(query, [id]);
@@ -113,7 +125,7 @@ export const findByCode = async (companyId, categoryCode) => {
       c.company_name,
       c.company_code
     FROM categories cat
-    JOIN companies c ON c.id = cat.company_id
+    LEFT JOIN companies c ON c.id = cat.company_id
     WHERE cat.company_id = $1 AND LOWER(cat.category_code) = LOWER($2)
   `;
   const result = await pool.query(query, [companyId, categoryCode]);
@@ -131,7 +143,7 @@ export const findByName = async (companyId, categoryName) => {
       c.company_name,
       c.company_code
     FROM categories cat
-    JOIN companies c ON c.id = cat.company_id
+    LEFT JOIN companies c ON c.id = cat.company_id
     WHERE cat.company_id = $1 AND LOWER(cat.category_name) = LOWER($2)
   `;
   const result = await pool.query(query, [companyId, categoryName]);
@@ -157,7 +169,7 @@ export const findByCompanyId = async (companyId, { isActive = null } = {}) => {
       c.company_name,
       c.company_code
     FROM categories cat
-    JOIN companies c ON c.id = cat.company_id
+    LEFT JOIN companies c ON c.id = cat.company_id
     WHERE ${conditions.join(' AND ')}
     ORDER BY cat.display_order ASC, cat.category_name ASC
   `;
@@ -215,7 +227,6 @@ export const countSubcategories = async (categoryId) => {
     const result = await pool.query(query, [categoryId]);
     return parseInt(result.rows[0]?.count || 0, 10);
   } catch (error) {
-    // If subcategories table does not exist yet
     if (error.code === '42P01') {
       return 0;
     }
@@ -233,7 +244,6 @@ export const countProducts = async (categoryId) => {
     const result = await pool.query(query, [categoryId]);
     return parseInt(result.rows[0]?.count || 0, 10);
   } catch (error) {
-    // If products table does not exist yet
     if (error.code === '42P01') {
       return 0;
     }

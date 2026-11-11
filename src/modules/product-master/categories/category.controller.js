@@ -7,7 +7,7 @@ import { sendSuccess, sendCreated } from '../../../shared/utils/response.js';
  */
 export const getAll = async (req, res, next) => {
   try {
-    const { categories, meta } = await categoryService.getCategories(req.query);
+    const { categories, meta } = await categoryService.getCategories(req.query, req.user);
     return sendSuccess(res, categories, 'Categories retrieved successfully', 200, meta);
   } catch (error) {
     return next(error);
@@ -20,7 +20,7 @@ export const getAll = async (req, res, next) => {
  */
 export const getById = async (req, res, next) => {
   try {
-    const category = await categoryService.getCategoryById(req.params.id);
+    const category = await categoryService.getCategoryById(req.params.id, req.user);
     return sendSuccess(res, category, 'Category retrieved successfully');
   } catch (error) {
     return next(error);
@@ -35,7 +35,8 @@ export const getByCode = async (req, res, next) => {
   try {
     const category = await categoryService.getCategoryByCode(
       req.params.companyId,
-      req.params.categoryCode
+      req.params.categoryCode,
+      req.user
     );
     return sendSuccess(res, category, 'Category retrieved successfully');
   } catch (error) {
@@ -49,9 +50,13 @@ export const getByCode = async (req, res, next) => {
  */
 export const getByCompanyId = async (req, res, next) => {
   try {
-    const categories = await categoryService.getCategoriesByCompanyId(req.params.companyId, {
-      isActive: req.query.is_active !== undefined ? req.query.is_active === 'true' : null,
-    });
+    const categories = await categoryService.getCategoriesByCompanyId(
+      req.params.companyId,
+      {
+        isActive: req.query.is_active !== undefined ? req.query.is_active === 'true' : null,
+      },
+      req.user
+    );
     return sendSuccess(res, categories, 'Company categories retrieved successfully');
   } catch (error) {
     return next(error);
@@ -71,7 +76,8 @@ export const create = async (req, res, next) => {
     const category = await categoryService.createCategory(
       data,
       req.files,
-      req.categoryUploadSlug
+      req.categoryUploadSlug,
+      req.user
     );
     return sendCreated(res, category, 'Category created successfully');
   } catch (error) {
@@ -93,7 +99,8 @@ export const update = async (req, res, next) => {
       req.params.id,
       data,
       req.files,
-      req.categoryUploadSlug
+      req.categoryUploadSlug,
+      req.user
     );
     return sendSuccess(res, category, 'Category updated successfully');
   } catch (error) {
@@ -111,7 +118,8 @@ export const updateStatus = async (req, res, next) => {
     const category = await categoryService.updateCategoryStatus(
       req.params.id,
       req.body.is_active,
-      updatedBy
+      updatedBy,
+      req.user
     );
     return sendSuccess(res, category, 'Category status updated successfully');
   } catch (error) {
@@ -128,7 +136,8 @@ export const uploadImage = async (req, res, next) => {
     const category = await categoryService.uploadCategoryImage(
       req.params.id,
       req.files,
-      req.categoryUploadSlug
+      req.categoryUploadSlug,
+      req.user
     );
     return sendSuccess(res, category, 'Category image uploaded successfully');
   } catch (error) {
@@ -142,7 +151,7 @@ export const uploadImage = async (req, res, next) => {
  */
 export const deleteImage = async (req, res, next) => {
   try {
-    const category = await categoryService.deleteCategoryImage(req.params.id);
+    const category = await categoryService.deleteCategoryImage(req.params.id, req.user);
     return sendSuccess(res, category, 'Category image deleted successfully');
   } catch (error) {
     return next(error);
@@ -155,8 +164,54 @@ export const deleteImage = async (req, res, next) => {
  */
 export const deleteCategory = async (req, res, next) => {
   try {
-    const result = await categoryService.deleteCategory(req.params.id);
+    const result = await categoryService.deleteCategory(req.params.id, req.user);
     return sendSuccess(res, result, 'Category deleted successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/product-master/categories/check-name
+ * Check whether a category name already exists for a company
+ */
+export const checkCategoryName = async (req, res, next) => {
+  try {
+    const categoryName = req.query.category_name || req.query.name;
+    const companyId = req.query.company_id || req.query.companyId;
+    const excludeId = req.query.exclude_id || req.query.excludeId;
+
+    const result = await categoryService.checkCategoryNameExists({
+      categoryName,
+      companyId,
+      excludeId,
+      user: req.user,
+    });
+
+    return sendSuccess(res, result, result.message);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/product-master/categories/check-code
+ * Check whether a category code already exists for a company
+ */
+export const checkCategoryCode = async (req, res, next) => {
+  try {
+    const categoryCode = req.query.category_code || req.query.code;
+    const companyId = req.query.company_id || req.query.companyId;
+    const excludeId = req.query.exclude_id || req.query.excludeId;
+
+    const result = await categoryService.checkCategoryCodeExists({
+      categoryCode,
+      companyId,
+      excludeId,
+      user: req.user,
+    });
+
+    return sendSuccess(res, result, result.message);
   } catch (error) {
     return next(error);
   }
@@ -173,4 +228,6 @@ export default {
   uploadImage,
   deleteImage,
   deleteCategory,
+  checkCategoryName,
+  checkCategoryCode,
 };

@@ -18,6 +18,7 @@ export const findAll = async ({
   companyId,
   categoryId,
   isActive,
+  hasImage,
   sortBy = 'display_order',
   sortOrder = 'ASC',
 } = {}) => {
@@ -36,6 +37,14 @@ export const findAll = async ({
     values.push(categoryId);
   }
 
+  if (hasImage !== undefined && hasImage !== null && hasImage !== '') {
+    if (hasImage === true || hasImage === 'true' || hasImage === 'with_image') {
+      conditions.push(`(sub.image_url IS NOT NULL AND sub.image_url <> '')`);
+    } else if (hasImage === false || hasImage === 'false' || hasImage === 'without_image') {
+      conditions.push(`(sub.image_url IS NULL OR sub.image_url = '')`);
+    }
+  }
+
   if (isActive !== undefined && isActive !== null) {
     conditions.push(`sub.is_active = $${paramIndex++}`);
     values.push(isActive);
@@ -43,7 +52,7 @@ export const findAll = async ({
 
   if (search) {
     conditions.push(
-      `(sub.subcategory_name ILIKE $${paramIndex} OR sub.subcategory_code ILIKE $${paramIndex} OR sub.description ILIKE $${paramIndex} OR cat.category_name ILIKE $${paramIndex})`
+      `(sub.subcategory_name ILIKE $${paramIndex} OR sub.subcategory_code ILIKE $${paramIndex} OR sub.description ILIKE $${paramIndex} OR cat.category_name ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`
     );
     values.push(`%${search}%`);
     paramIndex++;
@@ -53,10 +62,13 @@ export const findAll = async ({
 
   const allowedSortColumns = {
     id: 'sub.id',
+    company_id: 'sub.company_id',
+    category_id: 'sub.category_id',
     subcategory_code: 'sub.subcategory_code',
     subcategory_name: 'sub.subcategory_name',
     display_order: 'sub.display_order',
     created_at: 'sub.created_at',
+    updated_at: 'sub.updated_at',
     is_active: 'sub.is_active',
   };
 
@@ -66,7 +78,8 @@ export const findAll = async ({
   const countQuery = `
     SELECT COUNT(*) AS total
     FROM subcategories sub
-    JOIN categories cat ON cat.id = sub.category_id
+    LEFT JOIN companies c ON c.id = sub.company_id
+    LEFT JOIN categories cat ON cat.id = sub.category_id
     ${whereClause}
   `;
 
@@ -78,8 +91,8 @@ export const findAll = async ({
       cat.category_name,
       cat.category_code
     FROM subcategories sub
-    JOIN companies c ON c.id = sub.company_id
-    JOIN categories cat ON cat.id = sub.category_id
+    LEFT JOIN companies c ON c.id = sub.company_id
+    LEFT JOIN categories cat ON cat.id = sub.category_id
     ${whereClause}
     ORDER BY ${orderColumn} ${direction}, sub.subcategory_name ASC
     LIMIT $${paramIndex++} OFFSET $${paramIndex++}
@@ -107,8 +120,8 @@ export const findById = async (id) => {
       cat.category_name,
       cat.category_code
     FROM subcategories sub
-    JOIN companies c ON c.id = sub.company_id
-    JOIN categories cat ON cat.id = sub.category_id
+    LEFT JOIN companies c ON c.id = sub.company_id
+    LEFT JOIN categories cat ON cat.id = sub.category_id
     WHERE sub.id = $1
   `;
   const result = await pool.query(query, [id]);
@@ -128,8 +141,8 @@ export const findByCode = async (companyId, subcategoryCode) => {
       cat.category_name,
       cat.category_code
     FROM subcategories sub
-    JOIN companies c ON c.id = sub.company_id
-    JOIN categories cat ON cat.id = sub.category_id
+    LEFT JOIN companies c ON c.id = sub.company_id
+    LEFT JOIN categories cat ON cat.id = sub.category_id
     WHERE sub.company_id = $1 AND LOWER(sub.subcategory_code) = LOWER($2)
   `;
   const result = await pool.query(query, [companyId, subcategoryCode]);
@@ -149,8 +162,8 @@ export const findByName = async (categoryId, subcategoryName) => {
       cat.category_name,
       cat.category_code
     FROM subcategories sub
-    JOIN companies c ON c.id = sub.company_id
-    JOIN categories cat ON cat.id = sub.category_id
+    LEFT JOIN companies c ON c.id = sub.company_id
+    LEFT JOIN categories cat ON cat.id = sub.category_id
     WHERE sub.category_id = $1 AND LOWER(sub.subcategory_name) = LOWER($2)
   `;
   const result = await pool.query(query, [categoryId, subcategoryName]);
@@ -178,8 +191,8 @@ export const findByCategoryId = async (categoryId, { isActive = null } = {}) => 
       cat.category_name,
       cat.category_code
     FROM subcategories sub
-    JOIN companies c ON c.id = sub.company_id
-    JOIN categories cat ON cat.id = sub.category_id
+    LEFT JOIN companies c ON c.id = sub.company_id
+    LEFT JOIN categories cat ON cat.id = sub.category_id
     WHERE ${conditions.join(' AND ')}
     ORDER BY sub.display_order ASC, sub.subcategory_name ASC
   `;
@@ -208,8 +221,8 @@ export const findByCompanyId = async (companyId, { isActive = null } = {}) => {
       cat.category_name,
       cat.category_code
     FROM subcategories sub
-    JOIN companies c ON c.id = sub.company_id
-    JOIN categories cat ON cat.id = sub.category_id
+    LEFT JOIN companies c ON c.id = sub.company_id
+    LEFT JOIN categories cat ON cat.id = sub.category_id
     WHERE ${conditions.join(' AND ')}
     ORDER BY sub.display_order ASC, sub.subcategory_name ASC
   `;
@@ -256,6 +269,27 @@ export const existsByName = async (categoryId, subcategoryName, excludeId = null
   const result = await pool.query(query, values);
   return result.rowCount > 0;
 };
+
+/**
+ * Check if subcategory name exists across a company
+ */
+export const existsByNameInCompany = async (companyId, subcategoryName, excludeId = null) => {
+  const pool = getPool();
+  let query = `
+    SELECT 1 FROM subcategories 
+    WHERE company_id = $1 AND LOWER(subcategory_name) = LOWER($2)
+  `;
+  const values = [companyId, subcategoryName];
+
+  if (excludeId) {
+    query += ' AND id <> $3';
+    values.push(excludeId);
+  }
+
+  const result = await pool.query(query, values);
+  return result.rowCount > 0;
+};
+
 
 /**
  * Count products referencing subcategory
@@ -400,6 +434,7 @@ export default {
   findByCompanyId,
   existsByCode,
   existsByName,
+  existsByNameInCompany,
   countProducts,
   create,
   update,

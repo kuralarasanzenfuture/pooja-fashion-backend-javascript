@@ -183,6 +183,40 @@
           "path": ["api", "product-master", "categories", "{{categoryId}}"]
         }
       }
+    },
+    {
+      "name": "Check Category Name Exists",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/categories/check-name?category_name=Women's Ethnic Wear&company_id={{companyId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "categories", "check-name"],
+          "query": [
+            { "key": "category_name", "value": "Women's Ethnic Wear" },
+            { "key": "company_id", "value": "{{companyId}}" },
+            { "key": "exclude_id", "value": "1", "disabled": true }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Check Category Code Exists",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/categories/check-code?category_code={{categoryCode}}&company_id={{companyId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "categories", "check-code"],
+          "query": [
+            { "key": "category_code", "value": "{{categoryCode}}" },
+            { "key": "company_id", "value": "{{companyId}}" },
+            { "key": "exclude_id", "value": "1", "disabled": true }
+          ]
+        }
+      }
     }
   ],
   "variable": [

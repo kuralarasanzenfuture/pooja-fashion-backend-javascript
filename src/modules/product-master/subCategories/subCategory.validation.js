@@ -4,7 +4,8 @@ export const createSubcategorySchema = z.object({
   company_id: z.coerce
     .number()
     .int('Company ID must be an integer')
-    .positive('Company ID must be a positive number'),
+    .positive('Company ID must be a positive number')
+    .optional(),
   category_id: z.coerce
     .number()
     .int('Category ID must be an integer')
@@ -118,11 +119,59 @@ export const getSubcategoriesQuerySchema = z.object({
     }, z.boolean().optional())
     .optional(),
   search: z.string().trim().optional(),
+  has_image: z.string().optional(),
+  hasImage: z.string().optional(),
   sortBy: z
-    .enum(['id', 'subcategory_code', 'subcategory_name', 'display_order', 'created_at', 'is_active'])
+    .enum([
+      'id',
+      'subcategory_code',
+      'subcategory_name',
+      'display_order',
+      'created_at',
+      'is_active',
+      'company_id',
+      'category_id',
+      'updated_at',
+    ])
     .default('display_order'),
   sortOrder: z.enum(['asc', 'desc', 'ASC', 'DESC']).default('asc'),
 });
+
+export const checkSubcategoryNameQuerySchema = z
+  .object({
+    subcategory_name: z.string().trim().optional(),
+    name: z.string().trim().optional(),
+    category_id: z.coerce.number().int().positive('Category ID must be a positive integer').optional(),
+    categoryId: z.coerce.number().int().positive('Category ID must be a positive integer').optional(),
+    company_id: z.coerce.number().int().positive('Company ID must be a positive integer').optional(),
+    companyId: z.coerce.number().int().positive('Company ID must be a positive integer').optional(),
+    exclude_id: z.coerce.number().int().positive('Exclude ID must be a positive integer').optional(),
+    excludeId: z.coerce.number().int().positive('Exclude ID must be a positive integer').optional(),
+  })
+  .refine(
+    (data) => Boolean((data.subcategory_name && data.subcategory_name.trim()) || (data.name && data.name.trim())),
+    {
+      message: 'Subcategory name is required (use "subcategory_name" or "name")',
+      path: ['subcategory_name'],
+    }
+  );
+
+export const checkSubcategoryCodeQuerySchema = z
+  .object({
+    subcategory_code: z.string().trim().optional(),
+    code: z.string().trim().optional(),
+    company_id: z.coerce.number().int().positive('Company ID must be a positive integer').optional(),
+    companyId: z.coerce.number().int().positive('Company ID must be a positive integer').optional(),
+    exclude_id: z.coerce.number().int().positive('Exclude ID must be a positive integer').optional(),
+    excludeId: z.coerce.number().int().positive('Exclude ID must be a positive integer').optional(),
+  })
+  .refine(
+    (data) => Boolean((data.subcategory_code && data.subcategory_code.trim()) || (data.code && data.code.trim())),
+    {
+      message: 'Subcategory code is required (use "subcategory_code" or "code")',
+      path: ['subcategory_code'],
+    }
+  );
 
 export default {
   createSubcategorySchema,
@@ -133,4 +182,7 @@ export default {
   categoryIdParamSchema,
   subcategoryCodeParamSchema,
   getSubcategoriesQuerySchema,
+  checkSubcategoryNameQuerySchema,
+  checkSubcategoryCodeQuerySchema,
 };
+

@@ -4,7 +4,8 @@ export const createCategorySchema = z.object({
   company_id: z.coerce
     .number()
     .int('Company ID must be an integer')
-    .positive('Company ID must be a positive number'),
+    .positive('Company ID must be a positive number')
+    .optional(),
   category_code: z
     .string()
     .trim()
@@ -37,7 +38,7 @@ export const createCategorySchema = z.object({
 });
 
 export const updateCategorySchema = z.object({
-  company_id: z.coerce.number().int().positive().optional(),
+  company_id: z.coerce.number().int().positive('Company ID must be a positive integer').optional(),
   category_code: z
     .string()
     .trim()
@@ -107,11 +108,47 @@ export const getCategoriesQuerySchema = z.object({
     }, z.boolean().optional())
     .optional(),
   search: z.string().trim().optional(),
+  has_image: z.string().optional(),
+  hasImage: z.string().optional(),
   sortBy: z
-    .enum(['id', 'category_code', 'category_name', 'display_order', 'created_at', 'is_active'])
+    .enum(['id', 'category_code', 'category_name', 'display_order', 'created_at', 'is_active', 'company_id', 'updated_at'])
     .default('display_order'),
   sortOrder: z.enum(['asc', 'desc', 'ASC', 'DESC']).default('asc'),
 });
+
+export const checkCategoryNameQuerySchema = z
+  .object({
+    category_name: z.string().trim().optional(),
+    name: z.string().trim().optional(),
+    company_id: z.coerce.number().int().positive('Company ID must be a positive integer').optional(),
+    companyId: z.coerce.number().int().positive('Company ID must be a positive integer').optional(),
+    exclude_id: z.coerce.number().int().positive('Exclude ID must be a positive integer').optional(),
+    excludeId: z.coerce.number().int().positive('Exclude ID must be a positive integer').optional(),
+  })
+  .refine(
+    (data) => Boolean((data.category_name && data.category_name.trim()) || (data.name && data.name.trim())),
+    {
+      message: 'Category name is required (use "category_name" or "name")',
+      path: ['category_name'],
+    }
+  );
+
+export const checkCategoryCodeQuerySchema = z
+  .object({
+    category_code: z.string().trim().optional(),
+    code: z.string().trim().optional(),
+    company_id: z.coerce.number().int().positive('Company ID must be a positive integer').optional(),
+    companyId: z.coerce.number().int().positive('Company ID must be a positive integer').optional(),
+    exclude_id: z.coerce.number().int().positive('Exclude ID must be a positive integer').optional(),
+    excludeId: z.coerce.number().int().positive('Exclude ID must be a positive integer').optional(),
+  })
+  .refine(
+    (data) => Boolean((data.category_code && data.category_code.trim()) || (data.code && data.code.trim())),
+    {
+      message: 'Category code is required (use "category_code" or "code")',
+      path: ['category_code'],
+    }
+  );
 
 export default {
   createCategorySchema,
@@ -121,4 +158,7 @@ export default {
   companyIdParamSchema,
   categoryCodeParamSchema,
   getCategoriesQuerySchema,
+  checkCategoryNameQuerySchema,
+  checkCategoryCodeQuerySchema,
 };
+

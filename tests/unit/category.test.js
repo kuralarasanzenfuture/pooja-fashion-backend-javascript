@@ -10,6 +10,8 @@ import {
   createCategorySchema,
   updateCategorySchema,
   getCategoriesQuerySchema,
+  checkCategoryNameQuerySchema,
+  checkCategoryCodeQuerySchema,
 } from '../../src/modules/product-master/categories/category.validation.js';
 
 describe('Product Master: Categories Unit Tests', () => {
@@ -69,19 +71,32 @@ describe('Product Master: Categories Unit Tests', () => {
       expect(dto).toEqual({
         id: 42,
         companyId: 1,
+        company_id: 1,
         companyName: 'Pooja Fashion Retail',
+        company_name: 'Pooja Fashion Retail',
         companyCode: 'PF-01',
+        company_code: 'PF-01',
         categoryCode: 'SAREES',
+        category_code: 'SAREES',
         categoryName: 'Designer Sarees',
+        category_name: 'Designer Sarees',
         description: 'Silk and cotton sarees',
         imageUrl: '/uploads/categories/designer-sarees/img.png',
+        image_url: '/uploads/categories/designer-sarees/img.png',
         imageKey: 'categories/designer-sarees/img.png',
+        image_key: 'categories/designer-sarees/img.png',
         displayOrder: 3,
+        display_order: 3,
         isActive: true,
+        is_active: true,
         createdBy: 5,
+        created_by: 5,
         updatedBy: null,
+        updated_by: null,
         createdAt: '2026-09-22T10:00:00.000Z',
+        created_at: '2026-09-22T10:00:00.000Z',
         updatedAt: '2026-09-22T10:00:00.000Z',
+        updated_at: '2026-09-22T10:00:00.000Z',
       });
     });
 
@@ -137,5 +152,44 @@ describe('Product Master: Categories Unit Tests', () => {
       expect(parsed.sortBy).toBe('display_order');
       expect(parsed.sortOrder).toBe('asc');
     });
+
+    it('should validate checkCategoryNameQuerySchema with category_name or name', () => {
+      const parsed1 = checkCategoryNameQuerySchema.parse({
+        category_name: 'Ethnic Wear',
+        company_id: '1',
+      });
+      expect(parsed1.category_name).toBe('Ethnic Wear');
+      expect(parsed1.company_id).toBe(1);
+
+      const parsed2 = checkCategoryNameQuerySchema.parse({
+        name: 'Western Wear',
+        exclude_id: '10',
+      });
+      expect(parsed2.name).toBe('Western Wear');
+      expect(parsed2.exclude_id).toBe(10);
+
+      expect(() => checkCategoryNameQuerySchema.parse({})).toThrow();
+      expect(() => checkCategoryNameQuerySchema.parse({ category_name: '   ' })).toThrow();
+    });
+
+    it('should validate checkCategoryCodeQuerySchema with category_code or code', () => {
+      const parsed1 = checkCategoryCodeQuerySchema.parse({
+        category_code: 'ETHNIC',
+        company_id: '2',
+      });
+      expect(parsed1.category_code).toBe('ETHNIC');
+      expect(parsed1.company_id).toBe(2);
+
+      const parsed2 = checkCategoryCodeQuerySchema.parse({
+        code: 'WESTERN',
+        exclude_id: '5',
+      });
+      expect(parsed2.code).toBe('WESTERN');
+      expect(parsed2.exclude_id).toBe(5);
+
+      expect(() => checkCategoryCodeQuerySchema.parse({})).toThrow();
+      expect(() => checkCategoryCodeQuerySchema.parse({ category_code: '' })).toThrow();
+    });
   });
 });
+

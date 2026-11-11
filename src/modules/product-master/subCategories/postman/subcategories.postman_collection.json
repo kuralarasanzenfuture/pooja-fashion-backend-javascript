@@ -198,6 +198,41 @@
           "path": ["api", "product-master", "subcategories", "{{subcategoryId}}"]
         }
       }
+    },
+    {
+      "name": "Check Subcategory Name Exists",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/subcategories/check-name?subcategory_name=Banarasi Sarees&category_id={{categoryId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "subcategories", "check-name"],
+          "query": [
+            { "key": "subcategory_name", "value": "Banarasi Sarees" },
+            { "key": "category_id", "value": "{{categoryId}}" },
+            { "key": "company_id", "value": "{{companyId}}", "disabled": true },
+            { "key": "exclude_id", "value": "1", "disabled": true }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Check Subcategory Code Exists",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-master/subcategories/check-code?subcategory_code={{subcategoryCode}}&company_id={{companyId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-master", "subcategories", "check-code"],
+          "query": [
+            { "key": "subcategory_code", "value": "{{subcategoryCode}}" },
+            { "key": "company_id", "value": "{{companyId}}" },
+            { "key": "exclude_id", "value": "1", "disabled": true }
+          ]
+        }
+      }
     }
   ],
   "variable": [
