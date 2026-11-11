@@ -15,6 +15,46 @@ export const getAll = async (req, res, next) => {
 };
 
 /**
+ * GET /api/product-master/subcategories/all
+ * List all subcategories without pagination (for dropdowns / selectors)
+ * Scoped to token-based user's company_id
+ */
+export const getAllUnpaginated = async (req, res, next) => {
+  try {
+    const subcategories = await subCategoryService.getAllSubcategories(req.query, req.user);
+    return sendSuccess(res, subcategories, 'All subcategories retrieved successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/product-master/subcategories/stats
+ * Get subcategory aggregate statistics for token user's company
+ */
+export const getStats = async (req, res, next) => {
+  try {
+    const stats = await subCategoryService.getSubcategoryStats(req.query, req.user);
+    return sendSuccess(res, stats, 'Subcategory statistics retrieved successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * PATCH /api/product-master/subcategories/reorder
+ * Bulk reorder display sequence of subcategories
+ */
+export const reorder = async (req, res, next) => {
+  try {
+    const result = await subCategoryService.reorderSubcategories(req.body.items, req.user, req);
+    return sendSuccess(res, result, 'Subcategories reordered successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
  * GET /api/product-master/subcategories/:id
  * Retrieve single subcategory by ID
  */
@@ -96,7 +136,8 @@ export const create = async (req, res, next) => {
       data,
       req.files,
       req.subcategoryUploadSlug,
-      req.user
+      req.user,
+      req
     );
     return sendCreated(res, subcategory, 'Subcategory created successfully');
   } catch (error) {
@@ -119,7 +160,8 @@ export const update = async (req, res, next) => {
       data,
       req.files,
       req.subcategoryUploadSlug,
-      req.user
+      req.user,
+      req
     );
     return sendSuccess(res, subcategory, 'Subcategory updated successfully');
   } catch (error) {
@@ -138,7 +180,8 @@ export const updateStatus = async (req, res, next) => {
       req.params.id,
       req.body.is_active,
       updatedBy,
-      req.user
+      req.user,
+      req
     );
     return sendSuccess(res, subcategory, 'Subcategory status updated successfully');
   } catch (error) {
@@ -156,7 +199,8 @@ export const uploadImage = async (req, res, next) => {
       req.params.id,
       req.files,
       req.subcategoryUploadSlug,
-      req.user
+      req.user,
+      req
     );
     return sendSuccess(res, subcategory, 'Subcategory image uploaded successfully');
   } catch (error) {
@@ -170,7 +214,7 @@ export const uploadImage = async (req, res, next) => {
  */
 export const deleteImage = async (req, res, next) => {
   try {
-    const subcategory = await subCategoryService.deleteSubcategoryImage(req.params.id, req.user);
+    const subcategory = await subCategoryService.deleteSubcategoryImage(req.params.id, req.user, req);
     return sendSuccess(res, subcategory, 'Subcategory image deleted successfully');
   } catch (error) {
     return next(error);
@@ -183,7 +227,7 @@ export const deleteImage = async (req, res, next) => {
  */
 export const deleteSubcategory = async (req, res, next) => {
   try {
-    const result = await subCategoryService.deleteSubcategory(req.params.id, req.user);
+    const result = await subCategoryService.deleteSubcategory(req.params.id, req.user, req);
     return sendSuccess(res, result, 'Subcategory deleted successfully');
   } catch (error) {
     return next(error);
@@ -240,6 +284,9 @@ export const checkSubcategoryCode = async (req, res, next) => {
 
 export default {
   getAll,
+  getAllUnpaginated,
+  getStats,
+  reorder,
   getById,
   getByCode,
   getByCategoryId,

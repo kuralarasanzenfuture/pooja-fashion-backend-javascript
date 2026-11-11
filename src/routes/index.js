@@ -31,6 +31,7 @@ import taxRoutes from '../modules/product-master/taxes/tax.routes.js';
 import productTaxRoutes from '../modules/product-master/productTaxes/productTax.routes.js';
 import discountRoutes from '../modules/product-master/discounts/discount.routes.js';
 import authRoutes from '../modules/auth/auth.routes.js';
+import auditLogRoutes from '../modules/auditLogs/auditLog.routes.js';
 
 const router = Router();
 
@@ -73,6 +74,7 @@ router.use('/product-prices', productPriceRoutes);
 router.use('/taxes', taxRoutes);
 router.use('/product-taxes', productTaxRoutes);
 router.use('/discounts', discountRoutes);
+router.use('/audit-logs', auditLogRoutes);
 router.use('/product-master', productMasterRoutes);
 
 export default router;

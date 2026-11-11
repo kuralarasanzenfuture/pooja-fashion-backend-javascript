@@ -4,7 +4,8 @@ export const createBrandSchema = z.object({
   company_id: z.coerce
     .number()
     .int('Company ID must be an integer')
-    .positive('Company ID must be a positive number'),
+    .positive('Company ID must be a positive number')
+    .optional(),
   brand_code: z
     .string()
     .trim()
@@ -108,11 +109,72 @@ export const getBrandsQuerySchema = z.object({
       return undefined;
     }, z.boolean().optional())
     .optional(),
+  has_logo: z
+    .preprocess((val) => {
+      if (val === 'true' || val === true || val === 1 || val === '1') return true;
+      if (val === 'false' || val === false || val === 0 || val === '0') return false;
+      return undefined;
+    }, z.boolean().optional())
+    .optional(),
   search: z.string().trim().optional(),
   sortBy: z
     .enum(['id', 'brand_code', 'brand_name', 'display_order', 'created_at', 'is_active'])
     .default('display_order'),
   sortOrder: z.enum(['asc', 'desc', 'ASC', 'DESC']).default('asc'),
+});
+
+export const getAllBrandsQuerySchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+  is_active: z
+    .preprocess((val) => {
+      if (val === 'true' || val === true || val === 1 || val === '1') return true;
+      if (val === 'false' || val === false || val === 0 || val === '0') return false;
+      return undefined;
+    }, z.boolean().optional())
+    .optional(),
+  has_logo: z
+    .preprocess((val) => {
+      if (val === 'true' || val === true || val === 1 || val === '1') return true;
+      if (val === 'false' || val === false || val === 0 || val === '0') return false;
+      return undefined;
+    }, z.boolean().optional())
+    .optional(),
+  search: z.string().trim().optional(),
+  sortBy: z.enum(['id', 'brand_code', 'brand_name', 'display_order', 'created_at']).default('display_order'),
+  sortOrder: z.enum(['asc', 'desc', 'ASC', 'DESC']).default('asc'),
+});
+
+export const getBrandStatsQuerySchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+});
+
+export const reorderBrandsSchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+  items: z
+    .array(
+      z.object({
+        id: z.coerce.number().int().positive('Item ID must be a positive integer'),
+        display_order: z.coerce.number().int().min(0, 'display_order must be >= 0'),
+      })
+    )
+    .min(1, 'At least one item is required for reordering'),
+});
+
+export const checkBrandNameQuerySchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+  name: z.string().trim().min(1, 'Brand name is required'),
+  excludeId: z.coerce.number().int().positive().optional(),
+});
+
+export const checkBrandCodeQuerySchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+  code: z.string().trim().min(1, 'Brand code is required'),
+  excludeId: z.coerce.number().int().positive().optional(),
 });
 
 export default {
@@ -123,4 +185,9 @@ export default {
   companyIdParamSchema,
   brandCodeParamSchema,
   getBrandsQuerySchema,
+  getAllBrandsQuerySchema,
+  getBrandStatsQuerySchema,
+  reorderBrandsSchema,
+  checkBrandNameQuerySchema,
+  checkBrandCodeQuerySchema,
 };

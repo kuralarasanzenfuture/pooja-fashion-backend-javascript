@@ -26,6 +26,9 @@ const startServer = async () => {
     server.listen(PORT, '0.0.0.0', () => {
       console.log('🚀 Server running');
       console.log(`Local: http://localhost:${PORT}`);
+      if (!env.IS_PRODUCTION && env.NODE_ENV !== 'production') {
+        console.log(`⚡ API Debug Dashboard: http://localhost:${PORT}/__dev/api-logs`);
+      }
     });
   } catch (error) {
     console.error('❌ Server failed to start:', error.message);

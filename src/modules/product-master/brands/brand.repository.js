@@ -17,6 +17,7 @@ export const findAll = async ({
   search,
   companyId,
   isActive,
+  hasLogo,
   sortBy = 'display_order',
   sortOrder = 'ASC',
 } = {}) => {
@@ -30,6 +31,14 @@ export const findAll = async ({
     values.push(companyId);
   }
 
+  if (hasLogo !== undefined && hasLogo !== null && hasLogo !== '') {
+    if (hasLogo === true || hasLogo === 'true' || hasLogo === 'with_logo') {
+      conditions.push(`(b.logo_url IS NOT NULL AND b.logo_url <> '')`);
+    } else if (hasLogo === false || hasLogo === 'false' || hasLogo === 'without_logo') {
+      conditions.push(`(b.logo_url IS NULL OR b.logo_url = '')`);
+    }
+  }
+
   if (isActive !== undefined && isActive !== null) {
     conditions.push(`b.is_active = $${paramIndex++}`);
     values.push(isActive);
@@ -37,7 +46,7 @@ export const findAll = async ({
 
   if (search) {
     conditions.push(
-      `(b.brand_name ILIKE $${paramIndex} OR b.brand_code ILIKE $${paramIndex} OR b.description ILIKE $${paramIndex})`
+      `(b.brand_name ILIKE $${paramIndex} OR b.brand_code ILIKE $${paramIndex} OR b.description ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`
     );
     values.push(`%${search}%`);
     paramIndex++;
@@ -60,6 +69,7 @@ export const findAll = async ({
   const countQuery = `
     SELECT COUNT(*) AS total
     FROM brands b
+    LEFT JOIN companies c ON c.id = b.company_id
     ${whereClause}
   `;
 
@@ -69,7 +79,7 @@ export const findAll = async ({
       c.company_name,
       c.company_code
     FROM brands b
-    JOIN companies c ON c.id = b.company_id
+    LEFT JOIN companies c ON c.id = b.company_id
     ${whereClause}
     ORDER BY ${orderColumn} ${direction}, b.brand_name ASC
     LIMIT $${paramIndex++} OFFSET $${paramIndex++}
@@ -95,7 +105,7 @@ export const findById = async (id) => {
       c.company_name,
       c.company_code
     FROM brands b
-    JOIN companies c ON c.id = b.company_id
+    LEFT JOIN companies c ON c.id = b.company_id
     WHERE b.id = $1
   `;
   const result = await pool.query(query, [id]);
@@ -113,7 +123,7 @@ export const findByCode = async (companyId, brandCode) => {
       c.company_name,
       c.company_code
     FROM brands b
-    JOIN companies c ON c.id = b.company_id
+    LEFT JOIN companies c ON c.id = b.company_id
     WHERE b.company_id = $1 AND LOWER(b.brand_code) = LOWER($2)
   `;
   const result = await pool.query(query, [companyId, brandCode]);
@@ -131,7 +141,7 @@ export const findByName = async (companyId, brandName) => {
       c.company_name,
       c.company_code
     FROM brands b
-    JOIN companies c ON c.id = b.company_id
+    LEFT JOIN companies c ON c.id = b.company_id
     WHERE b.company_id = $1 AND LOWER(b.brand_name) = LOWER($2)
   `;
   const result = await pool.query(query, [companyId, brandName]);
@@ -139,7 +149,7 @@ export const findByName = async (companyId, brandName) => {
 };
 
 /**
- * Find all brands for a given company
+ * Find all brands for a given company (pageless list)
  */
 export const findByCompanyId = async (companyId, { isActive = null } = {}) => {
   const pool = getPool();
@@ -157,12 +167,142 @@ export const findByCompanyId = async (companyId, { isActive = null } = {}) => {
       c.company_name,
       c.company_code
     FROM brands b
-    JOIN companies c ON c.id = b.company_id
+    LEFT JOIN companies c ON c.id = b.company_id
     WHERE ${conditions.join(' AND ')}
     ORDER BY b.display_order ASC, b.brand_name ASC
   `;
   const result = await pool.query(query, values);
   return result.rows;
+};
+
+/**
+ * Find all brands for a company without pagination with full filtering
+ */
+export const findAllByCompany = async (
+  companyId,
+  {
+    isActive = null,
+    hasLogo = null,
+    search = null,
+    sortBy = 'display_order',
+    sortOrder = 'ASC',
+  } = {}
+) => {
+  const pool = getPool();
+  const conditions = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (companyId !== null && companyId !== undefined) {
+    conditions.push(`b.company_id = $${paramIndex++}`);
+    values.push(companyId);
+  }
+
+  if (isActive !== null && isActive !== undefined) {
+    conditions.push(`b.is_active = $${paramIndex++}`);
+    values.push(isActive);
+  }
+
+  if (hasLogo !== undefined && hasLogo !== null && hasLogo !== '') {
+    if (hasLogo === true || hasLogo === 'true' || hasLogo === 'with_logo') {
+      conditions.push(`(b.logo_url IS NOT NULL AND b.logo_url <> '')`);
+    } else if (hasLogo === false || hasLogo === 'false' || hasLogo === 'without_logo') {
+      conditions.push(`(b.logo_url IS NULL OR b.logo_url = '')`);
+    }
+  }
+
+  if (search) {
+    conditions.push(
+      `(b.brand_name ILIKE $${paramIndex} OR b.brand_code ILIKE $${paramIndex} OR b.description ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`
+    );
+    values.push(`%${search}%`);
+    paramIndex++;
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const allowedSortColumns = {
+    id: 'b.id',
+    brand_code: 'b.brand_code',
+    brand_name: 'b.brand_name',
+    display_order: 'b.display_order',
+    created_at: 'b.created_at',
+    is_active: 'b.is_active',
+  };
+  const orderCol = allowedSortColumns[sortBy] || 'b.display_order';
+  const direction = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+
+  const query = `
+    SELECT 
+      b.*,
+      c.company_name,
+      c.company_code
+    FROM brands b
+    LEFT JOIN companies c ON c.id = b.company_id
+    ${whereClause}
+    ORDER BY ${orderCol} ${direction}, b.brand_name ASC
+  `;
+  const result = await pool.query(query, values);
+  return result.rows;
+};
+
+/**
+ * Get brand aggregate statistics for a company
+ */
+export const getBrandStats = async (companyId = null) => {
+  const pool = getPool();
+  const conditions = [];
+  const values = [];
+  if (companyId) {
+    conditions.push('company_id = $1');
+    values.push(companyId);
+  }
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const query = `
+    SELECT 
+      COUNT(*) AS total_brands,
+      COUNT(*) FILTER (WHERE is_active = TRUE) AS active_brands,
+      COUNT(*) FILTER (WHERE is_active = FALSE) AS inactive_brands,
+      COUNT(*) FILTER (WHERE logo_url IS NOT NULL AND logo_url <> '') AS brands_with_logos
+    FROM brands
+    ${whereClause}
+  `;
+
+  const res = await pool.query(query, values);
+  const row = res.rows[0] || {};
+
+  return {
+    totalBrands: parseInt(row.total_brands || 0, 10),
+    activeBrands: parseInt(row.active_brands || 0, 10),
+    inactiveBrands: parseInt(row.inactive_brands || 0, 10),
+    brandsWithLogos: parseInt(row.brands_with_logos || 0, 10),
+  };
+};
+
+/**
+ * Reorder brands in bulk
+ */
+export const reorderBrands = async (items = [], companyId = null) => {
+  if (!Array.isArray(items) || items.length === 0) return [];
+  const pool = getPool();
+  const updatedIds = [];
+
+  for (const item of items) {
+    const id = Number(item.id);
+    const displayOrder = Math.max(0, parseInt(item.display_order ?? item.displayOrder ?? 0, 10));
+    let q = 'UPDATE brands SET display_order = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2';
+    const vals = [displayOrder, id];
+    if (companyId) {
+      q += ' AND company_id = $3';
+      vals.push(companyId);
+    }
+    const res = await pool.query(q, vals);
+    if (res.rowCount > 0) {
+      updatedIds.push(id);
+    }
+  }
+
+  return updatedIds;
 };
 
 /**
@@ -345,6 +485,9 @@ export default {
   findByCode,
   findByName,
   findByCompanyId,
+  findAllByCompany,
+  getBrandStats,
+  reorderBrands,
   existsByCode,
   existsByName,
   countProducts,

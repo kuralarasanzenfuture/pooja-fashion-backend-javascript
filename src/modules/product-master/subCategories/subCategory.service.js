@@ -6,52 +6,22 @@ import NotFoundError from '../../../shared/errors/NotFoundError.js';
 import BadRequestError from '../../../shared/errors/BadRequestError.js';
 import ForbiddenError from '../../../shared/errors/ForbiddenError.js';
 import { getPaginationParams, formatPaginationMeta } from '../../../shared/utils/pagination.js';
-import { toSlug, deleteFileByUrl } from '../../../shared/utils/file.js';
+import { deleteFileByUrl } from '../../../shared/utils/file.js';
+import { recordAuditLog } from '../../auditLogs/auditLog.service.js';
+import {
+  toSlug,
+  extractUploadedImage,
+  generateSubcategoryCode,
+  canUserSelectCompany,
+  resolveEffectiveCompanyId,
+} from './utils/index.js';
 
-/**
- * Extract uploaded image URL from req.files dictionary
- */
-export const extractUploadedImage = (files, subcategorySlug) => {
-  const result = {};
-  if (!files) return result;
-
-  const slug = subcategorySlug || 'subcategory';
-
-  if (files.image && files.image[0]) {
-    result.image_url = `/uploads/subcategories/${slug}/${files.image[0].filename}`;
-    result.image_key = `subcategories/${slug}/${files.image[0].filename}`;
-  } else if (files.image_url && files.image_url[0]) {
-    result.image_url = `/uploads/subcategories/${slug}/${files.image_url[0].filename}`;
-    result.image_key = `subcategories/${slug}/${files.image_url[0].filename}`;
-  }
-
-  return result;
-};
-
-/**
- * Generate fallback subcategory code from name if omitted
- */
-export const generateSubcategoryCode = (name) => {
-  return name
-    .trim()
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, '_')
-    .replace(/_+/g, '_')
-    .slice(0, 50);
-};
-
-/**
- * Helper: Determine if user is permitted to view or manage resources across any company.
- * - SuperAdmin can view all or filter by any company.
- * - System Admin without an assigned companyId can select any company.
- * - All other users are strictly restricted to their assigned company.
- */
-export const canUserSelectCompany = (user) => {
-  if (!user) return false;
-  const role = String(user.roleCode || user.role || '').toUpperCase();
-  if (role === 'SUPERADMIN') return true;
-  const hasComp = Boolean(user.companyId || user.company_id);
-  return role === 'ADMIN' && !hasComp;
+export {
+  toSlug,
+  extractUploadedImage,
+  generateSubcategoryCode,
+  canUserSelectCompany,
+  resolveEffectiveCompanyId,
 };
 
 /**
@@ -62,19 +32,7 @@ export const canUserSelectCompany = (user) => {
  */
 export const getSubcategories = async (query, user = null) => {
   const { page, limit, offset, sortBy, sortOrder, search } = getPaginationParams(query);
-  let companyId = query.company_id || query.companyId || null;
-  if (companyId) {
-    companyId = Number(companyId);
-  }
-
-  // Tenant isolation: non-superadmin/admin are strictly scoped to their company
-  const canSelect = canUserSelectCompany(user);
-  if (!canSelect && user) {
-    const userCompId = user.companyId || user.company_id;
-    if (userCompId) {
-      companyId = Number(userCompId);
-    }
-  }
+  const companyId = resolveEffectiveCompanyId(user, query.company_id || query.companyId);
 
   const categoryId =
     query.category_id || query.categoryId ? Number(query.category_id || query.categoryId) : null;
@@ -97,6 +55,72 @@ export const getSubcategories = async (query, user = null) => {
   return {
     subcategories: toSubcategoryListDTO(rows),
     meta,
+  };
+};
+
+/**
+ * Get all subcategories for a company without pagination (for dropdowns / selectors)
+ * Strictly scopes to token-based user's company_id
+ */
+export const getAllSubcategories = async (query = {}, user = null) => {
+  const companyId = resolveEffectiveCompanyId(user, query.company_id || query.companyId);
+  const categoryId =
+    query.category_id || query.categoryId ? Number(query.category_id || query.categoryId) : null;
+  const isActive = query.is_active !== undefined ? query.is_active : null;
+  const hasImage = query.has_image || query.hasImage || null;
+  const search = query.search ? String(query.search).trim() : null;
+  const sortBy = query.sortBy || 'display_order';
+  const sortOrder = query.sortOrder || 'ASC';
+
+  const rows = await subCategoryRepository.findAllByCompany(companyId, {
+    categoryId,
+    isActive,
+    hasImage,
+    search,
+    sortBy,
+    sortOrder,
+  });
+
+  return toSubcategoryListDTO(rows);
+};
+
+/**
+ * Get subcategory aggregate statistics for user's company
+ */
+export const getSubcategoryStats = async (query = {}, user = null) => {
+  const companyId = resolveEffectiveCompanyId(user, query.company_id || query.companyId);
+  const categoryId =
+    query.category_id || query.categoryId ? Number(query.category_id || query.categoryId) : null;
+  return subCategoryRepository.getSubcategoryStats(companyId, categoryId);
+};
+
+/**
+ * Reorder subcategories in bulk
+ */
+export const reorderSubcategories = async (items = [], user = null, requestContext = null) => {
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new BadRequestError('Items array is required for reordering');
+  }
+
+  const effectiveCompanyId = resolveEffectiveCompanyId(user);
+  const updatedIds = await subCategoryRepository.reorderSubcategories(items, effectiveCompanyId);
+
+  await recordAuditLog({
+    action: 'REORDER',
+    entityType: 'SUBCATEGORY',
+    entityId: updatedIds[0] || null,
+    entityName: 'Subcategories Reorder',
+    companyId: effectiveCompanyId,
+    requestContext,
+    user,
+    metadata: { reorderedCount: updatedIds.length, ids: updatedIds },
+  });
+
+  return {
+    success: true,
+    message: `Successfully reordered ${updatedIds.length} subcategories`,
+    updatedCount: updatedIds.length,
+    updatedIds,
   };
 };
 
@@ -184,7 +208,13 @@ export const getSubcategoriesByCompanyId = async (companyId, options = {}, user 
  * - Automatically fetches parent category and stores its company_id.
  * - Non-SuperAdmin users can only create subcategories under categories belonging to their company.
  */
-export const createSubcategory = async (data, files = null, uploadSlug = null, user = null) => {
+export const createSubcategory = async (
+  data,
+  files = null,
+  uploadSlug = null,
+  user = null,
+  requestContext = null
+) => {
   if (!data.category_id) {
     throw new BadRequestError('Category ID is required to create a subcategory');
   }
@@ -265,7 +295,23 @@ export const createSubcategory = async (data, files = null, uploadSlug = null, u
   Object.assign(data, uploadedFiles);
 
   const created = await subCategoryRepository.create(data);
-  return toSubcategoryDTO(created);
+  const dto = toSubcategoryDTO(created);
+
+  await recordAuditLog({
+    action: 'CREATE',
+    module: 'subcategories',
+    entityType: 'SubCategory',
+    entityId: created.id,
+    entityName: created.subcategory_name,
+    companyId: created.company_id,
+    userId: user?.id,
+    description: `Subcategory "${created.subcategory_name}" (Code: ${created.subcategory_code}) created under category ID ${created.category_id}`,
+    oldData: null,
+    newData: created,
+    requestContext,
+  });
+
+  return dto;
 };
 
 /**
@@ -273,7 +319,14 @@ export const createSubcategory = async (data, files = null, uploadSlug = null, u
  * - Derives and syncs company_id directly from the parent category if category is changed.
  * - Prevents cross-company tampering and enforces company multi-tenancy.
  */
-export const updateSubcategory = async (id, data, files = null, uploadSlug = null, user = null) => {
+export const updateSubcategory = async (
+  id,
+  data,
+  files = null,
+  uploadSlug = null,
+  user = null,
+  requestContext = null
+) => {
   const existing = await subCategoryRepository.findById(id);
   if (!existing) {
     throw new NotFoundError(`Subcategory with ID ${id} not found`);
@@ -363,13 +416,35 @@ export const updateSubcategory = async (id, data, files = null, uploadSlug = nul
   }
 
   const updated = await subCategoryRepository.update(id, data);
-  return toSubcategoryDTO(updated);
+  const dto = toSubcategoryDTO(updated);
+
+  await recordAuditLog({
+    action: 'UPDATE',
+    module: 'subcategories',
+    entityType: 'SubCategory',
+    entityId: updated.id,
+    entityName: updated.subcategory_name,
+    companyId: updated.company_id,
+    userId: user?.id,
+    description: `Subcategory "${updated.subcategory_name}" updated`,
+    oldData: existing,
+    newData: updated,
+    requestContext,
+  });
+
+  return dto;
 };
 
 /**
  * Update subcategory active status with tenant isolation
  */
-export const updateSubcategoryStatus = async (id, isActive, updatedBy = null, user = null) => {
+export const updateSubcategoryStatus = async (
+  id,
+  isActive,
+  updatedBy = null,
+  user = null,
+  requestContext = null
+) => {
   const existing = await subCategoryRepository.findById(id);
   if (!existing) {
     throw new NotFoundError(`Subcategory with ID ${id} not found`);
@@ -383,13 +458,35 @@ export const updateSubcategoryStatus = async (id, isActive, updatedBy = null, us
   }
 
   const updated = await subCategoryRepository.updateStatus(id, isActive, updatedBy);
-  return toSubcategoryDTO(updated);
+  const dto = toSubcategoryDTO(updated);
+
+  await recordAuditLog({
+    action: isActive ? 'ACTIVATE' : 'DEACTIVATE',
+    module: 'subcategories',
+    entityType: 'SubCategory',
+    entityId: updated.id,
+    entityName: updated.subcategory_name,
+    companyId: updated.company_id,
+    userId: updatedBy || user?.id,
+    description: `Subcategory "${updated.subcategory_name}" ${isActive ? 'activated' : 'deactivated'}`,
+    oldData: existing,
+    newData: updated,
+    requestContext,
+  });
+
+  return dto;
 };
 
 /**
  * Upload or replace subcategory image
  */
-export const uploadSubcategoryImage = async (id, files, uploadSlug = null, user = null) => {
+export const uploadSubcategoryImage = async (
+  id,
+  files,
+  uploadSlug = null,
+  user = null,
+  requestContext = null
+) => {
   const existing = await subCategoryRepository.findById(id);
   if (!existing) {
     throw new NotFoundError(`Subcategory with ID ${id} not found`);
@@ -418,13 +515,29 @@ export const uploadSubcategoryImage = async (id, files, uploadSlug = null, user 
   }
 
   const updated = await subCategoryRepository.update(id, uploadedFiles);
-  return toSubcategoryDTO(updated);
+  const dto = toSubcategoryDTO(updated);
+
+  await recordAuditLog({
+    action: 'UPLOAD',
+    module: 'subcategories',
+    entityType: 'SubCategory',
+    entityId: updated.id,
+    entityName: updated.subcategory_name,
+    companyId: updated.company_id,
+    userId: user?.id,
+    description: `Image uploaded for subcategory "${updated.subcategory_name}"`,
+    oldData: existing,
+    newData: updated,
+    requestContext,
+  });
+
+  return dto;
 };
 
 /**
  * Delete subcategory image
  */
-export const deleteSubcategoryImage = async (id, user = null) => {
+export const deleteSubcategoryImage = async (id, user = null, requestContext = null) => {
   const existing = await subCategoryRepository.findById(id);
   if (!existing) {
     throw new NotFoundError(`Subcategory with ID ${id} not found`);
@@ -446,14 +559,29 @@ export const deleteSubcategoryImage = async (id, user = null) => {
     image_key: null,
     updated_by: user?.id || null,
   });
+  const dto = toSubcategoryDTO(updated);
 
-  return toSubcategoryDTO(updated);
+  await recordAuditLog({
+    action: 'UPDATE',
+    module: 'subcategories',
+    entityType: 'SubCategory',
+    entityId: updated.id,
+    entityName: updated.subcategory_name,
+    companyId: updated.company_id,
+    userId: user?.id,
+    description: `Image removed from subcategory "${updated.subcategory_name}"`,
+    oldData: existing,
+    newData: updated,
+    requestContext,
+  });
+
+  return dto;
 };
 
 /**
  * Delete subcategory by ID (verifying company permission and database references)
  */
-export const deleteSubcategory = async (id, user = null) => {
+export const deleteSubcategory = async (id, user = null, requestContext = null) => {
   const existing = await subCategoryRepository.findById(id);
   if (!existing) {
     throw new NotFoundError(`Subcategory with ID ${id} not found`);
@@ -479,6 +607,20 @@ export const deleteSubcategory = async (id, user = null) => {
 
   await subCategoryRepository.deleteById(id);
 
+  await recordAuditLog({
+    action: 'DELETE',
+    module: 'subcategories',
+    entityType: 'SubCategory',
+    entityId: existing.id,
+    entityName: existing.subcategory_name,
+    companyId: existing.company_id,
+    userId: user?.id,
+    description: `Subcategory "${existing.subcategory_name}" (ID: ${id}) deleted`,
+    oldData: existing,
+    newData: null,
+    requestContext,
+  });
+
   return {
     id: Number(id),
     deleted: true,
@@ -501,15 +643,7 @@ export const checkSubcategoryNameExists = async ({
     throw new BadRequestError('Subcategory name is required');
   }
 
-  let targetCompanyId = companyId ? Number(companyId) : null;
-  if (!canUserSelectCompany(user) && user) {
-    const userCompId = user.companyId || user.company_id;
-    if (userCompId) {
-      targetCompanyId = Number(userCompId);
-    }
-  } else if (!targetCompanyId && (user?.companyId || user?.company_id)) {
-    targetCompanyId = Number(user.companyId || user.company_id);
-  }
+  let targetCompanyId = resolveEffectiveCompanyId(user, companyId);
 
   let targetCategoryId = categoryId ? Number(categoryId) : null;
   let exists = false;
@@ -578,15 +712,7 @@ export const checkSubcategoryCodeExists = async ({
     throw new BadRequestError('Subcategory code is required');
   }
 
-  let targetCompanyId = companyId ? Number(companyId) : null;
-  if (!canUserSelectCompany(user) && user) {
-    const userCompId = user.companyId || user.company_id;
-    if (userCompId) {
-      targetCompanyId = Number(userCompId);
-    }
-  } else if (!targetCompanyId && (user?.companyId || user?.company_id)) {
-    targetCompanyId = Number(user.companyId || user.company_id);
-  }
+  const targetCompanyId = resolveEffectiveCompanyId(user, companyId);
 
   if (!targetCompanyId) {
     throw new BadRequestError('Company ID is required to check subcategory code');
@@ -609,7 +735,12 @@ export const checkSubcategoryCodeExists = async ({
 };
 
 export default {
+  canUserSelectCompany,
+  resolveEffectiveCompanyId,
   getSubcategories,
+  getAllSubcategories,
+  getSubcategoryStats,
+  reorderSubcategories,
   getSubcategoryById,
   getSubcategoryByCode,
   getSubcategoriesByCategoryId,

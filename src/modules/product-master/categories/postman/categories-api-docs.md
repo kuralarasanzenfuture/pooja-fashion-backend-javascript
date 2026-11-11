@@ -2,6 +2,12 @@
 
 Enterprise API documentation for managing product categories in the Pooja Fashion ERP & POS platform.
 
+> [!NOTE]
+> **Audit Logging:** All write and state modification operations (`CREATE`, `UPDATE`, `DELETE`, `ACTIVATE`, `DEACTIVATE`, `UPLOAD` image, `REORDER`) automatically generate immutable audit entries in `audit_logs` (100_auditlogs.sql) along with field-level change diffs in `audit_log_changes` (101_audit_log_changes.sql). Inspection is available via `/api/audit-logs`.
+
+> [!IMPORTANT]
+> **Token-Based Company Isolation:** Logged-in users have an assigned `company_id` in their `users` record. All endpoints automatically scope results strictly to that user's `company_id`. Tenant users cannot view, query, or mutate categories belonging to another company. Only `SUPERADMIN` or unassigned platform `ADMIN` tokens can query across companies.
+
 ---
 
 ## Base URL
@@ -370,6 +376,173 @@ Checks whether a category code already exists in the given company scope.
     "categoryCode": "WOMENS_ETHNIC",
     "companyId": 1,
     "message": "Category code 'WOMENS_ETHNIC' already exists for this company"
+  }
+}
+```
+
+---
+
+### 13. List All Categories (Unpaginated Dropdown)
+Retrieve complete, unpaginated category records scoped strictly to the token-authenticated user's company (used for forms, select dropdowns, filters).
+
+- **URL:** `GET /api/product-master/categories/all`
+- **Query Parameters:**
+  - `company_id` *(number, optional)*: SuperAdmin override only.
+  - `is_active` *(boolean, optional)*: Filter by active flag (`true` / `false`).
+  - `has_image` *(string/boolean, optional)*: Filter by image presence.
+  - `search` *(string, optional)*: Search in category name or code.
+  - `sortBy` *(string, optional, default: 'display_order')*: Sort column.
+  - `sortOrder` *(string, optional, default: 'asc')*: `asc` or `desc`.
+- **Response `200 OK`:**
+```json
+{
+  "success": true,
+  "message": "All categories retrieved successfully",
+  "data": [
+    {
+      "id": 1,
+      "companyId": 1,
+      "companyName": "Pooja Fashion Retail Ltd",
+      "companyCode": "PF-CORP",
+      "categoryCode": "WOMENS_ETHNIC",
+      "categoryName": "Women's Ethnic Wear",
+      "description": "Traditional sarees, kurtis, lehengas, and ethnic sets",
+      "imageUrl": "/uploads/categories/womens-ethnic-wear/womens-ethnic-wear-image-1727000000000.png",
+      "imageKey": "categories/womens-ethnic-wear/womens-ethnic-wear-image-1727000000000.png",
+      "displayOrder": 1,
+      "isActive": true,
+      "createdBy": 1,
+      "updatedBy": null,
+      "createdAt": "2026-09-22T10:00:00.000Z",
+      "updatedAt": "2026-09-22T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+### 14. Hierarchical Category Tree (with Nested Subcategories)
+Retrieve a category tree complete with nested `subcategories` arrays and aggregate `subcategoriesCount`, scoped to the token user's company.
+
+- **URL:** `GET /api/product-master/categories/tree`
+- **Query Parameters:**
+  - `is_active` *(boolean, optional)*: Filter active status for both categories and subcategories.
+- **Response `200 OK`:**
+```json
+{
+  "success": true,
+  "message": "Category tree retrieved successfully",
+  "data": [
+    {
+      "id": 1,
+      "companyId": 1,
+      "companyName": "Pooja Fashion Retail Ltd",
+      "companyCode": "PF-CORP",
+      "categoryCode": "WOMENS_ETHNIC",
+      "categoryName": "Women's Ethnic Wear",
+      "displayOrder": 1,
+      "isActive": true,
+      "subcategoriesCount": 3,
+      "subcategories": [
+        {
+          "id": 10,
+          "companyId": 1,
+          "categoryId": 1,
+          "subcategoryCode": "SILK_SAREES",
+          "subcategoryName": "Silk Sarees",
+          "displayOrder": 1,
+          "isActive": true
+        },
+        {
+          "id": 11,
+          "companyId": 1,
+          "categoryId": 1,
+          "subcategoryCode": "DESIGNER_KURTIS",
+          "subcategoryName": "Designer Kurtis",
+          "displayOrder": 2,
+          "isActive": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+### 15. Category Statistics
+Retrieve aggregate count metrics (total, active, inactive, with images, and total subcategories) for the authenticated company.
+
+- **URL:** `GET /api/product-master/categories/stats`
+- **Response `200 OK`:**
+```json
+{
+  "success": true,
+  "message": "Category statistics retrieved successfully",
+  "data": {
+    "totalCategories": 12,
+    "activeCategories": 10,
+    "inactiveCategories": 2,
+    "categoriesWithImages": 8,
+    "totalSubcategories": 34
+  }
+}
+```
+
+---
+
+### 16. Get Category Subcategories
+Retrieve all subcategories under a specific parent category ID.
+
+- **URL:** `GET /api/product-master/categories/:id/subcategories`
+- **Parameters:**
+  - `id` *(number, required)*: Category ID.
+- **Response `200 OK`:**
+```json
+{
+  "success": true,
+  "message": "Category subcategories retrieved successfully",
+  "data": [
+    {
+      "id": 10,
+      "companyId": 1,
+      "categoryId": 1,
+      "subcategoryCode": "SILK_SAREES",
+      "subcategoryName": "Silk Sarees",
+      "displayOrder": 1,
+      "isActive": true
+    }
+  ]
+}
+```
+
+---
+
+### 17. Bulk Reorder Categories
+Update display orders for multiple categories in a single request. Audited with action `REORDER`.
+
+- **URL:** `PATCH /api/product-master/categories/reorder`
+- **Request Body:**
+```json
+{
+  "items": [
+    { "id": 1, "display_order": 0 },
+    { "id": 2, "display_order": 1 },
+    { "id": 3, "display_order": 2 }
+  ]
+}
+```
+- **Response `200 OK`:**
+```json
+{
+  "success": true,
+  "message": "Categories reordered successfully",
+  "data": {
+    "success": true,
+    "message": "Successfully reordered 3 categories",
+    "updatedCount": 3,
+    "updatedIds": [1, 2, 3]
   }
 }
 ```

@@ -7,8 +7,48 @@ import { sendSuccess, sendCreated } from '../../../shared/utils/response.js';
  */
 export const getAll = async (req, res, next) => {
   try {
-    const { brands, meta } = await brandService.getBrands(req.query);
+    const { brands, meta } = await brandService.getBrands(req.query, req.user);
     return sendSuccess(res, brands, 'Brands retrieved successfully', 200, meta);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/product-master/brands/all
+ * List all brands without pagination (for dropdowns / selectors)
+ * Scoped to token-based user's company_id
+ */
+export const getAllUnpaginated = async (req, res, next) => {
+  try {
+    const brands = await brandService.getAllBrands(req.query, req.user);
+    return sendSuccess(res, brands, 'All brands retrieved successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/product-master/brands/stats
+ * Get brand aggregate statistics for token user's company
+ */
+export const getStats = async (req, res, next) => {
+  try {
+    const stats = await brandService.getBrandStats(req.query, req.user);
+    return sendSuccess(res, stats, 'Brand statistics retrieved successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * PATCH /api/product-master/brands/reorder
+ * Bulk reorder display sequence of brands
+ */
+export const reorder = async (req, res, next) => {
+  try {
+    const result = await brandService.reorderBrands(req.body.items, req.user, req);
+    return sendSuccess(res, result, 'Brands reordered successfully');
   } catch (error) {
     return next(error);
   }
@@ -20,7 +60,7 @@ export const getAll = async (req, res, next) => {
  */
 export const getById = async (req, res, next) => {
   try {
-    const brand = await brandService.getBrandById(req.params.id);
+    const brand = await brandService.getBrandById(req.params.id, req.user);
     return sendSuccess(res, brand, 'Brand retrieved successfully');
   } catch (error) {
     return next(error);
@@ -35,7 +75,8 @@ export const getByCode = async (req, res, next) => {
   try {
     const brand = await brandService.getBrandByCode(
       req.params.companyId,
-      req.params.brandCode
+      req.params.brandCode,
+      req.user
     );
     return sendSuccess(res, brand, 'Brand retrieved successfully');
   } catch (error) {
@@ -49,9 +90,13 @@ export const getByCode = async (req, res, next) => {
  */
 export const getByCompanyId = async (req, res, next) => {
   try {
-    const brands = await brandService.getBrandsByCompanyId(req.params.companyId, {
-      isActive: req.query.is_active !== undefined ? req.query.is_active === 'true' : null,
-    });
+    const brands = await brandService.getBrandsByCompanyId(
+      req.params.companyId,
+      {
+        isActive: req.query.is_active !== undefined ? req.query.is_active === 'true' : null,
+      },
+      req.user
+    );
     return sendSuccess(res, brands, 'Company brands retrieved successfully');
   } catch (error) {
     return next(error);
@@ -71,7 +116,9 @@ export const create = async (req, res, next) => {
     const brand = await brandService.createBrand(
       data,
       req.files,
-      req.brandUploadSlug
+      req.brandUploadSlug,
+      req.user,
+      req
     );
     return sendCreated(res, brand, 'Brand created successfully');
   } catch (error) {
@@ -93,7 +140,9 @@ export const update = async (req, res, next) => {
       req.params.id,
       data,
       req.files,
-      req.brandUploadSlug
+      req.brandUploadSlug,
+      req.user,
+      req
     );
     return sendSuccess(res, brand, 'Brand updated successfully');
   } catch (error) {
@@ -111,7 +160,9 @@ export const updateStatus = async (req, res, next) => {
     const brand = await brandService.updateBrandStatus(
       req.params.id,
       req.body.is_active,
-      updatedBy
+      updatedBy,
+      req.user,
+      req
     );
     return sendSuccess(res, brand, 'Brand status updated successfully');
   } catch (error) {
@@ -128,7 +179,9 @@ export const uploadLogo = async (req, res, next) => {
     const brand = await brandService.uploadBrandLogo(
       req.params.id,
       req.files,
-      req.brandUploadSlug
+      req.brandUploadSlug,
+      req.user,
+      req
     );
     return sendSuccess(res, brand, 'Brand logo uploaded successfully');
   } catch (error) {
@@ -142,7 +195,7 @@ export const uploadLogo = async (req, res, next) => {
  */
 export const deleteLogo = async (req, res, next) => {
   try {
-    const brand = await brandService.deleteBrandLogo(req.params.id);
+    const brand = await brandService.deleteBrandLogo(req.params.id, req.user, req);
     return sendSuccess(res, brand, 'Brand logo deleted successfully');
   } catch (error) {
     return next(error);
@@ -155,8 +208,54 @@ export const deleteLogo = async (req, res, next) => {
  */
 export const deleteBrand = async (req, res, next) => {
   try {
-    const result = await brandService.deleteBrand(req.params.id);
+    const result = await brandService.deleteBrand(req.params.id, req.user, req);
     return sendSuccess(res, result, 'Brand deleted successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/product-master/brands/check-name
+ * Check whether a brand name already exists for a company
+ */
+export const checkBrandName = async (req, res, next) => {
+  try {
+    const name = req.query.name || req.query.brand_name;
+    const companyId = req.query.company_id || req.query.companyId;
+    const excludeId = req.query.exclude_id || req.query.excludeId;
+
+    const result = await brandService.checkBrandNameExists({
+      name,
+      companyId,
+      excludeId,
+      user: req.user,
+    });
+
+    return sendSuccess(res, result, result.message);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/product-master/brands/check-code
+ * Check whether a brand code already exists for a company
+ */
+export const checkBrandCode = async (req, res, next) => {
+  try {
+    const code = req.query.code || req.query.brand_code;
+    const companyId = req.query.company_id || req.query.companyId;
+    const excludeId = req.query.exclude_id || req.query.excludeId;
+
+    const result = await brandService.checkBrandCodeExists({
+      code,
+      companyId,
+      excludeId,
+      user: req.user,
+    });
+
+    return sendSuccess(res, result, result.message);
   } catch (error) {
     return next(error);
   }
@@ -164,6 +263,9 @@ export const deleteBrand = async (req, res, next) => {
 
 export default {
   getAll,
+  getAllUnpaginated,
+  getStats,
+  reorder,
   getById,
   getByCode,
   getByCompanyId,
@@ -173,4 +275,6 @@ export default {
   uploadLogo,
   deleteLogo,
   deleteBrand,
+  checkBrandName,
+  checkBrandCode,
 };

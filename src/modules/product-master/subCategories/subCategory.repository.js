@@ -425,6 +425,153 @@ export const deleteById = async (id) => {
   return result.rows[0] || null;
 };
 
+/**
+ * Find all subcategories for a company without pagination (for dropdowns / selectors)
+ */
+export const findAllByCompany = async (
+  companyId,
+  {
+    categoryId = null,
+    isActive = null,
+    hasImage = null,
+    search = null,
+    sortBy = 'display_order',
+    sortOrder = 'ASC',
+  } = {}
+) => {
+  const pool = getPool();
+  const conditions = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (companyId !== null && companyId !== undefined) {
+    conditions.push(`sub.company_id = $${paramIndex++}`);
+    values.push(companyId);
+  }
+
+  if (categoryId !== null && categoryId !== undefined) {
+    conditions.push(`sub.category_id = $${paramIndex++}`);
+    values.push(categoryId);
+  }
+
+  if (isActive !== null && isActive !== undefined) {
+    conditions.push(`sub.is_active = $${paramIndex++}`);
+    values.push(isActive);
+  }
+
+  if (hasImage !== undefined && hasImage !== null && hasImage !== '') {
+    if (hasImage === true || hasImage === 'true' || hasImage === 'with_image') {
+      conditions.push(`(sub.image_url IS NOT NULL AND sub.image_url <> '')`);
+    } else if (hasImage === false || hasImage === 'false' || hasImage === 'without_image') {
+      conditions.push(`(sub.image_url IS NULL OR sub.image_url = '')`);
+    }
+  }
+
+  if (search) {
+    conditions.push(
+      `(sub.subcategory_name ILIKE $${paramIndex} OR sub.subcategory_code ILIKE $${paramIndex} OR sub.description ILIKE $${paramIndex} OR cat.category_name ILIKE $${paramIndex})`
+    );
+    values.push(`%${search}%`);
+    paramIndex++;
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const allowedSortColumns = {
+    id: 'sub.id',
+    subcategory_code: 'sub.subcategory_code',
+    subcategory_name: 'sub.subcategory_name',
+    display_order: 'sub.display_order',
+    created_at: 'sub.created_at',
+    is_active: 'sub.is_active',
+    category_id: 'sub.category_id',
+    updated_at: 'sub.updated_at',
+  };
+  const orderCol = allowedSortColumns[sortBy] || 'sub.display_order';
+  const direction = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+
+  const query = `
+    SELECT 
+      sub.*,
+      c.company_name,
+      c.company_code,
+      cat.category_name,
+      cat.category_code
+    FROM subcategories sub
+    LEFT JOIN companies c ON c.id = sub.company_id
+    LEFT JOIN categories cat ON cat.id = sub.category_id
+    ${whereClause}
+    ORDER BY ${orderCol} ${direction}, sub.subcategory_name ASC
+  `;
+  const result = await pool.query(query, values);
+  return result.rows;
+};
+
+/**
+ * Get subcategory aggregate statistics for a company (or optional category)
+ */
+export const getSubcategoryStats = async (companyId = null, categoryId = null) => {
+  const pool = getPool();
+  const conditions = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (companyId) {
+    conditions.push(`company_id = $${paramIndex++}`);
+    values.push(companyId);
+  }
+  if (categoryId) {
+    conditions.push(`category_id = $${paramIndex++}`);
+    values.push(categoryId);
+  }
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const query = `
+    SELECT 
+      COUNT(*) AS total_subcategories,
+      COUNT(*) FILTER (WHERE is_active = TRUE) AS active_subcategories,
+      COUNT(*) FILTER (WHERE is_active = FALSE) AS inactive_subcategories,
+      COUNT(*) FILTER (WHERE image_url IS NOT NULL AND image_url <> '') AS subcategories_with_images
+    FROM subcategories
+    ${whereClause}
+  `;
+
+  const res = await pool.query(query, values);
+  const row = res.rows[0] || {};
+
+  return {
+    totalSubcategories: parseInt(row.total_subcategories || 0, 10),
+    activeSubcategories: parseInt(row.active_subcategories || 0, 10),
+    inactiveSubcategories: parseInt(row.inactive_subcategories || 0, 10),
+    subcategoriesWithImages: parseInt(row.subcategories_with_images || 0, 10),
+  };
+};
+
+/**
+ * Reorder subcategories in bulk
+ */
+export const reorderSubcategories = async (items = [], companyId = null) => {
+  if (!Array.isArray(items) || items.length === 0) return [];
+  const pool = getPool();
+  const updatedIds = [];
+
+  for (const item of items) {
+    const id = Number(item.id);
+    const displayOrder = Math.max(0, parseInt(item.display_order ?? item.displayOrder ?? 0, 10));
+    let q = 'UPDATE subcategories SET display_order = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2';
+    const vals = [displayOrder, id];
+    if (companyId) {
+      q += ' AND company_id = $3';
+      vals.push(companyId);
+    }
+    const res = await pool.query(q, vals);
+    if (res.rowCount > 0) {
+      updatedIds.push(id);
+    }
+  }
+
+  return updatedIds;
+};
+
 export default {
   findAll,
   findById,
@@ -432,6 +579,9 @@ export default {
   findByName,
   findByCategoryId,
   findByCompanyId,
+  findAllByCompany,
+  getSubcategoryStats,
+  reorderSubcategories,
   existsByCode,
   existsByName,
   existsByNameInCompany,

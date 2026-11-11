@@ -1,0 +1,88 @@
+{
+  "info": {
+    "_postman_id": "audit-logs-collection-001",
+    "name": "Pooja Fashion - Audit Logs API",
+    "description": "Collection for testing Audit Logs and Change Tracking endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "List Audit Logs",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/audit-logs?page=1&limit=10&module=categories",
+          "host": ["{{base_url}}"],
+          "path": ["api", "audit-logs"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" },
+            { "key": "module", "value": "categories" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Audit Log By ID (With Changes)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/audit-logs/1",
+          "host": ["{{base_url}}"],
+          "path": ["api", "audit-logs", "1"]
+        }
+      }
+    },
+    {
+      "name": "Get Entity Audit History (Category)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/audit-logs/entity/Category/1",
+          "host": ["{{base_url}}"],
+          "path": ["api", "audit-logs", "entity", "Category", "1"]
+        }
+      }
+    },
+    {
+      "name": "Get Entity Audit History (SubCategory)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/audit-logs/entity/SubCategory/1",
+          "host": ["{{base_url}}"],
+          "path": ["api", "audit-logs", "entity", "SubCategory", "1"]
+        }
+      }
+    }
+  ]
+}
+

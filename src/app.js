@@ -14,6 +14,9 @@ import routes from './routes/index.js';
 import swaggerSpec from './docs/swagger.js';
 import { notFoundHandler } from './middlewares/notFound.middleware.js';
 import { errorHandler } from './middlewares/error.middleware.js';
+import { attachAuditContext } from './modules/auditLogs/auditLog.middleware.js';
+import { apiLoggerMiddleware } from './middlewares/apiLogger.middleware.js';
+import consoleLogRoutes from './modules/1consoleLog/consoleLog.routes.js';
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -31,6 +34,8 @@ if (env.NODE_ENV !== 'test') {
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+app.use(attachAuditContext);
+app.use(apiLoggerMiddleware);
 
 // Serve static upload directories (src/uploads and root fallback)
 const srcUploadsPath = path.join(__dirname, 'uploads');
@@ -41,6 +46,11 @@ app.use('/assets', express.static(srcUploadsPath));
 
 // Interactive Swagger API Documentation
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Live API Debugging Dashboard (Development only)
+if (!env.IS_PRODUCTION && env.NODE_ENV !== 'production') {
+  app.use('/__dev/api-logs', consoleLogRoutes);
+}
 
 app.use('/api', routes);
 

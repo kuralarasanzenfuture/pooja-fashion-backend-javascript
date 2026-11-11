@@ -173,6 +173,54 @@ export const checkSubcategoryCodeQuerySchema = z
     }
   );
 
+export const getAllSubcategoriesQuerySchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+  category_id: z.coerce.number().int().positive().optional(),
+  categoryId: z.coerce.number().int().positive().optional(),
+  is_active: z
+    .preprocess((val) => {
+      if (val === 'true' || val === true || val === 1 || val === '1') return true;
+      if (val === 'false' || val === false || val === 0 || val === '0') return false;
+      return undefined;
+    }, z.boolean().optional())
+    .optional(),
+  has_image: z.union([z.string(), z.boolean()]).optional(),
+  hasImage: z.union([z.string(), z.boolean()]).optional(),
+  search: z.string().trim().optional(),
+  sortBy: z
+    .enum([
+      'id',
+      'subcategory_code',
+      'subcategory_name',
+      'display_order',
+      'created_at',
+      'is_active',
+      'category_id',
+      'updated_at',
+    ])
+    .default('display_order'),
+  sortOrder: z.enum(['asc', 'desc', 'ASC', 'DESC']).default('asc'),
+});
+
+export const getSubcategoryStatsQuerySchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+  category_id: z.coerce.number().int().positive().optional(),
+  categoryId: z.coerce.number().int().positive().optional(),
+});
+
+export const reorderSubcategoriesSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        id: z.coerce.number().int().positive('Subcategory ID must be a positive integer'),
+        display_order: z.coerce.number().int().min(0, 'display_order must be >= 0'),
+      })
+    )
+    .min(1, 'At least one item must be provided for reordering'),
+});
+
 export default {
   createSubcategorySchema,
   updateSubcategorySchema,
@@ -182,6 +230,9 @@ export default {
   categoryIdParamSchema,
   subcategoryCodeParamSchema,
   getSubcategoriesQuerySchema,
+  getAllSubcategoriesQuerySchema,
+  getSubcategoryStatsQuerySchema,
+  reorderSubcategoriesSchema,
   checkSubcategoryNameQuerySchema,
   checkSubcategoryCodeQuerySchema,
 };

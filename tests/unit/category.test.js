@@ -1,7 +1,11 @@
 import {
   generateCategoryCode,
   extractUploadedImage,
+  canUserSelectCompany,
+  resolveEffectiveCompanyId,
+  toSlug,
 } from '../../src/modules/product-master/categories/category.service.js';
+import * as categoryUtils from '../../src/modules/product-master/categories/utils/index.js';
 import {
   toCategoryDTO,
   toCategoryListDTO,
@@ -10,6 +14,9 @@ import {
   createCategorySchema,
   updateCategorySchema,
   getCategoriesQuerySchema,
+  getAllCategoriesQuerySchema,
+  getCategoryTreeQuerySchema,
+  reorderCategoriesSchema,
   checkCategoryNameQuerySchema,
   checkCategoryCodeQuerySchema,
 } from '../../src/modules/product-master/categories/category.validation.js';
@@ -189,6 +196,91 @@ describe('Product Master: Categories Unit Tests', () => {
 
       expect(() => checkCategoryCodeQuerySchema.parse({})).toThrow();
       expect(() => checkCategoryCodeQuerySchema.parse({ category_code: '' })).toThrow();
+    });
+
+    it('should validate getAllCategoriesQuerySchema with optional filters', () => {
+      const parsed = getAllCategoriesQuerySchema.parse({
+        company_id: '1',
+        is_active: 'true',
+        search: 'saree',
+        sortBy: 'category_name',
+        sortOrder: 'desc',
+      });
+      expect(parsed.company_id).toBe(1);
+      expect(parsed.is_active).toBe(true);
+      expect(parsed.search).toBe('saree');
+      expect(parsed.sortBy).toBe('category_name');
+      expect(parsed.sortOrder).toBe('desc');
+    });
+
+    it('should validate getCategoryTreeQuerySchema with optional company_id', () => {
+      const parsed = getCategoryTreeQuerySchema.parse({
+        company_id: '3',
+        is_active: 'false',
+      });
+      expect(parsed.company_id).toBe(3);
+      expect(parsed.is_active).toBe(false);
+    });
+
+    it('should validate reorderCategoriesSchema with valid items array', () => {
+      const parsed = reorderCategoriesSchema.parse({
+        items: [
+          { id: 1, display_order: 0 },
+          { id: 2, display_order: 1 },
+        ],
+      });
+      expect(parsed.items).toHaveLength(2);
+      expect(parsed.items[0].id).toBe(1);
+      expect(parsed.items[0].display_order).toBe(0);
+
+      expect(() => reorderCategoriesSchema.parse({ items: [] })).toThrow();
+      expect(() => reorderCategoriesSchema.parse({})).toThrow();
+    });
+  });
+
+  describe('Company Isolation & Security Helpers', () => {
+    it('canUserSelectCompany correctly distinguishes superadmin, admin, and tenant users', () => {
+      expect(canUserSelectCompany(null)).toBe(false);
+      expect(canUserSelectCompany({ role: 'SUPERADMIN' })).toBe(true);
+      expect(canUserSelectCompany({ roleCode: 'SUPERADMIN' })).toBe(true);
+      expect(canUserSelectCompany({ role: 'ADMIN' })).toBe(true);
+      expect(canUserSelectCompany({ role: 'ADMIN', companyId: 1 })).toBe(false);
+      expect(canUserSelectCompany({ role: 'BRANCH_MANAGER', companyId: 2 })).toBe(false);
+      expect(canUserSelectCompany({ role: 'CASHIER', company_id: 3 })).toBe(false);
+    });
+
+    it('resolveEffectiveCompanyId locks tenant users strictly to their company_id', () => {
+      // SuperAdmin can choose any company or null
+      expect(resolveEffectiveCompanyId({ role: 'SUPERADMIN' }, '5')).toBe(5);
+      expect(resolveEffectiveCompanyId({ role: 'SUPERADMIN' }, null)).toBeNull();
+
+      // Tenant user with companyId 1 requesting nothing gets 1
+      expect(resolveEffectiveCompanyId({ role: 'CASHIER', companyId: 1 })).toBe(1);
+      expect(resolveEffectiveCompanyId({ role: 'STAFF', company_id: 2 })).toBe(2);
+
+      // Tenant user requesting their own companyId is allowed
+      expect(resolveEffectiveCompanyId({ role: 'STAFF', companyId: 1 }, '1')).toBe(1);
+
+      // Tenant user attempting cross-tenant access to another company is blocked
+      expect(() =>
+        resolveEffectiveCompanyId({ role: 'CASHIER', companyId: 1 }, '2')
+      ).toThrow('You do not have permission to access categories for another company');
+    });
+  });
+
+  describe('Categories Utils Module (src/modules/product-master/categories/utils)', () => {
+    it('should export all category utility functions from category.utils.js and index.js', () => {
+      expect(typeof categoryUtils.generateCategoryCode).toBe('function');
+      expect(typeof categoryUtils.toSlug).toBe('function');
+      expect(typeof categoryUtils.extractUploadedImage).toBe('function');
+      expect(typeof categoryUtils.canUserSelectCompany).toBe('function');
+      expect(typeof categoryUtils.resolveEffectiveCompanyId).toBe('function');
+      expect(typeof categoryUtils.default).toBe('object');
+    });
+
+    it('should format URL-friendly slugs using toSlug', () => {
+      expect(categoryUtils.toSlug("Women's Ethnic Wear")).toBe('womens-ethnic-wear');
+      expect(categoryUtils.toSlug('Special  Offers & Deals!')).toBe('special-offers-deals');
     });
   });
 });

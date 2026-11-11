@@ -198,15 +198,20 @@ export const verifyToken = async (req, res, next) => {
 
     req.user = {
       id: Number(userId),
-      companyId: dbUser?.company_id ? Number(dbUser.company_id) : decoded.company_id || null,
-      branchId: dbUser?.branch_id ? Number(dbUser.branch_id) : decoded.branch_id || null,
+      userId: Number(userId),
+      companyId: dbUser?.company_id ? Number(dbUser.company_id) : decoded.company_id ? Number(decoded.company_id) : null,
+      company_id: dbUser?.company_id ? Number(dbUser.company_id) : decoded.company_id ? Number(decoded.company_id) : null,
+      branchId: dbUser?.branch_id ? Number(dbUser.branch_id) : decoded.branch_id ? Number(decoded.branch_id) : null,
+      branch_id: dbUser?.branch_id ? Number(dbUser.branch_id) : decoded.branch_id ? Number(decoded.branch_id) : null,
       email: dbUser?.email || decoded.email || null,
       roleId: dbUser?.role_id ? Number(dbUser.role_id) : decoded.role_id || null,
+      role_id: dbUser?.role_id ? Number(dbUser.role_id) : decoded.role_id || null,
       role: normalizedRole,
       roleCode: (dbUser?.role_code || decoded.role_code || normalizedRole).toUpperCase(),
       roleName: dbUser?.role_name || decoded.role_name || normalizedRole,
       isSystemRole: Boolean(dbUser?.is_system_role || decoded.is_system_role),
       sessionId: sessionId || null,
+      session_id: sessionId || null,
       authSource: isDbAvailable && dbUser ? 'database' : 'jwt_fallback',
     };
 

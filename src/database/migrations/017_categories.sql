@@ -13,7 +13,7 @@ CREATE TABLE
         updated_by BIGINT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        CONSTRAINT fk_categories_company FOREIGN KEY (company_id) REFERENCES companies (id) ON DELETE CASCADE,
+        CONSTRAINT fk_categories_company FOREIGN KEY (company_id) REFERENCES companies (id) ON DELETE RESTRICT,
         CONSTRAINT chk_categories_code CHECK (BTRIM (category_code) <> ''),
         CONSTRAINT chk_categories_name CHECK (BTRIM (category_name) <> ''),
         CONSTRAINT chk_categories_display_order CHECK (display_order >= 0)

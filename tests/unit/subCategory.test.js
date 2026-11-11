@@ -1,7 +1,11 @@
 import {
   generateSubcategoryCode,
   extractUploadedImage,
+  canUserSelectCompany,
+  resolveEffectiveCompanyId,
+  toSlug,
 } from '../../src/modules/product-master/subCategories/subCategory.service.js';
+import * as subCategoryUtils from '../../src/modules/product-master/subCategories/utils/index.js';
 import {
   toSubcategoryDTO,
   toSubcategoryListDTO,
@@ -10,6 +14,9 @@ import {
   createSubcategorySchema,
   updateSubcategorySchema,
   getSubcategoriesQuerySchema,
+  getAllSubcategoriesQuerySchema,
+  getSubcategoryStatsQuerySchema,
+  reorderSubcategoriesSchema,
   checkSubcategoryNameQuerySchema,
   checkSubcategoryCodeQuerySchema,
 } from '../../src/modules/product-master/subCategories/subCategory.validation.js';
@@ -206,6 +213,92 @@ describe('Product Master: Subcategories Unit Tests', () => {
 
       expect(() => checkSubcategoryCodeQuerySchema.parse({})).toThrow();
       expect(() => checkSubcategoryCodeQuerySchema.parse({ subcategory_code: '' })).toThrow();
+    });
+
+    it('should validate getAllSubcategoriesQuerySchema with optional parameters', () => {
+      const parsed = getAllSubcategoriesQuerySchema.parse({
+        company_id: '1',
+        category_id: '2',
+        is_active: 'true',
+        search: 'saree',
+        sortBy: 'subcategory_name',
+        sortOrder: 'desc',
+      });
+      expect(parsed.company_id).toBe(1);
+      expect(parsed.category_id).toBe(2);
+      expect(parsed.is_active).toBe(true);
+      expect(parsed.search).toBe('saree');
+      expect(parsed.sortBy).toBe('subcategory_name');
+      expect(parsed.sortOrder).toBe('desc');
+    });
+
+    it('should validate getSubcategoryStatsQuerySchema with optional parameters', () => {
+      const parsed = getSubcategoryStatsQuerySchema.parse({
+        company_id: '4',
+        category_id: '8',
+      });
+      expect(parsed.company_id).toBe(4);
+      expect(parsed.category_id).toBe(8);
+    });
+
+    it('should validate reorderSubcategoriesSchema with items array', () => {
+      const parsed = reorderSubcategoriesSchema.parse({
+        items: [
+          { id: 10, display_order: 0 },
+          { id: 20, display_order: 1 },
+        ],
+      });
+      expect(parsed.items).toHaveLength(2);
+      expect(parsed.items[0].id).toBe(10);
+      expect(parsed.items[0].display_order).toBe(0);
+
+      expect(() => reorderSubcategoriesSchema.parse({ items: [] })).toThrow();
+      expect(() => reorderSubcategoriesSchema.parse({})).toThrow();
+    });
+  });
+
+  describe('Company Isolation & Security Helpers', () => {
+    it('canUserSelectCompany correctly distinguishes superadmin, admin, and tenant users', () => {
+      expect(canUserSelectCompany(null)).toBe(false);
+      expect(canUserSelectCompany({ role: 'SUPERADMIN' })).toBe(true);
+      expect(canUserSelectCompany({ roleCode: 'SUPERADMIN' })).toBe(true);
+      expect(canUserSelectCompany({ role: 'ADMIN' })).toBe(true);
+      expect(canUserSelectCompany({ role: 'ADMIN', companyId: 1 })).toBe(false);
+      expect(canUserSelectCompany({ role: 'BRANCH_MANAGER', companyId: 2 })).toBe(false);
+      expect(canUserSelectCompany({ role: 'CASHIER', company_id: 3 })).toBe(false);
+    });
+
+    it('resolveEffectiveCompanyId locks tenant users strictly to their company_id', () => {
+      // SuperAdmin can choose any company or null
+      expect(resolveEffectiveCompanyId({ role: 'SUPERADMIN' }, '5')).toBe(5);
+      expect(resolveEffectiveCompanyId({ role: 'SUPERADMIN' }, null)).toBeNull();
+
+      // Tenant user with companyId 1 requesting nothing gets 1
+      expect(resolveEffectiveCompanyId({ role: 'CASHIER', companyId: 1 })).toBe(1);
+      expect(resolveEffectiveCompanyId({ role: 'STAFF', company_id: 2 })).toBe(2);
+
+      // Tenant user requesting their own companyId is allowed
+      expect(resolveEffectiveCompanyId({ role: 'STAFF', companyId: 1 }, '1')).toBe(1);
+
+      // Tenant user attempting cross-tenant access to another company is blocked
+      expect(() =>
+        resolveEffectiveCompanyId({ role: 'CASHIER', companyId: 1 }, '2')
+      ).toThrow('You do not have permission to access subcategories for another company');
+    });
+  });
+
+  describe('Subcategories Utils Module (src/modules/product-master/subCategories/utils)', () => {
+    it('should export all subcategory utility functions from subCategory.utils.js and index.js', () => {
+      expect(typeof subCategoryUtils.generateSubcategoryCode).toBe('function');
+      expect(typeof subCategoryUtils.toSlug).toBe('function');
+      expect(typeof subCategoryUtils.extractUploadedImage).toBe('function');
+      expect(typeof subCategoryUtils.canUserSelectCompany).toBe('function');
+      expect(typeof subCategoryUtils.resolveEffectiveCompanyId).toBe('function');
+      expect(typeof subCategoryUtils.default).toBe('object');
+    });
+
+    it('should format URL-friendly slugs using toSlug', () => {
+      expect(subCategoryUtils.toSlug('Silk & Banarasi Sarees')).toBe('silk-banarasi-sarees');
     });
   });
 });

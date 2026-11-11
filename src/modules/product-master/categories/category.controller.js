@@ -15,6 +15,73 @@ export const getAll = async (req, res, next) => {
 };
 
 /**
+ * GET /api/product-master/categories/all
+ * List all categories without pagination (for dropdowns / selectors)
+ * Scoped to token-based user's company_id
+ */
+export const getAllUnpaginated = async (req, res, next) => {
+  try {
+    const categories = await categoryService.getAllCategories(req.query, req.user);
+    return sendSuccess(res, categories, 'All categories retrieved successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/product-master/categories/tree
+ * List categories with nested subcategories hierarchy
+ * Scoped to token-based user's company_id
+ */
+export const getTree = async (req, res, next) => {
+  try {
+    const tree = await categoryService.getCategoryTree(req.query, req.user);
+    return sendSuccess(res, tree, 'Category tree retrieved successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/product-master/categories/stats
+ * Get categories aggregate statistics for token user's company
+ */
+export const getStats = async (req, res, next) => {
+  try {
+    const stats = await categoryService.getCategoryStats(req.query, req.user);
+    return sendSuccess(res, stats, 'Category statistics retrieved successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/product-master/categories/:id/subcategories
+ * Retrieve all subcategories under a specific category ID
+ */
+export const getSubcategories = async (req, res, next) => {
+  try {
+    const subcategories = await categoryService.getCategorySubcategories(req.params.id, req.user);
+    return sendSuccess(res, subcategories, 'Category subcategories retrieved successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * PATCH /api/product-master/categories/reorder
+ * Bulk reorder display sequence of categories
+ */
+export const reorder = async (req, res, next) => {
+  try {
+    const result = await categoryService.reorderCategories(req.body.items, req.user, req);
+    return sendSuccess(res, result, 'Categories reordered successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
  * GET /api/product-master/categories/:id
  * Retrieve category by primary ID
  */
@@ -77,7 +144,8 @@ export const create = async (req, res, next) => {
       data,
       req.files,
       req.categoryUploadSlug,
-      req.user
+      req.user,
+      req
     );
     return sendCreated(res, category, 'Category created successfully');
   } catch (error) {
@@ -100,7 +168,8 @@ export const update = async (req, res, next) => {
       data,
       req.files,
       req.categoryUploadSlug,
-      req.user
+      req.user,
+      req
     );
     return sendSuccess(res, category, 'Category updated successfully');
   } catch (error) {
@@ -119,7 +188,8 @@ export const updateStatus = async (req, res, next) => {
       req.params.id,
       req.body.is_active,
       updatedBy,
-      req.user
+      req.user,
+      req
     );
     return sendSuccess(res, category, 'Category status updated successfully');
   } catch (error) {
@@ -137,7 +207,8 @@ export const uploadImage = async (req, res, next) => {
       req.params.id,
       req.files,
       req.categoryUploadSlug,
-      req.user
+      req.user,
+      req
     );
     return sendSuccess(res, category, 'Category image uploaded successfully');
   } catch (error) {
@@ -151,7 +222,7 @@ export const uploadImage = async (req, res, next) => {
  */
 export const deleteImage = async (req, res, next) => {
   try {
-    const category = await categoryService.deleteCategoryImage(req.params.id, req.user);
+    const category = await categoryService.deleteCategoryImage(req.params.id, req.user, req);
     return sendSuccess(res, category, 'Category image deleted successfully');
   } catch (error) {
     return next(error);
@@ -164,7 +235,7 @@ export const deleteImage = async (req, res, next) => {
  */
 export const deleteCategory = async (req, res, next) => {
   try {
-    const result = await categoryService.deleteCategory(req.params.id, req.user);
+    const result = await categoryService.deleteCategory(req.params.id, req.user, req);
     return sendSuccess(res, result, 'Category deleted successfully');
   } catch (error) {
     return next(error);
@@ -219,6 +290,11 @@ export const checkCategoryCode = async (req, res, next) => {
 
 export default {
   getAll,
+  getAllUnpaginated,
+  getTree,
+  getStats,
+  getSubcategories,
+  reorder,
   getById,
   getByCode,
   getByCompanyId,

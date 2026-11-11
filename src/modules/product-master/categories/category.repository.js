@@ -365,12 +365,272 @@ export const deleteById = async (id) => {
   return result.rows[0] || null;
 };
 
+/**
+ * Find all categories for a company without pagination (for dropdowns / selectors)
+ */
+export const findAllByCompany = async (
+  companyId,
+  { isActive = null, hasImage = null, search = null, sortBy = 'display_order', sortOrder = 'ASC' } = {}
+) => {
+  const pool = getPool();
+  const conditions = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (companyId !== null && companyId !== undefined) {
+    conditions.push(`cat.company_id = $${paramIndex++}`);
+    values.push(companyId);
+  }
+
+  if (isActive !== null && isActive !== undefined) {
+    conditions.push(`cat.is_active = $${paramIndex++}`);
+    values.push(isActive);
+  }
+
+  if (hasImage !== undefined && hasImage !== null && hasImage !== '') {
+    if (hasImage === true || hasImage === 'true' || hasImage === 'with_image') {
+      conditions.push(`(cat.image_url IS NOT NULL AND cat.image_url <> '')`);
+    } else if (hasImage === false || hasImage === 'false' || hasImage === 'without_image') {
+      conditions.push(`(cat.image_url IS NULL OR cat.image_url = '')`);
+    }
+  }
+
+  if (search) {
+    conditions.push(
+      `(cat.category_name ILIKE $${paramIndex} OR cat.category_code ILIKE $${paramIndex} OR cat.description ILIKE $${paramIndex})`
+    );
+    values.push(`%${search}%`);
+    paramIndex++;
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const allowedSortColumns = {
+    id: 'cat.id',
+    category_code: 'cat.category_code',
+    category_name: 'cat.category_name',
+    display_order: 'cat.display_order',
+    created_at: 'cat.created_at',
+    is_active: 'cat.is_active',
+  };
+  const orderCol = allowedSortColumns[sortBy] || 'cat.display_order';
+  const direction = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+
+  const query = `
+    SELECT 
+      cat.*,
+      c.company_name,
+      c.company_code
+    FROM categories cat
+    LEFT JOIN companies c ON c.id = cat.company_id
+    ${whereClause}
+    ORDER BY ${orderCol} ${direction}, cat.category_name ASC
+  `;
+  const result = await pool.query(query, values);
+  return result.rows;
+};
+
+/**
+ * Find all categories for a company with nested subcategories hierarchy (Tree)
+ */
+export const findTreeByCompany = async (companyId, { isActive = null } = {}) => {
+  const pool = getPool();
+  const conditions = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (companyId !== null && companyId !== undefined) {
+    conditions.push(`cat.company_id = $${paramIndex++}`);
+    values.push(companyId);
+  }
+
+  if (isActive !== null && isActive !== undefined) {
+    conditions.push(`cat.is_active = $${paramIndex++}`);
+    values.push(isActive);
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const subQueryConditions = [];
+  if (isActive !== null && isActive !== undefined) {
+    subQueryConditions.push(`sub.is_active = ${isActive ? 'TRUE' : 'FALSE'}`);
+  }
+  const subWhere = subQueryConditions.length > 0 ? `AND ${subQueryConditions.join(' AND ')}` : '';
+
+  const query = `
+    SELECT 
+      cat.*,
+      c.company_name,
+      c.company_code,
+      COALESCE(
+        (
+          SELECT json_agg(
+            json_build_object(
+              'id', sub.id,
+              'company_id', sub.company_id,
+              'category_id', sub.category_id,
+              'subcategory_code', sub.subcategory_code,
+              'subcategory_name', sub.subcategory_name,
+              'description', sub.description,
+              'image_url', sub.image_url,
+              'image_key', sub.image_key,
+              'display_order', sub.display_order,
+              'is_active', sub.is_active,
+              'created_at', sub.created_at,
+              'updated_at', sub.updated_at
+            ) ORDER BY sub.display_order ASC, sub.subcategory_name ASC
+          )
+          FROM subcategories sub
+          WHERE sub.category_id = cat.id ${subWhere}
+        ),
+        '[]'::json
+      ) AS subcategories,
+      (
+        SELECT COUNT(*)
+        FROM subcategories sub
+        WHERE sub.category_id = cat.id ${subWhere}
+      ) AS subcategories_count
+    FROM categories cat
+    LEFT JOIN companies c ON c.id = cat.company_id
+    ${whereClause}
+    ORDER BY cat.display_order ASC, cat.category_name ASC
+  `;
+
+  try {
+    const result = await pool.query(query, values);
+    return result.rows;
+  } catch (err) {
+    // If subcategories table does not exist yet (during early migrations)
+    if (err.code === '42P01') {
+      const fallbackQuery = `
+        SELECT cat.*, c.company_name, c.company_code, '[]'::json AS subcategories, 0 AS subcategories_count
+        FROM categories cat
+        LEFT JOIN companies c ON c.id = cat.company_id
+        ${whereClause}
+        ORDER BY cat.display_order ASC, cat.category_name ASC
+      `;
+      const fallbackResult = await pool.query(fallbackQuery, values);
+      return fallbackResult.rows;
+    }
+    throw err;
+  }
+};
+
+/**
+ * Get category aggregate statistics for a company
+ */
+export const getCategoryStats = async (companyId = null) => {
+  const pool = getPool();
+  const conditions = [];
+  const values = [];
+  if (companyId) {
+    conditions.push('company_id = $1');
+    values.push(companyId);
+  }
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const catQuery = `
+    SELECT 
+      COUNT(*) AS total_categories,
+      COUNT(*) FILTER (WHERE is_active = TRUE) AS active_categories,
+      COUNT(*) FILTER (WHERE is_active = FALSE) AS inactive_categories,
+      COUNT(*) FILTER (WHERE image_url IS NOT NULL AND image_url <> '') AS categories_with_images
+    FROM categories
+    ${whereClause}
+  `;
+
+  const subQuery = `
+    SELECT COUNT(*) AS total_subcategories
+    FROM subcategories
+    ${whereClause}
+  `;
+
+  let subCount = 0;
+  try {
+    const subRes = await pool.query(subQuery, values);
+    subCount = parseInt(subRes.rows[0]?.total_subcategories || 0, 10);
+  } catch (err) {
+    if (err.code !== '42P01') throw err;
+  }
+
+  const catRes = await pool.query(catQuery, values);
+  const row = catRes.rows[0] || {};
+
+  return {
+    totalCategories: parseInt(row.total_categories || 0, 10),
+    activeCategories: parseInt(row.active_categories || 0, 10),
+    inactiveCategories: parseInt(row.inactive_categories || 0, 10),
+    categoriesWithImages: parseInt(row.categories_with_images || 0, 10),
+    totalSubcategories: subCount,
+  };
+};
+
+/**
+ * Find subcategories under a specific category ID for a company
+ */
+export const findSubcategoriesByCategoryId = async (categoryId, companyId = null) => {
+  const pool = getPool();
+  const conditions = ['sub.category_id = $1'];
+  const values = [categoryId];
+
+  if (companyId) {
+    conditions.push('sub.company_id = $2');
+    values.push(companyId);
+  }
+
+  const query = `
+    SELECT 
+      sub.*,
+      c.company_name,
+      c.company_code,
+      cat.category_name,
+      cat.category_code
+    FROM subcategories sub
+    LEFT JOIN companies c ON c.id = sub.company_id
+    LEFT JOIN categories cat ON cat.id = sub.category_id
+    WHERE ${conditions.join(' AND ')}
+    ORDER BY sub.display_order ASC, sub.subcategory_name ASC
+  `;
+  const result = await pool.query(query, values);
+  return result.rows;
+};
+
+/**
+ * Reorder categories in bulk
+ */
+export const reorderCategories = async (items = [], companyId = null) => {
+  if (!Array.isArray(items) || items.length === 0) return [];
+  const pool = getPool();
+  const updatedIds = [];
+
+  for (const item of items) {
+    const id = Number(item.id);
+    const displayOrder = Math.max(0, parseInt(item.display_order ?? item.displayOrder ?? 0, 10));
+    let q = 'UPDATE categories SET display_order = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2';
+    const vals = [displayOrder, id];
+    if (companyId) {
+      q += ' AND company_id = $3';
+      vals.push(companyId);
+    }
+    const res = await pool.query(q, vals);
+    if (res.rowCount > 0) {
+      updatedIds.push(id);
+    }
+  }
+
+  return updatedIds;
+};
+
 export default {
   findAll,
   findById,
   findByCode,
   findByName,
   findByCompanyId,
+  findAllByCompany,
+  findTreeByCompany,
+  getCategoryStats,
+  findSubcategoriesByCategoryId,
+  reorderCategories,
   existsByCode,
   existsByName,
   countSubcategories,

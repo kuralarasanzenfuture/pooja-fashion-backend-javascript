@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Debug Console | Live Request & Response Monitoring</title>
+  <link rel="stylesheet" href="/__dev/api-logs/css/dashboard.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%20width=%22100%22%20height=%22100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+</head>
+<body>
+
+  <div class="dashboard-container">
+
+    <!-- Header -->
+    <header class="dashboard-header">
+      <div class="brand-wrapper">
+        <div class="brand-icon">⚡</div>
+        <div class="title-group">
+          <h1>API DEBUG CONSOLE</h1>
+          <p>Real-time Backend Request &amp; Response Monitoring</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="connection-pill" id="connectionPill">
+          <span class="pulse-dot"></span>
+          <span id="connectionStatusText">Connecting...</span>
+        </div>
+
+        <button class="btn btn-secondary" id="btnPause" title="Pause or resume live incoming requests">
+          ⏸ Pause Live
+        </button>
+
+        <button class="btn btn-danger" id="btnClear" title="Clear all stored logs from memory">
+          🗑 Clear Logs
+        </button>
+      </div>
+    </header>
+
+    <!-- Statistics Grid -->
+    <section class="stats-grid">
+      <div class="stat-card stat-total">
+        <span class="stat-label">Total Requests</span>
+        <span class="stat-value" id="statTotal">0</span>
+      </div>
+      <div class="stat-card stat-success">
+        <span class="stat-label">Successful</span>
+        <span class="stat-value" id="statSuccess">0</span>
+      </div>
+      <div class="stat-card stat-failed">
+        <span class="stat-label">Failed</span>
+        <span class="stat-value" id="statFailed">0</span>
+      </div>
+      <div class="stat-card stat-get">
+        <span class="stat-label">GET</span>
+        <span class="stat-value" id="statGet">0</span>
+      </div>
+      <div class="stat-card stat-post">
+        <span class="stat-label">POST</span>
+        <span class="stat-value" id="statPost">0</span>
+      </div>
+      <div class="stat-card stat-put">
+        <span class="stat-label">PUT</span>
+        <span class="stat-value" id="statPut">0</span>
+      </div>
+      <div class="stat-card stat-patch">
+        <span class="stat-label">PATCH</span>
+        <span class="stat-value" id="statPatch">0</span>
+      </div>
+      <div class="stat-card stat-delete">
+        <span class="stat-label">DELETE</span>
+        <span class="stat-value" id="statDelete">0</span>
+      </div>
+      <div class="stat-card stat-avg">
+        <span class="stat-label">Avg Duration</span>
+        <span class="stat-value" id="statAvgDuration">0ms</span>
+      </div>
+    </section>
+
+    <!-- Controls, Filter & Search Bar -->
+    <section class="controls-bar">
+      <div class="filters-group">
+        <!-- Method Pills -->
+        <div class="method-pills">
+          <button class="method-pill active" data-method="ALL">ALL</button>
+          <button class="method-pill" data-method="GET">GET</button>
+          <button class="method-pill" data-method="POST">POST</button>
+          <button class="method-pill" data-method="PUT">PUT</button>
+          <button class="method-pill" data-method="PATCH">PATCH</button>
+          <button class="method-pill" data-method="DELETE">DELETE</button>
+        </div>
+
+        <!-- Status Filter -->
+        <select class="select-filter" id="statusFilter" title="Filter by Status Code">
+          <option value="ALL">All Statuses</option>
+          <option value="2xx">2xx Success</option>
+          <option value="3xx">3xx Redirect</option>
+          <option value="4xx">4xx Client Error</option>
+          <option value="5xx">5xx Server Error</option>
+          <option value="success">Success Only</option>
+          <option value="failed">Errors Only</option>
+        </select>
+
+        <!-- Module Filter -->
+        <select class="select-filter" id="moduleFilter" title="Filter by Module">
+          <option value="ALL">All Modules</option>
+        </select>
+      </div>
+
+      <!-- Quick Search Box -->
+      <div class="search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input
+          type="text"
+          class="search-input"
+          id="searchInput"
+          placeholder="Search endpoint, module, operation, request ID..."
+          autocomplete="off"
+        >
+      </div>
+    </section>
+
+    <!-- Main Table Container -->
+    <main class="table-card">
+      <div class="table-responsive" id="tableContainer">
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Method</th>
+              <th>Module</th>
+              <th>Category</th>
+              <th>Subcategory</th>
+              <th>Endpoint</th>
+              <th>Status</th>
+              <th>Duration</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="logTableBody">
+            <!-- Dynamic rows injected here -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state" id="emptyState" style="display: none;">
+        <div class="empty-icon">📡</div>
+        <div class="empty-title">No API Requests Recorded Yet</div>
+        <p class="empty-subtitle">Make an API request to your backend to see it appear live in this console.</p>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Request Details Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="badge-method GET" id="modalMethodBadge">GET</span>
+          <span class="badge-status s-2xx" id="modalStatusBadge">200 OK</span>
+          <span class="modal-title" id="modalEndpoint">/api/categories</span>
+        </div>
+        <button class="modal-close-btn" id="modalCloseBtn" title="Close (Esc)">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Section A: General Info -->
+        <section class="detail-section">
+          <div class="section-header">
+            <span class="section-title">General Information</span>
+            <button class="btn-copy" id="btnCopyReqId" title="Copy Request ID">Copy Request ID</button>
+          </div>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Request ID</span>
+              <span class="info-val" id="infoRequestId">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Timestamp</span>
+              <span class="info-val" id="infoTimestamp">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Module</span>
+              <span class="info-val" id="infoModule">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Category</span>
+              <span class="info-val" id="infoCategory">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Subcategory</span>
+              <span class="info-val" id="infoSubcategory">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Execution Time</span>
+              <span class="info-val" id="infoDuration">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Controller</span>
+              <span class="info-val" id="infoController">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Service</span>
+              <span class="info-val" id="infoService">-</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section D: Error Information (if applicable) -->
+        <section class="error-banner" id="errorSection" style="display: none;">
+          <div class="error-banner-title">
+            <span>⚠️</span>
+            <span id="errorType">VALIDATION_ERROR</span>
+          </div>
+          <div class="error-banner-msg" id="errorMessage">-</div>
+          <div style="margin-top: 6px; font-size: 11px; color: #fca5a5;" id="errorLocation"></div>
+        </section>
+
+        <!-- Section B: Frontend Request / Backend Observed Data -->
+        <section class="detail-section">
+          <div class="section-header">
+            <span class="section-title">Request Data (Backend-Observed)</span>
+            <button class="btn-copy" id="btnCopyReqBody" title="Copy Request Body">Copy Body JSON</button>
+          </div>
+
+          <!-- URL Params -->
+          <div id="sectionParams" style="margin-bottom: 12px; display: none;">
+            <span class="info-label">URL Parameters:</span>
+            <pre class="code-box" style="max-height: 120px;"></pre>
+          </div>
+
+          <!-- Query Params -->
+          <div id="sectionQuery" style="margin-bottom: 12px; display: none;">
+            <span class="info-label">Query Parameters:</span>
+            <pre class="code-box" style="max-height: 120px;"></pre>
+          </div>
+
+          <!-- Headers -->
+          <div id="sectionHeaders" style="margin-bottom: 12px; display: none;">
+            <span class="info-label">Safe Headers:</span>
+            <pre class="code-box" style="max-height: 140px;"></pre>
+          </div>
+
+          <!-- Body -->
+          <div>
+            <span class="info-label">Request Body:</span>
+            <pre class="code-box" id="requestBodyBox">null</pre>
+          </div>
+        </section>
+
+        <!-- Section C: Backend Response -->
+        <section class="detail-section">
+          <div class="section-header">
+            <span class="section-title">Backend Response</span>
+            <button class="btn-copy" id="btnCopyResBody" title="Copy Response Body">Copy Response JSON</button>
+          </div>
+          <div>
+            <pre class="code-box" id="responseBodyBox">null</pre>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script src="/__dev/api-logs/js/dashboard.js"></script>
+</body>
+</html>
+

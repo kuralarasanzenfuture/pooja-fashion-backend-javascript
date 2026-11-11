@@ -6,79 +6,26 @@ import BadRequestError from '../../../shared/errors/BadRequestError.js';
 import ForbiddenError from '../../../shared/errors/ForbiddenError.js';
 import { getPaginationParams, formatPaginationMeta } from '../../../shared/utils/pagination.js';
 import { deleteFileByUrl } from '../../../shared/utils/file.js';
+import { recordAuditLog } from '../../auditLogs/auditLog.service.js';
+import {
+  toSlug,
+  extractUploadedImage,
+  generateCategoryCode,
+  canUserSelectCompany,
+  resolveEffectiveCompanyId,
+} from './utils/index.js';
 
-const toSlug = (text) => {
-  return (text || '')
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/[^ws-]/g, '')
-    .replace(/[s_-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-};
-
-export const extractUploadedImage = (files, slug) => {
-  const result = {};
-  if (!files) return result;
-
-  if (files.image && files.image[0]) {
-    result.image_url = `/uploads/categories/${slug}/${files.image[0].filename}`;
-    result.image_key = `categories/${slug}/${files.image[0].filename}`;
-  } else if (files.image_url && files.image_url[0]) {
-    result.image_url = `/uploads/categories/${slug}/${files.image_url[0].filename}`;
-    result.image_key = `categories/${slug}/${files.image_url[0].filename}`;
-  }
-
-  return result;
-};
-
-/**
- * Generate fallback category code from name if omitted
- */
-export const generateCategoryCode = (name) => {
-  return name
-    .trim()
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, '_')
-    .replace(/_+/g, '_')
-    .slice(0, 50);
-};
-
-/**
- * List categories with pagination, filtering, and search.
- * Enforces company multi-tenancy:
- * - SuperAdmin can view all categories across companies, or filter by company_id.
- * - Non-SuperAdmin users are strictly scoped to their assigned company.
- */
-
-/**
- * Helper: Only 'superadmin' and 'admin' users who don't have a fixed company_id
- * are permitted to select any company.
- * Other users who have a company_id are strictly scoped to their assigned company.
- */
-export const canUserSelectCompany = (user) => {
-  if (!user) return false;
-  const role = String(user.roleCode || user.role || '').toUpperCase();
-  if (role === 'SUPERADMIN') return true;
-  const hasComp = Boolean(user.companyId || user.company_id);
-  return role === 'ADMIN' && !hasComp;
+export {
+  toSlug,
+  extractUploadedImage,
+  generateCategoryCode,
+  canUserSelectCompany,
+  resolveEffectiveCompanyId,
 };
 
 export const getCategories = async (query, user = null) => {
   const { page, limit, offset, sortBy, sortOrder, search } = getPaginationParams(query);
-  let companyId = query.company_id || query.companyId || null;
-  if (companyId) {
-    companyId = Number(companyId);
-  }
-
-  // Tenant isolation: only superadmin/admin without company_id can select company
-  const canSelect = canUserSelectCompany(user);
-  if (!canSelect && user) {
-    const userCompId = user.companyId || user.company_id;
-    if (userCompId) {
-      companyId = Number(userCompId);
-    }
-  }
+  const companyId = resolveEffectiveCompanyId(user, query.company_id || query.companyId);
 
   const isActive = query.is_active !== undefined ? query.is_active : null;
   const hasImage = query.has_image || query.hasImage || null;
@@ -98,6 +45,127 @@ export const getCategories = async (query, user = null) => {
   return {
     categories: toCategoryListDTO(rows),
     meta,
+  };
+};
+
+/**
+ * Get all categories for a company without pagination (for dropdowns / selectors)
+ * Strictly scopes to token-based user's company_id
+ */
+export const getAllCategories = async (query = {}, user = null) => {
+  const companyId = resolveEffectiveCompanyId(user, query.company_id || query.companyId);
+  const isActive = query.is_active !== undefined ? query.is_active : null;
+  const hasImage = query.has_image || query.hasImage || null;
+  const search = query.search ? String(query.search).trim() : null;
+  const sortBy = query.sortBy || 'display_order';
+  const sortOrder = query.sortOrder || 'ASC';
+
+  const rows = await categoryRepository.findAllByCompany(companyId, {
+    isActive,
+    hasImage,
+    search,
+    sortBy,
+    sortOrder,
+  });
+
+  return toCategoryListDTO(rows);
+};
+
+/**
+ * Get category hierarchy tree with nested subcategories
+ * Scoped to token-based user's company_id
+ */
+export const getCategoryTree = async (query = {}, user = null) => {
+  const companyId = resolveEffectiveCompanyId(user, query.company_id || query.companyId);
+  const isActive = query.is_active !== undefined ? query.is_active : null;
+
+  const rows = await categoryRepository.findTreeByCompany(companyId, { isActive });
+  return toCategoryListDTO(rows);
+};
+
+/**
+ * Get category statistics summary for user's company
+ */
+export const getCategoryStats = async (query = {}, user = null) => {
+  const companyId = resolveEffectiveCompanyId(user, query.company_id || query.companyId);
+  return categoryRepository.getCategoryStats(companyId);
+};
+
+/**
+ * Get all subcategories belonging to a specific category
+ */
+export const getCategorySubcategories = async (categoryId, user = null) => {
+  const category = await categoryRepository.findById(categoryId);
+  if (!category) {
+    throw new NotFoundError(`Category with ID ${categoryId} not found`);
+  }
+
+  const effectiveCompanyId = resolveEffectiveCompanyId(user);
+  if (effectiveCompanyId && Number(category.company_id) !== effectiveCompanyId) {
+    throw new ForbiddenError('You do not have permission to view subcategories for another company');
+  }
+
+  const rows = await categoryRepository.findSubcategoriesByCategoryId(
+    categoryId,
+    category.company_id
+  );
+
+  return rows.map((s) => ({
+    id: Number(s.id),
+    companyId: Number(s.company_id),
+    company_id: Number(s.company_id),
+    companyName: s.company_name || null,
+    company_name: s.company_name || null,
+    categoryId: Number(s.category_id),
+    category_id: Number(s.category_id),
+    categoryName: s.category_name || null,
+    category_name: s.category_name || null,
+    subcategoryCode: s.subcategory_code,
+    subcategory_code: s.subcategory_code,
+    subcategoryName: s.subcategory_name,
+    subcategory_name: s.subcategory_name,
+    description: s.description || null,
+    imageUrl: s.image_url || null,
+    image_url: s.image_url || null,
+    imageKey: s.image_key || null,
+    image_key: s.image_key || null,
+    displayOrder: Number(s.display_order ?? 0),
+    display_order: Number(s.display_order ?? 0),
+    isActive: Boolean(s.is_active),
+    is_active: Boolean(s.is_active),
+    createdAt: s.created_at ? new Date(s.created_at).toISOString() : null,
+    created_at: s.created_at ? new Date(s.created_at).toISOString() : null,
+    updatedAt: s.updated_at ? new Date(s.updated_at).toISOString() : null,
+    updated_at: s.updated_at ? new Date(s.updated_at).toISOString() : null,
+  }));
+};
+
+/**
+ * Bulk reorder categories display order
+ */
+export const reorderCategories = async (items = [], user = null, requestContext = null) => {
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new BadRequestError('Items array is required for reordering');
+  }
+
+  const companyId = resolveEffectiveCompanyId(user);
+  const updatedIds = await categoryRepository.reorderCategories(items, companyId);
+
+  await recordAuditLog({
+    action: 'UPDATE',
+    module: 'categories',
+    entityType: 'Category',
+    companyId,
+    userId: user?.id,
+    description: `Reordered display sequence for ${updatedIds.length} categories`,
+    changeData: { reorderedIds: updatedIds },
+    requestContext,
+  });
+
+  return {
+    reordered: true,
+    count: updatedIds.length,
+    ids: updatedIds,
   };
 };
 
@@ -165,7 +233,13 @@ export const getCategoriesByCompanyId = async (companyId, options = {}, user = n
  * - SuperAdmin can create categories for any valid company.
  * - Non-SuperAdmin users can only create categories for their assigned company.
  */
-export const createCategory = async (data, files = null, uploadSlug = null, user = null) => {
+export const createCategory = async (
+  data,
+  files = null,
+  uploadSlug = null,
+  user = null,
+  requestContext = null
+) => {
   if (!canUserSelectCompany(user) && user) {
     const userCompId = user.companyId || user.company_id;
     if (userCompId) {
@@ -218,13 +292,36 @@ export const createCategory = async (data, files = null, uploadSlug = null, user
   Object.assign(data, uploadedFiles);
 
   const created = await categoryRepository.create(data);
-  return toCategoryDTO(created);
+  const dto = toCategoryDTO(created);
+
+  await recordAuditLog({
+    action: 'CREATE',
+    module: 'categories',
+    entityType: 'Category',
+    entityId: created.id,
+    entityName: created.category_name,
+    companyId: created.company_id,
+    userId: user?.id,
+    description: `Category "${created.category_name}" (Code: ${created.category_code}) created`,
+    oldData: null,
+    newData: created,
+    requestContext,
+  });
+
+  return dto;
 };
 
 /**
  * Update an existing category with company multi-tenancy verification
  */
-export const updateCategory = async (id, data, files = null, uploadSlug = null, user = null) => {
+export const updateCategory = async (
+  id,
+  data,
+  files = null,
+  uploadSlug = null,
+  user = null,
+  requestContext = null
+) => {
   const existing = await categoryRepository.findById(id);
   if (!existing) {
     throw new NotFoundError(`Category with ID ${id} not found`);
@@ -289,13 +386,35 @@ export const updateCategory = async (id, data, files = null, uploadSlug = null, 
   }
 
   const updated = await categoryRepository.update(id, data);
-  return toCategoryDTO(updated);
+  const dto = toCategoryDTO(updated);
+
+  await recordAuditLog({
+    action: 'UPDATE',
+    module: 'categories',
+    entityType: 'Category',
+    entityId: updated.id,
+    entityName: updated.category_name,
+    companyId: updated.company_id,
+    userId: user?.id,
+    description: `Category "${updated.category_name}" updated`,
+    oldData: existing,
+    newData: updated,
+    requestContext,
+  });
+
+  return dto;
 };
 
 /**
  * Update category active status with tenant isolation
  */
-export const updateCategoryStatus = async (id, isActive, updatedBy = null, user = null) => {
+export const updateCategoryStatus = async (
+  id,
+  isActive,
+  updatedBy = null,
+  user = null,
+  requestContext = null
+) => {
   const existing = await categoryRepository.findById(id);
   if (!existing) {
     throw new NotFoundError(`Category with ID ${id} not found`);
@@ -309,13 +428,35 @@ export const updateCategoryStatus = async (id, isActive, updatedBy = null, user 
   }
 
   const updated = await categoryRepository.updateStatus(id, isActive, updatedBy);
-  return toCategoryDTO(updated);
+  const dto = toCategoryDTO(updated);
+
+  await recordAuditLog({
+    action: isActive ? 'ACTIVATE' : 'DEACTIVATE',
+    module: 'categories',
+    entityType: 'Category',
+    entityId: updated.id,
+    entityName: updated.category_name,
+    companyId: updated.company_id,
+    userId: updatedBy || user?.id,
+    description: `Category "${updated.category_name}" ${isActive ? 'activated' : 'deactivated'}`,
+    oldData: existing,
+    newData: updated,
+    requestContext,
+  });
+
+  return dto;
 };
 
 /**
  * Upload or replace category image
  */
-export const uploadCategoryImage = async (id, files, uploadSlug = null, user = null) => {
+export const uploadCategoryImage = async (
+  id,
+  files,
+  uploadSlug = null,
+  user = null,
+  requestContext = null
+) => {
   const existing = await categoryRepository.findById(id);
   if (!existing) {
     throw new NotFoundError(`Category with ID ${id} not found`);
@@ -344,13 +485,29 @@ export const uploadCategoryImage = async (id, files, uploadSlug = null, user = n
   }
 
   const updated = await categoryRepository.update(id, uploadedFiles);
-  return toCategoryDTO(updated);
+  const dto = toCategoryDTO(updated);
+
+  await recordAuditLog({
+    action: 'UPLOAD',
+    module: 'categories',
+    entityType: 'Category',
+    entityId: updated.id,
+    entityName: updated.category_name,
+    companyId: updated.company_id,
+    userId: user?.id,
+    description: `Image uploaded for category "${updated.category_name}"`,
+    oldData: existing,
+    newData: updated,
+    requestContext,
+  });
+
+  return dto;
 };
 
 /**
  * Delete category image
  */
-export const deleteCategoryImage = async (id, user = null) => {
+export const deleteCategoryImage = async (id, user = null, requestContext = null) => {
   const existing = await categoryRepository.findById(id);
   if (!existing) {
     throw new NotFoundError(`Category with ID ${id} not found`);
@@ -372,14 +529,29 @@ export const deleteCategoryImage = async (id, user = null) => {
     image_key: null,
     updated_by: user?.id || null,
   });
+  const dto = toCategoryDTO(updated);
 
-  return toCategoryDTO(updated);
+  await recordAuditLog({
+    action: 'UPDATE',
+    module: 'categories',
+    entityType: 'Category',
+    entityId: updated.id,
+    entityName: updated.category_name,
+    companyId: updated.company_id,
+    userId: user?.id,
+    description: `Image removed from category "${updated.category_name}"`,
+    oldData: existing,
+    newData: updated,
+    requestContext,
+  });
+
+  return dto;
 };
 
 /**
  * Delete category by ID (verifying company permission and database references)
  */
-export const deleteCategory = async (id, user = null) => {
+export const deleteCategory = async (id, user = null, requestContext = null) => {
   const existing = await categoryRepository.findById(id);
   if (!existing) {
     throw new NotFoundError(`Category with ID ${id} not found`);
@@ -411,6 +583,20 @@ export const deleteCategory = async (id, user = null) => {
   }
 
   await categoryRepository.deleteById(id);
+
+  await recordAuditLog({
+    action: 'DELETE',
+    module: 'categories',
+    entityType: 'Category',
+    entityId: existing.id,
+    entityName: existing.category_name,
+    companyId: existing.company_id,
+    userId: user?.id,
+    description: `Category "${existing.category_name}" (ID: ${id}) deleted`,
+    oldData: existing,
+    newData: null,
+    requestContext,
+  });
 
   return {
     id: Number(id),
@@ -509,6 +695,11 @@ export const checkCategoryCodeExists = async ({
 
 export default {
   getCategories,
+  getAllCategories,
+  getCategoryTree,
+  getCategoryStats,
+  getCategorySubcategories,
+  reorderCategories,
   getCategoryById,
   getCategoryByCode,
   getCategoriesByCompanyId,
@@ -520,4 +711,6 @@ export default {
   deleteCategory,
   checkCategoryNameExists,
   checkCategoryCodeExists,
+  resolveEffectiveCompanyId,
+  canUserSelectCompany,
 };

@@ -1,28 +1,16 @@
 import multer from 'multer';
+import { apiLogger } from '../shared/utils/logger/apiLogger.js';
 
 export const errorHandler = (err, req, res, next) => {
-  const isDev = process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test';
-
-  if (isDev) {
-    console.error('❌ ERROR:', {
-      requestId: req.requestId,
-      method: req.method,
-      url: req.originalUrl,
-      userId: req.user?.id || null,
-      ip: req.ip,
-      message: err.message,
-      stack: err.stack,
-    });
-  }
-
   let status = err.statusCode || err.status || 500;
   let message = err.message || 'Internal Server Error';
   let errors = err.details || null;
+  let errorType = null;
 
-  
   // Handle PostgreSQL Unique Constraint Violations
   if (err.code === '23505') {
     status = 400;
+    errorType = 'DUPLICATE_RECORD_ERROR';
     const detail = err.detail || '';
     const constraint = err.constraint || '';
     if (constraint.includes('name') || detail.includes('role_name') || detail.includes('name')) {
@@ -37,6 +25,7 @@ export const errorHandler = (err, req, res, next) => {
   // Handle Multer upload errors
   if (err instanceof multer.MulterError || err.name === 'MulterError') {
     status = 400;
+    errorType = 'FILE_UPLOAD_ERROR';
 
     if (err.code === 'LIMIT_FILE_SIZE') {
       message = 'File too large. Maximum size allowed is 5 MB.';
@@ -52,6 +41,7 @@ export const errorHandler = (err, req, res, next) => {
   // Handle Zod validation errors
   if (err.name === 'ZodError' || Array.isArray(err.issues)) {
     status = 400;
+    errorType = 'VALIDATION_ERROR';
     message = 'Validation Error';
     errors = (err.issues || []).map((issue) => ({
       field: issue.path.join('.'),
@@ -63,17 +53,36 @@ export const errorHandler = (err, req, res, next) => {
   // Handle JWT errors
   if (err.name === 'JsonWebTokenError') {
     status = 401;
+    errorType = 'AUTHENTICATION_ERROR';
     message = 'Invalid authentication token';
   } else if (err.name === 'TokenExpiredError') {
     status = 401;
+    errorType = 'AUTHENTICATION_ERROR';
     message = 'Authentication token has expired';
+  } else if (err.name === 'ForbiddenError' || status === 403) {
+    errorType = 'AUTHORIZATION_ERROR';
+  } else if (err.name === 'NotFoundError' || status === 404) {
+    errorType = 'NOT_FOUND_ERROR';
   }
+
+  // Route to centralized API error logger
+  apiLogger.logApiError({
+    req,
+    res,
+    err,
+    status,
+    message,
+    errorType,
+  });
+
+  // Flag to avoid duplicate logging on response finish
+  res._apiDebugLogged = true;
 
   res.status(status).json({
     success: false,
     message,
     ...(errors ? { errors } : {}),
-    ...(req.requestId ? { requestId: req.requestId } : {}),
+    ...(req.requestId || req.id ? { requestId: req.requestId || req.id } : {}),
   });
 };
 

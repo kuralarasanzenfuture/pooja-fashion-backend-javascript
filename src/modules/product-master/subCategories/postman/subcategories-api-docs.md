@@ -2,6 +2,12 @@
 
 Enterprise API documentation for managing product subcategories within categories and companies in the Pooja Fashion ERP & POS platform.
 
+> [!NOTE]
+> **Audit Logging:** All write and state modification operations (`CREATE`, `UPDATE`, `DELETE`, `ACTIVATE`, `DEACTIVATE`, `UPLOAD` image, `REORDER`) automatically generate immutable audit entries in `audit_logs` (100_auditlogs.sql) along with field-level change diffs in `audit_log_changes` (101_audit_log_changes.sql). Inspection is available via `/api/audit-logs`.
+
+> [!IMPORTANT]
+> **Token-Based Company Isolation:** Logged-in users have an assigned `company_id` in their `users` record. All endpoints automatically scope results strictly to that user's `company_id`. Tenant users cannot view, query, or mutate subcategories belonging to another company. Only `SUPERADMIN` or unassigned platform `ADMIN` tokens can query across companies.
+
 ---
 
 ## Base URL
@@ -408,6 +414,102 @@ Checks whether a subcategory code already exists in the given company scope.
     "subcategoryCode": "BANARASI_SAREES",
     "companyId": 1,
     "message": "Subcategory code 'BANARASI_SAREES' already exists for this company"
+  }
+}
+```
+
+---
+
+### 14. List All Subcategories (Unpaginated Dropdown)
+Retrieve complete, unpaginated subcategory records scoped strictly to the token-authenticated user's company (used for forms, select dropdowns, filters).
+
+- **URL:** `GET /api/product-master/subcategories/all`
+- **Query Parameters:**
+  - `company_id` *(number, optional)*: SuperAdmin override only.
+  - `category_id` *(number, optional)*: Filter by parent category ID.
+  - `is_active` *(boolean, optional)*: Filter by active flag (`true` / `false`).
+  - `has_image` *(string/boolean, optional)*: Filter by image presence.
+  - `search` *(string, optional)*: Search in subcategory name or code.
+  - `sortBy` *(string, optional, default: 'display_order')*: Sort column (`id`, `subcategory_code`, `subcategory_name`, `display_order`, `created_at`, `is_active`, `category_id`, `updated_at`).
+  - `sortOrder` *(string, optional, default: 'asc')*: `asc` or `desc`.
+- **Response `200 OK`:**
+```json
+{
+  "success": true,
+  "message": "All subcategories retrieved successfully",
+  "data": [
+    {
+      "id": 1,
+      "companyId": 1,
+      "companyName": "Pooja Fashion Retail Ltd",
+      "companyCode": "PF-CORP",
+      "categoryId": 1,
+      "categoryName": "Women's Ethnic Wear",
+      "categoryCode": "WOMENS_ETHNIC",
+      "subcategoryCode": "SILK_SAREES",
+      "subcategoryName": "Silk Sarees",
+      "description": "Pure Kanchipuram, Banarasi, and raw silk sarees",
+      "imageUrl": "/uploads/subcategories/silk-sarees/silk-sarees-image-1727000000000.png",
+      "imageKey": "subcategories/silk-sarees/silk-sarees-image-1727000000000.png",
+      "displayOrder": 1,
+      "isActive": true,
+      "createdBy": 1,
+      "updatedBy": null,
+      "createdAt": "2026-09-22T10:00:00.000Z",
+      "updatedAt": "2026-09-22T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+### 15. Subcategory Statistics
+Retrieve aggregate count metrics (total, active, inactive, and with images) for the authenticated company, with optional filter by category.
+
+- **URL:** `GET /api/product-master/subcategories/stats`
+- **Query Parameters:**
+  - `category_id` *(number, optional)*: Scope stats to a specific category.
+- **Response `200 OK`:**
+```json
+{
+  "success": true,
+  "message": "Subcategory statistics retrieved successfully",
+  "data": {
+    "totalSubcategories": 34,
+    "activeSubcategories": 30,
+    "inactiveSubcategories": 4,
+    "subcategoriesWithImages": 25
+  }
+}
+```
+
+---
+
+### 16. Bulk Reorder Subcategories
+Update display orders for multiple subcategories in a single request. Audited with action `REORDER`.
+
+- **URL:** `PATCH /api/product-master/subcategories/reorder`
+- **Request Body:**
+```json
+{
+  "items": [
+    { "id": 1, "display_order": 0 },
+    { "id": 2, "display_order": 1 },
+    { "id": 3, "display_order": 2 }
+  ]
+}
+```
+- **Response `200 OK`:**
+```json
+{
+  "success": true,
+  "message": "Subcategories reordered successfully",
+  "data": {
+    "success": true,
+    "message": "Successfully reordered 3 subcategories",
+    "updatedCount": 3,
+    "updatedIds": [1, 2, 3]
   }
 }
 ```

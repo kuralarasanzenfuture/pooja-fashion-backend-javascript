@@ -14,7 +14,7 @@ CREATE TABLE
         updated_by BIGINT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        CONSTRAINT fk_subcategories_company FOREIGN KEY (company_id) REFERENCES companies (id) ON DELETE CASCADE,
+        CONSTRAINT fk_subcategories_company FOREIGN KEY (company_id) REFERENCES companies (id) ON DELETE RESTRICT,
         CONSTRAINT fk_subcategories_category FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE RESTRICT,
         CONSTRAINT chk_subcategories_code CHECK (BTRIM (subcategory_code) <> ''),
         CONSTRAINT chk_subcategories_name CHECK (BTRIM (subcategory_name) <> ''),
