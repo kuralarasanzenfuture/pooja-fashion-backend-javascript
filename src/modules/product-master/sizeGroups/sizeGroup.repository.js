@@ -37,7 +37,7 @@ export const findAll = async ({
 
   if (search) {
     conditions.push(
-      `(sg.size_group_name ILIKE $${paramIndex} OR sg.size_group_code ILIKE $${paramIndex} OR sg.description ILIKE $${paramIndex})`
+      `(sg.size_group_name ILIKE $${paramIndex} OR sg.size_group_code ILIKE $${paramIndex} OR sg.description ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`
     );
     values.push(`%${search}%`);
     paramIndex++;
@@ -59,6 +59,7 @@ export const findAll = async ({
   const countQuery = `
     SELECT COUNT(*) AS total
     FROM size_groups sg
+    LEFT JOIN companies c ON c.id = sg.company_id
     ${whereClause}
   `;
 
@@ -68,7 +69,7 @@ export const findAll = async ({
       c.company_name,
       c.company_code
     FROM size_groups sg
-    JOIN companies c ON c.id = sg.company_id
+    LEFT JOIN companies c ON c.id = sg.company_id
     ${whereClause}
     ORDER BY ${orderColumn} ${direction}, sg.size_group_name ASC
     LIMIT $${paramIndex++} OFFSET $${paramIndex++}
@@ -94,7 +95,7 @@ export const findById = async (id) => {
       c.company_name,
       c.company_code
     FROM size_groups sg
-    JOIN companies c ON c.id = sg.company_id
+    LEFT JOIN companies c ON c.id = sg.company_id
     WHERE sg.id = $1
   `;
   const result = await pool.query(query, [id]);
@@ -112,7 +113,7 @@ export const findByCode = async (companyId, sizeGroupCode) => {
       c.company_name,
       c.company_code
     FROM size_groups sg
-    JOIN companies c ON c.id = sg.company_id
+    LEFT JOIN companies c ON c.id = sg.company_id
     WHERE sg.company_id = $1 AND LOWER(sg.size_group_code) = LOWER($2)
   `;
   const result = await pool.query(query, [companyId, sizeGroupCode]);
@@ -130,7 +131,7 @@ export const findByName = async (companyId, sizeGroupName) => {
       c.company_name,
       c.company_code
     FROM size_groups sg
-    JOIN companies c ON c.id = sg.company_id
+    LEFT JOIN companies c ON c.id = sg.company_id
     WHERE sg.company_id = $1 AND LOWER(sg.size_group_name) = LOWER($2)
   `;
   const result = await pool.query(query, [companyId, sizeGroupName]);
@@ -138,7 +139,7 @@ export const findByName = async (companyId, sizeGroupName) => {
 };
 
 /**
- * Find all size groups for a given company
+ * Find all size groups for a given company (pageless list)
  */
 export const findByCompanyId = async (companyId, { isActive = null } = {}) => {
   const pool = getPool();
@@ -156,12 +157,196 @@ export const findByCompanyId = async (companyId, { isActive = null } = {}) => {
       c.company_name,
       c.company_code
     FROM size_groups sg
-    JOIN companies c ON c.id = sg.company_id
+    LEFT JOIN companies c ON c.id = sg.company_id
     WHERE ${conditions.join(' AND ')}
     ORDER BY sg.size_group_name ASC
   `;
   const result = await pool.query(query, values);
   return result.rows;
+};
+
+/**
+ * Find all size groups for a company without pagination (for dropdowns / selectors)
+ */
+export const findAllByCompany = async (
+  companyId,
+  { isActive = null, search = null, sortBy = 'size_group_name', sortOrder = 'ASC' } = {}
+) => {
+  const pool = getPool();
+  const conditions = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (companyId !== null && companyId !== undefined) {
+    conditions.push(`sg.company_id = $${paramIndex++}`);
+    values.push(companyId);
+  }
+
+  if (isActive !== null && isActive !== undefined) {
+    conditions.push(`sg.is_active = $${paramIndex++}`);
+    values.push(isActive);
+  }
+
+  if (search) {
+    conditions.push(
+      `(sg.size_group_name ILIKE $${paramIndex} OR sg.size_group_code ILIKE $${paramIndex} OR sg.description ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`
+    );
+    values.push(`%${search}%`);
+    paramIndex++;
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const allowedSortColumns = {
+    id: 'sg.id',
+    size_group_code: 'sg.size_group_code',
+    size_group_name: 'sg.size_group_name',
+    created_at: 'sg.created_at',
+    is_active: 'sg.is_active',
+  };
+  const orderCol = allowedSortColumns[sortBy] || 'sg.size_group_name';
+  const direction = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+
+  const query = `
+    SELECT 
+      sg.*,
+      c.company_name,
+      c.company_code
+    FROM size_groups sg
+    LEFT JOIN companies c ON c.id = sg.company_id
+    ${whereClause}
+    ORDER BY ${orderCol} ${direction}, sg.size_group_name ASC
+  `;
+  const result = await pool.query(query, values);
+  return result.rows;
+};
+
+/**
+ * Find all size groups for a company with nested sizes hierarchy (Tree)
+ */
+export const findTreeByCompany = async (companyId, { isActive = null } = {}) => {
+  const pool = getPool();
+  const conditions = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (companyId !== null && companyId !== undefined) {
+    conditions.push(`sg.company_id = $${paramIndex++}`);
+    values.push(companyId);
+  }
+
+  if (isActive !== null && isActive !== undefined) {
+    conditions.push(`sg.is_active = $${paramIndex++}`);
+    values.push(isActive);
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const subQueryConditions = [];
+  if (isActive !== null && isActive !== undefined) {
+    subQueryConditions.push(`sz.is_active = ${isActive ? 'TRUE' : 'FALSE'}`);
+  }
+  const subWhere = subQueryConditions.length > 0 ? `AND ${subQueryConditions.join(' AND ')}` : '';
+
+  const query = `
+    SELECT 
+      sg.*,
+      c.company_name,
+      c.company_code,
+      COALESCE(
+        (
+          SELECT json_agg(
+            json_build_object(
+              'id', sz.id,
+              'company_id', sz.company_id,
+              'size_group_id', sz.size_group_id,
+              'size_code', sz.size_code,
+              'size_name', sz.size_name,
+              'display_order', sz.display_order,
+              'is_active', sz.is_active,
+              'created_at', sz.created_at,
+              'updated_at', sz.updated_at
+            ) ORDER BY sz.display_order ASC, sz.size_name ASC
+          )
+          FROM sizes sz
+          WHERE sz.size_group_id = sg.id ${subWhere}
+        ),
+        '[]'::json
+      ) AS sizes,
+      (
+        SELECT COUNT(*)
+        FROM sizes sz
+        WHERE sz.size_group_id = sg.id ${subWhere}
+      ) AS sizes_count
+    FROM size_groups sg
+    LEFT JOIN companies c ON c.id = sg.company_id
+    ${whereClause}
+    ORDER BY sg.size_group_name ASC
+  `;
+
+  try {
+    const result = await pool.query(query, values);
+    return result.rows;
+  } catch (err) {
+    if (err.code === '42P01') {
+      const fallbackQuery = `
+        SELECT sg.*, c.company_name, c.company_code, '[]'::json AS sizes, 0 AS sizes_count
+        FROM size_groups sg
+        LEFT JOIN companies c ON c.id = sg.company_id
+        ${whereClause}
+        ORDER BY sg.size_group_name ASC
+      `;
+      const fallbackResult = await pool.query(fallbackQuery, values);
+      return fallbackResult.rows;
+    }
+    throw err;
+  }
+};
+
+/**
+ * Get size group aggregate statistics for a company
+ */
+export const getSizeGroupStats = async (companyId = null) => {
+  const pool = getPool();
+  const conditions = [];
+  const values = [];
+  if (companyId) {
+    conditions.push('company_id = $1');
+    values.push(companyId);
+  }
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const groupQuery = `
+    SELECT 
+      COUNT(*) AS total_size_groups,
+      COUNT(*) FILTER (WHERE is_active = TRUE) AS active_size_groups,
+      COUNT(*) FILTER (WHERE is_active = FALSE) AS inactive_size_groups
+    FROM size_groups
+    ${whereClause}
+  `;
+
+  const sizesQuery = `
+    SELECT COUNT(*) AS total_sizes
+    FROM sizes
+    ${whereClause}
+  `;
+
+  let totalSizes = 0;
+  try {
+    const sizesRes = await pool.query(sizesQuery, values);
+    totalSizes = parseInt(sizesRes.rows[0]?.total_sizes || 0, 10);
+  } catch (err) {
+    if (err.code !== '42P01') throw err;
+  }
+
+  const groupRes = await pool.query(groupQuery, values);
+  const row = groupRes.rows[0] || {};
+
+  return {
+    totalSizeGroups: parseInt(row.total_size_groups || 0, 10),
+    activeSizeGroups: parseInt(row.active_size_groups || 0, 10),
+    inactiveSizeGroups: parseInt(row.inactive_size_groups || 0, 10),
+    totalSizes,
+  };
 };
 
 /**
@@ -332,6 +517,9 @@ export default {
   findByCode,
   findByName,
   findByCompanyId,
+  findAllByCompany,
+  findTreeByCompany,
+  getSizeGroupStats,
   existsByCode,
   existsByName,
   countSizes,

@@ -43,7 +43,7 @@ export const findAll = async ({
 
   if (search) {
     conditions.push(
-      `(s.size_name ILIKE $${paramIndex} OR s.size_code ILIKE $${paramIndex} OR sg.size_group_name ILIKE $${paramIndex})`
+      `(s.size_name ILIKE $${paramIndex} OR s.size_code ILIKE $${paramIndex} OR sg.size_group_name ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`
     );
     values.push(`%${search}%`);
     paramIndex++;
@@ -66,7 +66,8 @@ export const findAll = async ({
   const countQuery = `
     SELECT COUNT(*) AS total
     FROM sizes s
-    JOIN size_groups sg ON sg.id = s.size_group_id
+    LEFT JOIN companies c ON c.id = s.company_id
+    LEFT JOIN size_groups sg ON sg.id = s.size_group_id
     ${whereClause}
   `;
 
@@ -78,8 +79,8 @@ export const findAll = async ({
       sg.size_group_name,
       sg.size_group_code
     FROM sizes s
-    JOIN companies c ON c.id = s.company_id
-    JOIN size_groups sg ON sg.id = s.size_group_id
+    LEFT JOIN companies c ON c.id = s.company_id
+    LEFT JOIN size_groups sg ON sg.id = s.size_group_id
     ${whereClause}
     ORDER BY ${orderColumn} ${direction}, s.size_name ASC
     LIMIT $${paramIndex++} OFFSET $${paramIndex++}
@@ -107,8 +108,8 @@ export const findById = async (id) => {
       sg.size_group_name,
       sg.size_group_code
     FROM sizes s
-    JOIN companies c ON c.id = s.company_id
-    JOIN size_groups sg ON sg.id = s.size_group_id
+    LEFT JOIN companies c ON c.id = s.company_id
+    LEFT JOIN size_groups sg ON sg.id = s.size_group_id
     WHERE s.id = $1
   `;
   const result = await pool.query(query, [id]);
@@ -128,8 +129,8 @@ export const findByCode = async (sizeGroupId, sizeCode) => {
       sg.size_group_name,
       sg.size_group_code
     FROM sizes s
-    JOIN companies c ON c.id = s.company_id
-    JOIN size_groups sg ON sg.id = s.size_group_id
+    LEFT JOIN companies c ON c.id = s.company_id
+    LEFT JOIN size_groups sg ON sg.id = s.size_group_id
     WHERE s.size_group_id = $1 AND LOWER(s.size_code) = LOWER($2)
   `;
   const result = await pool.query(query, [sizeGroupId, sizeCode]);
@@ -149,8 +150,8 @@ export const findByName = async (sizeGroupId, sizeName) => {
       sg.size_group_name,
       sg.size_group_code
     FROM sizes s
-    JOIN companies c ON c.id = s.company_id
-    JOIN size_groups sg ON sg.id = s.size_group_id
+    LEFT JOIN companies c ON c.id = s.company_id
+    LEFT JOIN size_groups sg ON sg.id = s.size_group_id
     WHERE s.size_group_id = $1 AND LOWER(s.size_name) = LOWER($2)
   `;
   const result = await pool.query(query, [sizeGroupId, sizeName]);
@@ -178,8 +179,8 @@ export const findBySizeGroupId = async (sizeGroupId, { isActive = null } = {}) =
       sg.size_group_name,
       sg.size_group_code
     FROM sizes s
-    JOIN companies c ON c.id = s.company_id
-    JOIN size_groups sg ON sg.id = s.size_group_id
+    LEFT JOIN companies c ON c.id = s.company_id
+    LEFT JOIN size_groups sg ON sg.id = s.size_group_id
     WHERE ${conditions.join(' AND ')}
     ORDER BY s.display_order ASC, s.size_name ASC
   `;
@@ -188,7 +189,7 @@ export const findBySizeGroupId = async (sizeGroupId, { isActive = null } = {}) =
 };
 
 /**
- * Find all sizes for a given company
+ * Find all sizes for a given company (pageless list for company)
  */
 export const findByCompanyId = async (companyId, { isActive = null } = {}) => {
   const pool = getPool();
@@ -208,13 +209,152 @@ export const findByCompanyId = async (companyId, { isActive = null } = {}) => {
       sg.size_group_name,
       sg.size_group_code
     FROM sizes s
-    JOIN companies c ON c.id = s.company_id
-    JOIN size_groups sg ON sg.id = s.size_group_id
+    LEFT JOIN companies c ON c.id = s.company_id
+    LEFT JOIN size_groups sg ON sg.id = s.size_group_id
     WHERE ${conditions.join(' AND ')}
     ORDER BY sg.size_group_name ASC, s.display_order ASC, s.size_name ASC
   `;
   const result = await pool.query(query, values);
   return result.rows;
+};
+
+/**
+ * Find all sizes for a company without pagination (for dropdowns / selectors)
+ */
+export const findAllByCompany = async (
+  companyId,
+  {
+    sizeGroupId = null,
+    isActive = null,
+    search = null,
+    sortBy = 'display_order',
+    sortOrder = 'ASC',
+  } = {}
+) => {
+  const pool = getPool();
+  const conditions = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (companyId !== null && companyId !== undefined) {
+    conditions.push(`s.company_id = $${paramIndex++}`);
+    values.push(companyId);
+  }
+
+  if (sizeGroupId !== null && sizeGroupId !== undefined) {
+    conditions.push(`s.size_group_id = $${paramIndex++}`);
+    values.push(sizeGroupId);
+  }
+
+  if (isActive !== null && isActive !== undefined) {
+    conditions.push(`s.is_active = $${paramIndex++}`);
+    values.push(isActive);
+  }
+
+  if (search) {
+    conditions.push(
+      `(s.size_name ILIKE $${paramIndex} OR s.size_code ILIKE $${paramIndex} OR sg.size_group_name ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`
+    );
+    values.push(`%${search}%`);
+    paramIndex++;
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const allowedSortColumns = {
+    id: 's.id',
+    size_code: 's.size_code',
+    size_name: 's.size_name',
+    display_order: 's.display_order',
+    created_at: 's.created_at',
+    is_active: 's.is_active',
+  };
+  const orderCol = allowedSortColumns[sortBy] || 's.display_order';
+  const direction = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+
+  const query = `
+    SELECT 
+      s.*,
+      c.company_name,
+      c.company_code,
+      sg.size_group_name,
+      sg.size_group_code
+    FROM sizes s
+    LEFT JOIN companies c ON c.id = s.company_id
+    LEFT JOIN size_groups sg ON sg.id = s.size_group_id
+    ${whereClause}
+    ORDER BY ${orderCol} ${direction}, s.size_name ASC
+  `;
+  const result = await pool.query(query, values);
+  return result.rows;
+};
+
+/**
+ * Get size aggregate statistics for a company (or optional size group)
+ */
+export const getSizeStats = async (companyId = null, sizeGroupId = null) => {
+  const pool = getPool();
+  const conditions = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (companyId) {
+    conditions.push(`company_id = $${paramIndex++}`);
+    values.push(companyId);
+  }
+  if (sizeGroupId) {
+    conditions.push(`size_group_id = $${paramIndex++}`);
+    values.push(sizeGroupId);
+  }
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const query = `
+    SELECT 
+      COUNT(*) AS total_sizes,
+      COUNT(*) FILTER (WHERE is_active = TRUE) AS active_sizes,
+      COUNT(*) FILTER (WHERE is_active = FALSE) AS inactive_sizes
+    FROM sizes
+    ${whereClause}
+  `;
+
+  const res = await pool.query(query, values);
+  const row = res.rows[0] || {};
+
+  return {
+    totalSizes: parseInt(row.total_sizes || 0, 10),
+    activeSizes: parseInt(row.active_sizes || 0, 10),
+    inactiveSizes: parseInt(row.inactive_sizes || 0, 10),
+  };
+};
+
+/**
+ * Reorder sizes in bulk
+ */
+export const reorderSizes = async (items = [], companyId = null, sizeGroupId = null) => {
+  if (!Array.isArray(items) || items.length === 0) return [];
+  const pool = getPool();
+  const updatedIds = [];
+
+  for (const item of items) {
+    const id = Number(item.id);
+    const displayOrder = Math.max(0, parseInt(item.display_order ?? item.displayOrder ?? 0, 10));
+    let q = 'UPDATE sizes SET display_order = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2';
+    const vals = [displayOrder, id];
+    let paramIdx = 3;
+    if (companyId) {
+      q += ` AND company_id = $${paramIdx++}`;
+      vals.push(companyId);
+    }
+    if (sizeGroupId) {
+      q += ` AND size_group_id = $${paramIdx++}`;
+      vals.push(sizeGroupId);
+    }
+    const res = await pool.query(q, vals);
+    if (res.rowCount > 0) {
+      updatedIds.push(id);
+    }
+  }
+
+  return updatedIds;
 };
 
 /**
@@ -247,6 +387,26 @@ export const existsByName = async (sizeGroupId, sizeName, excludeId = null) => {
     WHERE size_group_id = $1 AND LOWER(size_name) = LOWER($2)
   `;
   const values = [sizeGroupId, sizeName];
+
+  if (excludeId) {
+    query += ' AND id <> $3';
+    values.push(excludeId);
+  }
+
+  const result = await pool.query(query, values);
+  return result.rowCount > 0;
+};
+
+/**
+ * Check if size name already exists across an entire company
+ */
+export const existsByNameInCompany = async (companyId, sizeName, excludeId = null) => {
+  const pool = getPool();
+  let query = `
+    SELECT 1 FROM sizes 
+    WHERE company_id = $1 AND LOWER(size_name) = LOWER($2)
+  `;
+  const values = [companyId, sizeName];
 
   if (excludeId) {
     query += ' AND id <> $3';
@@ -389,8 +549,12 @@ export default {
   findByName,
   findBySizeGroupId,
   findByCompanyId,
+  findAllByCompany,
+  getSizeStats,
+  reorderSizes,
   existsByCode,
   existsByName,
+  existsByNameInCompany,
   countVariants,
   create,
   update,

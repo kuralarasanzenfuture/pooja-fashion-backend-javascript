@@ -6,6 +6,9 @@ import { seedRoles } from './seeders/role.seeder.js';
 import { seedCompanies } from './seeders/company.seeder.js';
 import { seedBanks } from './seeders/bank.seeder.js';
 import { seedUsers } from './seeders/user.seeder.js';
+import { seedCategories } from './seeders/category.seeder.js';
+import { seedBrands } from './seeders/brand.seeder.js';
+import { seedSizes } from './seeders/size.seeder.js';
 
 const runSeeders = async () => {
   console.log('🌱 [SEEDER] Starting database seeding process...');
@@ -48,6 +51,27 @@ const runSeeders = async () => {
     });
     console.log(
       `✅ [SEEDER:USERS] ${userStats.users.length} user(s) and ${userStats.employees.length} employee(s) ready.`
+    );
+
+    // Step 5: Product Master Categories & Subcategories (All Existing Companies)
+    console.log('\n--- 5. Seeding Product Master Categories & Subcategories for All Companies ---');
+    const categoryStats = await seedCategories();
+    console.log(
+      `✅ [SEEDER:CATEGORIES] ${categoryStats.totalCategoriesSeeded} categories and ${categoryStats.totalSubcategoriesSeeded} subcategories seeded across ${categoryStats.totalCompanies} company/companies.`
+    );
+
+    // Step 6: Product Master Brands (All Existing Companies)
+    console.log('\n--- 6. Seeding Product Master Brands for All Companies ---');
+    const brandStats = await seedBrands();
+    console.log(
+      `✅ [SEEDER:BRANDS] ${brandStats.totalBrandsSeeded} brands seeded across ${brandStats.totalCompanies} company/companies.`
+    );
+
+    // Step 7: Product Master Size Groups & Child Sizes (All Existing Companies)
+    console.log('\n--- 7. Seeding Product Master Size Groups & Sizes for All Companies ---');
+    const sizeStats = await seedSizes();
+    console.log(
+      `✅ [SEEDER:SIZES] ${sizeStats.totalSizeGroupsSeeded} size groups and ${sizeStats.totalSizesSeeded} sizes seeded across ${sizeStats.totalCompanies} company/companies.`
     );
 
     const elapsedMs = Date.now() - startTime;

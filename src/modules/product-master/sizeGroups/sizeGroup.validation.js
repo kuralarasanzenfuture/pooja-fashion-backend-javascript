@@ -4,7 +4,8 @@ export const createSizeGroupSchema = z.object({
   company_id: z.coerce
     .number()
     .int('Company ID must be an integer')
-    .positive('Company ID must be a positive number'),
+    .positive('Company ID must be a positive number')
+    .optional(),
   size_group_code: z
     .string()
     .trim()
@@ -99,6 +100,71 @@ export const getSizeGroupsQuerySchema = z.object({
   sortOrder: z.enum(['asc', 'desc', 'ASC', 'DESC']).default('asc'),
 });
 
+export const getAllSizeGroupsQuerySchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+  is_active: z
+    .preprocess((val) => {
+      if (val === 'true' || val === true || val === 1 || val === '1') return true;
+      if (val === 'false' || val === false || val === 0 || val === '0') return false;
+      return undefined;
+    }, z.boolean().optional())
+    .optional(),
+  search: z.string().trim().optional(),
+  sortBy: z.enum(['id', 'size_group_code', 'size_group_name', 'created_at']).default('size_group_name'),
+  sortOrder: z.enum(['asc', 'desc', 'ASC', 'DESC']).default('asc'),
+});
+
+export const getSizeGroupStatsQuerySchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+});
+
+export const getSizeGroupTreeQuerySchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+  is_active: z
+    .preprocess((val) => {
+      if (val === 'true' || val === true || val === 1 || val === '1') return true;
+      if (val === 'false' || val === false || val === 0 || val === '0') return false;
+      return undefined;
+    }, z.boolean().optional())
+    .optional(),
+});
+
+export const checkSizeGroupNameQuerySchema = z
+  .object({
+    company_id: z.coerce.number().int().positive().optional(),
+    companyId: z.coerce.number().int().positive().optional(),
+    name: z.string().trim().optional(),
+    size_group_name: z.string().trim().optional(),
+    excludeId: z.coerce.number().int().positive().optional(),
+    exclude_id: z.coerce.number().int().positive().optional(),
+  })
+  .refine((data) => (data.name && data.name.length > 0) || (data.size_group_name && data.size_group_name.length > 0), {
+    message: 'Size group name is required',
+    path: ['name'],
+  });
+
+export const checkSizeGroupCodeQuerySchema = z
+  .object({
+    company_id: z.coerce.number().int().positive().optional(),
+    companyId: z.coerce.number().int().positive().optional(),
+    code: z.string().trim().optional(),
+    size_group_code: z.string().trim().optional(),
+    excludeId: z.coerce.number().int().positive().optional(),
+    exclude_id: z.coerce.number().int().positive().optional(),
+  })
+  .refine((data) => (data.code && data.code.length > 0) || (data.size_group_code && data.size_group_code.length > 0), {
+    message: 'Size group code is required',
+    path: ['code'],
+  });
+
+export const seedDefaultSizeGroupsSchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+});
+
 export default {
   createSizeGroupSchema,
   updateSizeGroupSchema,
@@ -107,4 +173,10 @@ export default {
   companyIdParamSchema,
   sizeGroupCodeParamSchema,
   getSizeGroupsQuerySchema,
+  getAllSizeGroupsQuerySchema,
+  getSizeGroupStatsQuerySchema,
+  getSizeGroupTreeQuerySchema,
+  checkSizeGroupNameQuerySchema,
+  checkSizeGroupCodeQuerySchema,
+  seedDefaultSizeGroupsSchema,
 };

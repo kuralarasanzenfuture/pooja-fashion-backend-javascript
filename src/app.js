@@ -46,6 +46,7 @@ app.use('/assets', express.static(srcUploadsPath));
 
 // Interactive Swagger API Documentation
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get(['/docs', '/swagger'], (req, res) => res.redirect('/api/docs'));
 
 // Live API Debugging Dashboard (Development only)
 if (!env.IS_PRODUCTION && env.NODE_ENV !== 'production') {

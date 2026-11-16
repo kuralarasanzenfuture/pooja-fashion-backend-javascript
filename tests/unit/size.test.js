@@ -1,7 +1,11 @@
 import {
   generateSizeCode,
   DEFAULT_SIZES_BY_GROUP,
+  canUserSelectCompany,
+  resolveEffectiveCompanyId,
+  toSlug,
 } from '../../src/modules/product-master/sizes/size.service.js';
+import * as sizeUtils from '../../src/modules/product-master/sizes/utils/index.js';
 import {
   toSizeDTO,
   toSizeListDTO,
@@ -11,6 +15,12 @@ import {
   updateSizeSchema,
   updateStatusSchema,
   getSizesQuerySchema,
+  getAllSizesQuerySchema,
+  getSizeStatsQuerySchema,
+  reorderSizesSchema,
+  checkSizeNameQuerySchema,
+  checkSizeCodeQuerySchema,
+  seedDefaultSizesSchema,
   sizeIdParamSchema,
   sizeCodeParamSchema,
   sizeGroupIdParamSchema,
@@ -43,6 +53,12 @@ describe('Product Master: Sizes Unit Tests', () => {
       const longName = 'S'.repeat(70);
       const code = generateSizeCode(longName);
       expect(code.length).toBeLessThanOrEqual(50);
+    });
+
+    it('should handle non-string or empty input safely', () => {
+      expect(generateSizeCode('')).toBe('');
+      expect(generateSizeCode(null)).toBe('');
+      expect(generateSizeCode(undefined)).toBe('');
     });
   });
 
@@ -127,10 +143,20 @@ describe('Product Master: Sizes Unit Tests', () => {
       expect(parsed.is_active).toBe(true);
     });
 
+    it('should allow omitting company_id in createSizeSchema for token derivation', () => {
+      const parsed = createSizeSchema.parse({
+        size_group_id: '2',
+        size_name: 'Large',
+      });
+      expect(parsed.size_group_id).toBe(2);
+      expect(parsed.size_name).toBe('Large');
+      expect(parsed.company_id).toBeUndefined();
+    });
+
     it('should fail createSizeSchema when required fields are missing', () => {
       expect(() => createSizeSchema.parse({})).toThrow();
       expect(() => createSizeSchema.parse({ company_id: 1, size_name: 'Medium' })).toThrow();
-      expect(() => createSizeSchema.parse({ size_group_id: 1, size_name: 'Medium' })).toThrow();
+      expect(() => createSizeSchema.parse({ size_group_id: 1, size_name: '   ' })).toThrow();
     });
 
     it('should fail createSizeSchema when size_code has invalid characters', () => {
@@ -179,6 +205,128 @@ describe('Product Master: Sizes Unit Tests', () => {
       expect(parsed.limit).toBe(10);
       expect(parsed.sortBy).toBe('display_order');
       expect(parsed.sortOrder).toBe('asc');
+    });
+
+    it('should validate getAllSizesQuerySchema with optional parameters', () => {
+      const parsed = getAllSizesQuerySchema.parse({
+        company_id: '1',
+        size_group_id: '2',
+        is_active: 'true',
+        search: 'XL',
+        sortBy: 'size_name',
+        sortOrder: 'desc',
+      });
+      expect(parsed.company_id).toBe(1);
+      expect(parsed.size_group_id).toBe(2);
+      expect(parsed.is_active).toBe(true);
+      expect(parsed.search).toBe('XL');
+      expect(parsed.sortBy).toBe('size_name');
+      expect(parsed.sortOrder).toBe('desc');
+    });
+
+    it('should validate getSizeStatsQuerySchema with optional parameters', () => {
+      const parsed = getSizeStatsQuerySchema.parse({
+        company_id: '3',
+        size_group_id: '4',
+      });
+      expect(parsed.company_id).toBe(3);
+      expect(parsed.size_group_id).toBe(4);
+    });
+
+    it('should validate reorderSizesSchema with items array', () => {
+      const parsed = reorderSizesSchema.parse({
+        items: [
+          { id: 10, display_order: 0 },
+          { id: 20, display_order: 1 },
+        ],
+      });
+      expect(parsed.items).toHaveLength(2);
+      expect(parsed.items[0].id).toBe(10);
+      expect(parsed.items[0].display_order).toBe(0);
+
+      expect(() => reorderSizesSchema.parse({ items: [] })).toThrow();
+      expect(() => reorderSizesSchema.parse({})).toThrow();
+    });
+
+    it('should validate checkSizeNameQuerySchema with name and size_group_id', () => {
+      const parsed = checkSizeNameQuerySchema.parse({
+        name: 'Medium',
+        size_group_id: '2',
+        excludeId: '5',
+      });
+      expect(parsed.name).toBe('Medium');
+      expect(parsed.size_group_id).toBe(2);
+      expect(parsed.excludeId).toBe(5);
+
+      expect(() => checkSizeNameQuerySchema.parse({})).toThrow();
+      expect(() => checkSizeNameQuerySchema.parse({ name: '   ' })).toThrow();
+    });
+
+    it('should validate checkSizeCodeQuerySchema with code and size_group_id', () => {
+      const parsed = checkSizeCodeQuerySchema.parse({
+        code: 'M',
+        size_group_id: '2',
+      });
+      expect(parsed.code).toBe('M');
+      expect(parsed.size_group_id).toBe(2);
+
+      expect(() => checkSizeCodeQuerySchema.parse({})).toThrow();
+      expect(() => checkSizeCodeQuerySchema.parse({ code: '' })).toThrow();
+    });
+
+    it('should validate seedDefaultSizesSchema with size_group_id', () => {
+      const parsed = seedDefaultSizesSchema.parse({
+        size_group_id: '2',
+        company_id: '1',
+      });
+      expect(parsed.size_group_id).toBe(2);
+      expect(parsed.company_id).toBe(1);
+
+      expect(() => seedDefaultSizesSchema.parse({})).toThrow();
+    });
+  });
+
+  describe('Company Isolation & Security Helpers', () => {
+    it('canUserSelectCompany correctly distinguishes superadmin, admin, and tenant users', () => {
+      expect(canUserSelectCompany(null)).toBe(false);
+      expect(canUserSelectCompany({ role: 'SUPERADMIN' })).toBe(true);
+      expect(canUserSelectCompany({ roleCode: 'SUPERADMIN' })).toBe(true);
+      expect(canUserSelectCompany({ role: 'ADMIN' })).toBe(true);
+      expect(canUserSelectCompany({ role: 'ADMIN', companyId: 1 })).toBe(false);
+      expect(canUserSelectCompany({ role: 'BRANCH_MANAGER', companyId: 2 })).toBe(false);
+      expect(canUserSelectCompany({ role: 'CASHIER', company_id: 3 })).toBe(false);
+    });
+
+    it('resolveEffectiveCompanyId locks tenant users strictly to their company_id', () => {
+      // SuperAdmin can choose any company or null
+      expect(resolveEffectiveCompanyId({ role: 'SUPERADMIN' }, '5')).toBe(5);
+      expect(resolveEffectiveCompanyId({ role: 'SUPERADMIN' }, null)).toBeNull();
+
+      // Tenant user with companyId 1 requesting nothing gets 1
+      expect(resolveEffectiveCompanyId({ role: 'CASHIER', companyId: 1 })).toBe(1);
+      expect(resolveEffectiveCompanyId({ role: 'STAFF', company_id: 2 })).toBe(2);
+
+      // Tenant user requesting their own companyId is allowed
+      expect(resolveEffectiveCompanyId({ role: 'STAFF', companyId: 1 }, '1')).toBe(1);
+
+      // Tenant user attempting cross-tenant access to another company is blocked
+      expect(() =>
+        resolveEffectiveCompanyId({ role: 'CASHIER', companyId: 1 }, '2')
+      ).toThrow('You do not have permission to access sizes for another company');
+    });
+  });
+
+  describe('Sizes Utils Module (src/modules/product-master/sizes/utils)', () => {
+    it('should export all size utility functions from size.utils.js and index.js', () => {
+      expect(typeof sizeUtils.generateSizeCode).toBe('function');
+      expect(typeof sizeUtils.toSlug).toBe('function');
+      expect(typeof sizeUtils.canUserSelectCompany).toBe('function');
+      expect(typeof sizeUtils.resolveEffectiveCompanyId).toBe('function');
+      expect(typeof sizeUtils.default).toBe('object');
+    });
+
+    it('should format URL-friendly slugs using toSlug', () => {
+      expect(sizeUtils.toSlug('Size 32 (Regular Fit)')).toBe('size-32-regular-fit');
     });
   });
 });

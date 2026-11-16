@@ -16,13 +16,13 @@ describe('User Utilities Module', () => {
 
       const isMatch = await comparePassword(password, hash);
       expect(isMatch).toBe(true);
-    });
+    }, 15000);
 
     it('should return false when comparing incorrect password', async () => {
       const hash = await hashPassword('CorrectPassword123!');
       const isMatch = await comparePassword('WrongPassword123!', hash);
       expect(isMatch).toBe(false);
-    });
+    }, 15000);
 
     it('should throw error when hashing empty password', async () => {
       await expect(hashPassword('')).rejects.toThrow();

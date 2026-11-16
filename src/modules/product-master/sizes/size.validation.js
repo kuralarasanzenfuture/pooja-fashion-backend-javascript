@@ -4,7 +4,8 @@ export const createSizeSchema = z.object({
   company_id: z.coerce
     .number()
     .int('Company ID must be an integer')
-    .positive('Company ID must be a positive number'),
+    .positive('Company ID must be a positive number')
+    .optional(),
   size_group_id: z.coerce
     .number()
     .int('Size Group ID must be an integer')
@@ -118,6 +119,83 @@ export const getSizesQuerySchema = z.object({
   sortOrder: z.enum(['asc', 'desc', 'ASC', 'DESC']).default('asc'),
 });
 
+export const getAllSizesQuerySchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+  size_group_id: z.coerce.number().int().positive().optional(),
+  sizeGroupId: z.coerce.number().int().positive().optional(),
+  is_active: z
+    .preprocess((val) => {
+      if (val === 'true' || val === true || val === 1 || val === '1') return true;
+      if (val === 'false' || val === false || val === 0 || val === '0') return false;
+      return undefined;
+    }, z.boolean().optional())
+    .optional(),
+  search: z.string().trim().optional(),
+  sortBy: z.enum(['id', 'size_code', 'size_name', 'display_order', 'created_at']).default('display_order'),
+  sortOrder: z.enum(['asc', 'desc', 'ASC', 'DESC']).default('asc'),
+});
+
+export const getSizeStatsQuerySchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+  size_group_id: z.coerce.number().int().positive().optional(),
+  sizeGroupId: z.coerce.number().int().positive().optional(),
+});
+
+export const reorderSizesSchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+  size_group_id: z.coerce.number().int().positive().optional(),
+  sizeGroupId: z.coerce.number().int().positive().optional(),
+  items: z
+    .array(
+      z.object({
+        id: z.coerce.number().int().positive('Item ID must be a positive integer'),
+        display_order: z.coerce.number().int().min(0, 'display_order must be >= 0'),
+      })
+    )
+    .min(1, 'At least one item is required for reordering'),
+});
+
+export const checkSizeNameQuerySchema = z
+  .object({
+    company_id: z.coerce.number().int().positive().optional(),
+    companyId: z.coerce.number().int().positive().optional(),
+    size_group_id: z.coerce.number().int().positive().optional(),
+    sizeGroupId: z.coerce.number().int().positive().optional(),
+    name: z.string().trim().optional(),
+    size_name: z.string().trim().optional(),
+    excludeId: z.coerce.number().int().positive().optional(),
+    exclude_id: z.coerce.number().int().positive().optional(),
+  })
+  .refine((data) => (data.name && data.name.length > 0) || (data.size_name && data.size_name.length > 0), {
+    message: 'Size name is required',
+    path: ['name'],
+  });
+
+export const checkSizeCodeQuerySchema = z
+  .object({
+    company_id: z.coerce.number().int().positive().optional(),
+    companyId: z.coerce.number().int().positive().optional(),
+    size_group_id: z.coerce.number().int().positive().optional(),
+    sizeGroupId: z.coerce.number().int().positive().optional(),
+    code: z.string().trim().optional(),
+    size_code: z.string().trim().optional(),
+    excludeId: z.coerce.number().int().positive().optional(),
+    exclude_id: z.coerce.number().int().positive().optional(),
+  })
+  .refine((data) => (data.code && data.code.length > 0) || (data.size_code && data.size_code.length > 0), {
+    message: 'Size code is required',
+    path: ['code'],
+  });
+
+export const seedDefaultSizesSchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+  size_group_id: z.coerce.number().int().positive('Size group ID is required'),
+});
+
 export default {
   createSizeSchema,
   updateSizeSchema,
@@ -127,4 +205,10 @@ export default {
   sizeGroupIdParamSchema,
   sizeCodeParamSchema,
   getSizesQuerySchema,
+  getAllSizesQuerySchema,
+  getSizeStatsQuerySchema,
+  reorderSizesSchema,
+  checkSizeNameQuerySchema,
+  checkSizeCodeQuerySchema,
+  seedDefaultSizesSchema,
 };
