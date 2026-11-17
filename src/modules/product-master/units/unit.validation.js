@@ -4,13 +4,14 @@ export const createUnitSchema = z.object({
   company_id: z.coerce
     .number()
     .int('Company ID must be an integer')
-    .positive('Company ID must be a positive number'),
+    .positive('Company ID must be a positive number')
+    .optional(),
   unit_code: z
     .string()
     .trim()
     .min(1, 'Unit code must be at least 1 character')
     .max(30, 'Unit code cannot exceed 30 characters')
-    .regex(/^[A-Za-z0-9_.-]+$/, 'Unit code must contain only letters, numbers, hyphens, periods, and underscores')
+    .regex(/^[A-Za-z0-9_-]+$/, 'Unit code must contain only letters, numbers, hyphens, and underscores')
     .transform((val) => val.toUpperCase())
     .optional(),
   unit_name: z
@@ -21,8 +22,8 @@ export const createUnitSchema = z.object({
   decimal_places: z.coerce
     .number()
     .int('Decimal places must be an integer')
-    .min(0, 'Decimal places must be between 0 and 6')
-    .max(6, 'Decimal places must be between 0 and 6')
+    .min(0, 'Decimal places cannot be less than 0')
+    .max(6, 'Decimal places cannot exceed 6')
     .default(0),
   is_active: z
     .preprocess((val) => {
@@ -41,7 +42,7 @@ export const updateUnitSchema = z.object({
     .trim()
     .min(1, 'Unit code must be at least 1 character')
     .max(30, 'Unit code cannot exceed 30 characters')
-    .regex(/^[A-Za-z0-9_.-]+$/, 'Unit code must contain only letters, numbers, hyphens, periods, and underscores')
+    .regex(/^[A-Za-z0-9_-]+$/, 'Unit code must contain only letters, numbers, hyphens, and underscores')
     .transform((val) => val.toUpperCase())
     .optional(),
   unit_name: z
@@ -53,8 +54,8 @@ export const updateUnitSchema = z.object({
   decimal_places: z.coerce
     .number()
     .int('Decimal places must be an integer')
-    .min(0, 'Decimal places must be between 0 and 6')
-    .max(6, 'Decimal places must be between 0 and 6')
+    .min(0, 'Decimal places cannot be less than 0')
+    .max(6, 'Decimal places cannot exceed 6')
     .optional(),
   is_active: z
     .preprocess((val) => {
@@ -86,7 +87,7 @@ export const companyIdParamSchema = z.object({
 });
 
 export const unitCodeParamSchema = z.object({
-  companyId: z.coerce.number().int().positive('Company ID must be a positive integer'),
+  companyId: z.coerce.number().int().positive().optional(),
   unitCode: z.string().trim().min(1, 'Unit code is required'),
 });
 
@@ -109,6 +110,59 @@ export const getUnitsQuerySchema = z.object({
   sortOrder: z.enum(['asc', 'desc', 'ASC', 'DESC']).default('asc'),
 });
 
+export const getAllUnitsQuerySchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+  is_active: z
+    .preprocess((val) => {
+      if (val === 'true' || val === true || val === 1 || val === '1') return true;
+      if (val === 'false' || val === false || val === 0 || val === '0') return false;
+      return undefined;
+    }, z.boolean().optional())
+    .optional(),
+  search: z.string().trim().optional(),
+  sortBy: z.enum(['id', 'unit_code', 'unit_name', 'decimal_places', 'created_at']).default('unit_name'),
+  sortOrder: z.enum(['asc', 'desc', 'ASC', 'DESC']).default('asc'),
+});
+
+export const getUnitStatsQuerySchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+});
+
+export const checkUnitNameQuerySchema = z
+  .object({
+    company_id: z.coerce.number().int().positive().optional(),
+    companyId: z.coerce.number().int().positive().optional(),
+    name: z.string().trim().optional(),
+    unit_name: z.string().trim().optional(),
+    excludeId: z.coerce.number().int().positive().optional(),
+    exclude_id: z.coerce.number().int().positive().optional(),
+  })
+  .refine((data) => (data.name && data.name.length > 0) || (data.unit_name && data.unit_name.length > 0), {
+    message: 'Unit name is required',
+    path: ['name'],
+  });
+
+export const checkUnitCodeQuerySchema = z
+  .object({
+    company_id: z.coerce.number().int().positive().optional(),
+    companyId: z.coerce.number().int().positive().optional(),
+    code: z.string().trim().optional(),
+    unit_code: z.string().trim().optional(),
+    excludeId: z.coerce.number().int().positive().optional(),
+    exclude_id: z.coerce.number().int().positive().optional(),
+  })
+  .refine((data) => (data.code && data.code.length > 0) || (data.unit_code && data.unit_code.length > 0), {
+    message: 'Unit code is required',
+    path: ['code'],
+  });
+
+export const seedDefaultUnitsSchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+});
+
 export default {
   createUnitSchema,
   updateUnitSchema,
@@ -117,4 +171,9 @@ export default {
   companyIdParamSchema,
   unitCodeParamSchema,
   getUnitsQuerySchema,
+  getAllUnitsQuerySchema,
+  getUnitStatsQuerySchema,
+  checkUnitNameQuerySchema,
+  checkUnitCodeQuerySchema,
+  seedDefaultUnitsSchema,
 };

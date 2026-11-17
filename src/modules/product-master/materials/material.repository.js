@@ -37,7 +37,7 @@ export const findAll = async ({
 
   if (search) {
     conditions.push(
-      `(m.material_name ILIKE $${paramIndex} OR m.material_code ILIKE $${paramIndex} OR m.description ILIKE $${paramIndex})`
+      `(m.material_name ILIKE $${paramIndex} OR m.material_code ILIKE $${paramIndex} OR m.description ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`
     );
     values.push(`%${search}%`);
     paramIndex++;
@@ -59,6 +59,7 @@ export const findAll = async ({
   const countQuery = `
     SELECT COUNT(*) AS total
     FROM materials m
+    LEFT JOIN companies c ON c.id = m.company_id
     ${whereClause}
   `;
 
@@ -68,7 +69,7 @@ export const findAll = async ({
       c.company_name,
       c.company_code
     FROM materials m
-    JOIN companies c ON c.id = m.company_id
+    LEFT JOIN companies c ON c.id = m.company_id
     ${whereClause}
     ORDER BY ${orderColumn} ${direction}, m.material_name ASC
     LIMIT $${paramIndex++} OFFSET $${paramIndex++}
@@ -84,6 +85,66 @@ export const findAll = async ({
 };
 
 /**
+ * Find all materials for a company without pagination (for dropdowns / selectors)
+ */
+export const findAllByCompany = async (
+  companyId,
+  {
+    isActive = null,
+    search = null,
+    sortBy = 'material_name',
+    sortOrder = 'ASC',
+  } = {}
+) => {
+  const pool = getPool();
+  const conditions = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (companyId !== null && companyId !== undefined) {
+    conditions.push(`m.company_id = $${paramIndex++}`);
+    values.push(companyId);
+  }
+
+  if (isActive !== null && isActive !== undefined) {
+    conditions.push(`m.is_active = $${paramIndex++}`);
+    values.push(isActive);
+  }
+
+  if (search) {
+    conditions.push(
+      `(m.material_name ILIKE $${paramIndex} OR m.material_code ILIKE $${paramIndex} OR m.description ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`
+    );
+    values.push(`%${search}%`);
+    paramIndex++;
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const allowedSortColumns = {
+    id: 'm.id',
+    material_code: 'm.material_code',
+    material_name: 'm.material_name',
+    created_at: 'm.created_at',
+    is_active: 'm.is_active',
+  };
+  const orderCol = allowedSortColumns[sortBy] || 'm.material_name';
+  const direction = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+
+  const query = `
+    SELECT 
+      m.*,
+      c.company_name,
+      c.company_code
+    FROM materials m
+    LEFT JOIN companies c ON c.id = m.company_id
+    ${whereClause}
+    ORDER BY ${orderCol} ${direction}, m.material_name ASC
+  `;
+  const result = await pool.query(query, values);
+  return result.rows;
+};
+
+/**
  * Find single material by primary key ID
  */
 export const findById = async (id) => {
@@ -94,7 +155,7 @@ export const findById = async (id) => {
       c.company_name,
       c.company_code
     FROM materials m
-    JOIN companies c ON c.id = m.company_id
+    LEFT JOIN companies c ON c.id = m.company_id
     WHERE m.id = $1
   `;
   const result = await pool.query(query, [id]);
@@ -102,7 +163,7 @@ export const findById = async (id) => {
 };
 
 /**
- * Find material by company ID and material code
+ * Find material by company ID and material code (case-insensitive)
  */
 export const findByCode = async (companyId, materialCode) => {
   const pool = getPool();
@@ -112,7 +173,7 @@ export const findByCode = async (companyId, materialCode) => {
       c.company_name,
       c.company_code
     FROM materials m
-    JOIN companies c ON c.id = m.company_id
+    LEFT JOIN companies c ON c.id = m.company_id
     WHERE m.company_id = $1 AND LOWER(m.material_code) = LOWER($2)
   `;
   const result = await pool.query(query, [companyId, materialCode]);
@@ -120,7 +181,7 @@ export const findByCode = async (companyId, materialCode) => {
 };
 
 /**
- * Find material by company ID and material name
+ * Find material by company ID and material name (case-insensitive)
  */
 export const findByName = async (companyId, materialName) => {
   const pool = getPool();
@@ -130,7 +191,7 @@ export const findByName = async (companyId, materialName) => {
       c.company_name,
       c.company_code
     FROM materials m
-    JOIN companies c ON c.id = m.company_id
+    LEFT JOIN companies c ON c.id = m.company_id
     WHERE m.company_id = $1 AND LOWER(m.material_name) = LOWER($2)
   `;
   const result = await pool.query(query, [companyId, materialName]);
@@ -156,12 +217,46 @@ export const findByCompanyId = async (companyId, { isActive = null } = {}) => {
       c.company_name,
       c.company_code
     FROM materials m
-    JOIN companies c ON c.id = m.company_id
+    LEFT JOIN companies c ON c.id = m.company_id
     WHERE ${conditions.join(' AND ')}
     ORDER BY m.material_name ASC
   `;
   const result = await pool.query(query, values);
   return result.rows;
+};
+
+/**
+ * Get material aggregate statistics for a company
+ */
+export const getMaterialStats = async (companyId = null) => {
+  const pool = getPool();
+  const conditions = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (companyId) {
+    conditions.push(`company_id = $${paramIndex++}`);
+    values.push(companyId);
+  }
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const query = `
+    SELECT 
+      COUNT(*) AS total_materials,
+      COUNT(*) FILTER (WHERE is_active = TRUE) AS active_materials,
+      COUNT(*) FILTER (WHERE is_active = FALSE) AS inactive_materials
+    FROM materials
+    ${whereClause}
+  `;
+
+  const res = await pool.query(query, values);
+  const row = res.rows[0] || {};
+
+  return {
+    totalMaterials: parseInt(row.total_materials || 0, 10),
+    activeMaterials: parseInt(row.active_materials || 0, 10),
+    inactiveMaterials: parseInt(row.inactive_materials || 0, 10),
+  };
 };
 
 /**
@@ -205,16 +300,16 @@ export const existsByName = async (companyId, materialName, excludeId = null) =>
 };
 
 /**
- * Count product variants referencing material
+ * Count product variants referencing this material
  */
-export const countVariants = async (materialId) => {
+export const countProducts = async (materialId) => {
   const pool = getPool();
   try {
     const query = 'SELECT COUNT(*) AS count FROM product_variants WHERE material_id = $1';
     const result = await pool.query(query, [materialId]);
     return parseInt(result.rows[0]?.count || 0, 10);
   } catch (error) {
-    if (error.code === '42P01') {
+    if (error.code === '42P01' || error.code === '42703') {
       return 0;
     }
     throw error;
@@ -328,13 +423,15 @@ export const deleteById = async (id) => {
 
 export default {
   findAll,
+  findAllByCompany,
   findById,
   findByCode,
   findByName,
   findByCompanyId,
+  getMaterialStats,
   existsByCode,
   existsByName,
-  countVariants,
+  countProducts,
   create,
   update,
   updateStatus,

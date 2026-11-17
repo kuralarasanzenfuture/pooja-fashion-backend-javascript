@@ -37,7 +37,7 @@ export const findAll = async ({
 
   if (search) {
     conditions.push(
-      `(u.unit_name ILIKE $${paramIndex} OR u.unit_code ILIKE $${paramIndex})`
+      `(u.unit_name ILIKE $${paramIndex} OR u.unit_code ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`
     );
     values.push(`%${search}%`);
     paramIndex++;
@@ -60,6 +60,7 @@ export const findAll = async ({
   const countQuery = `
     SELECT COUNT(*) AS total
     FROM units u
+    LEFT JOIN companies c ON c.id = u.company_id
     ${whereClause}
   `;
 
@@ -69,7 +70,7 @@ export const findAll = async ({
       c.company_name,
       c.company_code
     FROM units u
-    JOIN companies c ON c.id = u.company_id
+    LEFT JOIN companies c ON c.id = u.company_id
     ${whereClause}
     ORDER BY ${orderColumn} ${direction}, u.unit_name ASC
     LIMIT $${paramIndex++} OFFSET $${paramIndex++}
@@ -85,6 +86,67 @@ export const findAll = async ({
 };
 
 /**
+ * Find all units for a company without pagination (for dropdowns / selectors)
+ */
+export const findAllByCompany = async (
+  companyId,
+  {
+    isActive = null,
+    search = null,
+    sortBy = 'unit_name',
+    sortOrder = 'ASC',
+  } = {}
+) => {
+  const pool = getPool();
+  const conditions = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (companyId !== null && companyId !== undefined) {
+    conditions.push(`u.company_id = $${paramIndex++}`);
+    values.push(companyId);
+  }
+
+  if (isActive !== null && isActive !== undefined) {
+    conditions.push(`u.is_active = $${paramIndex++}`);
+    values.push(isActive);
+  }
+
+  if (search) {
+    conditions.push(
+      `(u.unit_name ILIKE $${paramIndex} OR u.unit_code ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`
+    );
+    values.push(`%${search}%`);
+    paramIndex++;
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const allowedSortColumns = {
+    id: 'u.id',
+    unit_code: 'u.unit_code',
+    unit_name: 'u.unit_name',
+    decimal_places: 'u.decimal_places',
+    created_at: 'u.created_at',
+    is_active: 'u.is_active',
+  };
+  const orderCol = allowedSortColumns[sortBy] || 'u.unit_name';
+  const direction = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+
+  const query = `
+    SELECT 
+      u.*,
+      c.company_name,
+      c.company_code
+    FROM units u
+    LEFT JOIN companies c ON c.id = u.company_id
+    ${whereClause}
+    ORDER BY ${orderCol} ${direction}, u.unit_name ASC
+  `;
+  const result = await pool.query(query, values);
+  return result.rows;
+};
+
+/**
  * Find single unit by primary key ID
  */
 export const findById = async (id) => {
@@ -95,7 +157,7 @@ export const findById = async (id) => {
       c.company_name,
       c.company_code
     FROM units u
-    JOIN companies c ON c.id = u.company_id
+    LEFT JOIN companies c ON c.id = u.company_id
     WHERE u.id = $1
   `;
   const result = await pool.query(query, [id]);
@@ -103,7 +165,7 @@ export const findById = async (id) => {
 };
 
 /**
- * Find unit by company ID and unit code
+ * Find unit by company ID and unit code (case-insensitive)
  */
 export const findByCode = async (companyId, unitCode) => {
   const pool = getPool();
@@ -113,7 +175,7 @@ export const findByCode = async (companyId, unitCode) => {
       c.company_name,
       c.company_code
     FROM units u
-    JOIN companies c ON c.id = u.company_id
+    LEFT JOIN companies c ON c.id = u.company_id
     WHERE u.company_id = $1 AND LOWER(u.unit_code) = LOWER($2)
   `;
   const result = await pool.query(query, [companyId, unitCode]);
@@ -121,7 +183,7 @@ export const findByCode = async (companyId, unitCode) => {
 };
 
 /**
- * Find unit by company ID and unit name
+ * Find unit by company ID and unit name (case-insensitive)
  */
 export const findByName = async (companyId, unitName) => {
   const pool = getPool();
@@ -131,7 +193,7 @@ export const findByName = async (companyId, unitName) => {
       c.company_name,
       c.company_code
     FROM units u
-    JOIN companies c ON c.id = u.company_id
+    LEFT JOIN companies c ON c.id = u.company_id
     WHERE u.company_id = $1 AND LOWER(u.unit_name) = LOWER($2)
   `;
   const result = await pool.query(query, [companyId, unitName]);
@@ -157,12 +219,46 @@ export const findByCompanyId = async (companyId, { isActive = null } = {}) => {
       c.company_name,
       c.company_code
     FROM units u
-    JOIN companies c ON c.id = u.company_id
+    LEFT JOIN companies c ON c.id = u.company_id
     WHERE ${conditions.join(' AND ')}
     ORDER BY u.unit_name ASC
   `;
   const result = await pool.query(query, values);
   return result.rows;
+};
+
+/**
+ * Get unit aggregate statistics for a company
+ */
+export const getUnitStats = async (companyId = null) => {
+  const pool = getPool();
+  const conditions = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (companyId) {
+    conditions.push(`company_id = $${paramIndex++}`);
+    values.push(companyId);
+  }
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const query = `
+    SELECT 
+      COUNT(*) AS total_units,
+      COUNT(*) FILTER (WHERE is_active = TRUE) AS active_units,
+      COUNT(*) FILTER (WHERE is_active = FALSE) AS inactive_units
+    FROM units
+    ${whereClause}
+  `;
+
+  const res = await pool.query(query, values);
+  const row = res.rows[0] || {};
+
+  return {
+    totalUnits: parseInt(row.total_units || 0, 10),
+    activeUnits: parseInt(row.active_units || 0, 10),
+    inactiveUnits: parseInt(row.inactive_units || 0, 10),
+  };
 };
 
 /**
@@ -206,33 +302,36 @@ export const existsByName = async (companyId, unitName, excludeId = null) => {
 };
 
 /**
- * Count products referencing unit as default unit
+ * Count products and product variants referencing this unit
  */
 export const countProducts = async (unitId) => {
   const pool = getPool();
   try {
-    const query = 'SELECT COUNT(*) AS count FROM products WHERE default_unit_id = $1';
-    const result = await pool.query(query, [unitId]);
-    return parseInt(result.rows[0]?.count || 0, 10);
-  } catch (error) {
-    if (error.code === '42P01') {
-      return 0;
-    }
-    throw error;
-  }
-};
+    let count = 0;
 
-/**
- * Count product variants referencing unit
- */
-export const countVariants = async (unitId) => {
-  const pool = getPool();
-  try {
-    const query = 'SELECT COUNT(*) AS count FROM product_variants WHERE unit_id = $1';
-    const result = await pool.query(query, [unitId]);
-    return parseInt(result.rows[0]?.count || 0, 10);
+    try {
+      const prodRes = await pool.query(
+        'SELECT COUNT(*) AS count FROM products WHERE default_unit_id = $1',
+        [unitId]
+      );
+      count += parseInt(prodRes.rows[0]?.count || 0, 10);
+    } catch (e) {
+      if (e.code !== '42P01' && e.code !== '42703') throw e;
+    }
+
+    try {
+      const varRes = await pool.query(
+        'SELECT COUNT(*) AS count FROM product_variants WHERE unit_id = $1',
+        [unitId]
+      );
+      count += parseInt(varRes.rows[0]?.count || 0, 10);
+    } catch (e) {
+      if (e.code !== '42P01' && e.code !== '42703') throw e;
+    }
+
+    return count;
   } catch (error) {
-    if (error.code === '42P01') {
+    if (error.code === '42P01' || error.code === '42703') {
       return 0;
     }
     throw error;
@@ -346,14 +445,15 @@ export const deleteById = async (id) => {
 
 export default {
   findAll,
+  findAllByCompany,
   findById,
   findByCode,
   findByName,
   findByCompanyId,
+  getUnitStats,
   existsByCode,
   existsByName,
   countProducts,
-  countVariants,
   create,
   update,
   updateStatus,

@@ -37,7 +37,7 @@ export const findAll = async ({
 
   if (search) {
     conditions.push(
-      `(col.color_name ILIKE $${paramIndex} OR col.color_code ILIKE $${paramIndex} OR col.hex_code ILIKE $${paramIndex} OR col.description ILIKE $${paramIndex})`
+      `(col.color_name ILIKE $${paramIndex} OR col.color_code ILIKE $${paramIndex} OR col.hex_code ILIKE $${paramIndex} OR col.description ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`
     );
     values.push(`%${search}%`);
     paramIndex++;
@@ -49,6 +49,7 @@ export const findAll = async ({
     id: 'col.id',
     color_code: 'col.color_code',
     color_name: 'col.color_name',
+    hex_code: 'col.hex_code',
     display_order: 'col.display_order',
     created_at: 'col.created_at',
     is_active: 'col.is_active',
@@ -60,6 +61,7 @@ export const findAll = async ({
   const countQuery = `
     SELECT COUNT(*) AS total
     FROM colors col
+    LEFT JOIN companies c ON c.id = col.company_id
     ${whereClause}
   `;
 
@@ -69,7 +71,7 @@ export const findAll = async ({
       c.company_name,
       c.company_code
     FROM colors col
-    JOIN companies c ON c.id = col.company_id
+    LEFT JOIN companies c ON c.id = col.company_id
     ${whereClause}
     ORDER BY ${orderColumn} ${direction}, col.color_name ASC
     LIMIT $${paramIndex++} OFFSET $${paramIndex++}
@@ -85,6 +87,68 @@ export const findAll = async ({
 };
 
 /**
+ * Find all colors for a company without pagination (for dropdowns / selectors)
+ */
+export const findAllByCompany = async (
+  companyId,
+  {
+    isActive = null,
+    search = null,
+    sortBy = 'display_order',
+    sortOrder = 'ASC',
+  } = {}
+) => {
+  const pool = getPool();
+  const conditions = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (companyId !== null && companyId !== undefined) {
+    conditions.push(`col.company_id = $${paramIndex++}`);
+    values.push(companyId);
+  }
+
+  if (isActive !== null && isActive !== undefined) {
+    conditions.push(`col.is_active = $${paramIndex++}`);
+    values.push(isActive);
+  }
+
+  if (search) {
+    conditions.push(
+      `(col.color_name ILIKE $${paramIndex} OR col.color_code ILIKE $${paramIndex} OR col.hex_code ILIKE $${paramIndex} OR col.description ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`
+    );
+    values.push(`%${search}%`);
+    paramIndex++;
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const allowedSortColumns = {
+    id: 'col.id',
+    color_code: 'col.color_code',
+    color_name: 'col.color_name',
+    hex_code: 'col.hex_code',
+    display_order: 'col.display_order',
+    created_at: 'col.created_at',
+    is_active: 'col.is_active',
+  };
+  const orderCol = allowedSortColumns[sortBy] || 'col.display_order';
+  const direction = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+
+  const query = `
+    SELECT 
+      col.*,
+      c.company_name,
+      c.company_code
+    FROM colors col
+    LEFT JOIN companies c ON c.id = col.company_id
+    ${whereClause}
+    ORDER BY ${orderCol} ${direction}, col.color_name ASC
+  `;
+  const result = await pool.query(query, values);
+  return result.rows;
+};
+
+/**
  * Find single color by primary key ID
  */
 export const findById = async (id) => {
@@ -95,7 +159,7 @@ export const findById = async (id) => {
       c.company_name,
       c.company_code
     FROM colors col
-    JOIN companies c ON c.id = col.company_id
+    LEFT JOIN companies c ON c.id = col.company_id
     WHERE col.id = $1
   `;
   const result = await pool.query(query, [id]);
@@ -103,7 +167,7 @@ export const findById = async (id) => {
 };
 
 /**
- * Find color by company ID and color code
+ * Find color by company ID and color code (case-insensitive)
  */
 export const findByCode = async (companyId, colorCode) => {
   const pool = getPool();
@@ -113,7 +177,7 @@ export const findByCode = async (companyId, colorCode) => {
       c.company_name,
       c.company_code
     FROM colors col
-    JOIN companies c ON c.id = col.company_id
+    LEFT JOIN companies c ON c.id = col.company_id
     WHERE col.company_id = $1 AND LOWER(col.color_code) = LOWER($2)
   `;
   const result = await pool.query(query, [companyId, colorCode]);
@@ -121,7 +185,7 @@ export const findByCode = async (companyId, colorCode) => {
 };
 
 /**
- * Find color by company ID and color name
+ * Find color by company ID and color name (case-insensitive)
  */
 export const findByName = async (companyId, colorName) => {
   const pool = getPool();
@@ -131,7 +195,7 @@ export const findByName = async (companyId, colorName) => {
       c.company_name,
       c.company_code
     FROM colors col
-    JOIN companies c ON c.id = col.company_id
+    LEFT JOIN companies c ON c.id = col.company_id
     WHERE col.company_id = $1 AND LOWER(col.color_name) = LOWER($2)
   `;
   const result = await pool.query(query, [companyId, colorName]);
@@ -157,12 +221,73 @@ export const findByCompanyId = async (companyId, { isActive = null } = {}) => {
       c.company_name,
       c.company_code
     FROM colors col
-    JOIN companies c ON c.id = col.company_id
+    LEFT JOIN companies c ON c.id = col.company_id
     WHERE ${conditions.join(' AND ')}
     ORDER BY col.display_order ASC, col.color_name ASC
   `;
   const result = await pool.query(query, values);
   return result.rows;
+};
+
+/**
+ * Get color aggregate statistics for a company
+ */
+export const getColorStats = async (companyId = null) => {
+  const pool = getPool();
+  const conditions = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (companyId) {
+    conditions.push(`company_id = $${paramIndex++}`);
+    values.push(companyId);
+  }
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const query = `
+    SELECT 
+      COUNT(*) AS total_colors,
+      COUNT(*) FILTER (WHERE is_active = TRUE) AS active_colors,
+      COUNT(*) FILTER (WHERE is_active = FALSE) AS inactive_colors
+    FROM colors
+    ${whereClause}
+  `;
+
+  const res = await pool.query(query, values);
+  const row = res.rows[0] || {};
+
+  return {
+    totalColors: parseInt(row.total_colors || 0, 10),
+    activeColors: parseInt(row.active_colors || 0, 10),
+    inactiveColors: parseInt(row.inactive_colors || 0, 10),
+  };
+};
+
+/**
+ * Bulk reorder colors display sequence
+ */
+export const reorderColors = async (items = [], companyId = null) => {
+  if (!Array.isArray(items) || items.length === 0) return [];
+  const pool = getPool();
+  const updatedIds = [];
+
+  for (const item of items) {
+    const id = Number(item.id);
+    const displayOrder = Math.max(0, parseInt(item.display_order ?? item.displayOrder ?? 0, 10));
+    let q = 'UPDATE colors SET display_order = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2';
+    const vals = [displayOrder, id];
+    let paramIdx = 3;
+    if (companyId) {
+      q += ` AND company_id = $${paramIdx++}`;
+      vals.push(companyId);
+    }
+    const res = await pool.query(q, vals);
+    if (res.rowCount > 0) {
+      updatedIds.push(id);
+    }
+  }
+
+  return updatedIds;
 };
 
 /**
@@ -335,10 +460,13 @@ export const deleteById = async (id) => {
 
 export default {
   findAll,
+  findAllByCompany,
   findById,
   findByCode,
   findByName,
   findByCompanyId,
+  getColorStats,
+  reorderColors,
   existsByCode,
   existsByName,
   countVariants,

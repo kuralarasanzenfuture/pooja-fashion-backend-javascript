@@ -9,6 +9,9 @@ import { seedUsers } from './seeders/user.seeder.js';
 import { seedCategories } from './seeders/category.seeder.js';
 import { seedBrands } from './seeders/brand.seeder.js';
 import { seedSizes } from './seeders/size.seeder.js';
+import { seedColors } from './seeders/color.seeder.js';
+import { seedMaterials } from './seeders/material.seeder.js';
+import { seedUnits } from './seeders/unit.seeder.js';
 
 const runSeeders = async () => {
   console.log('🌱 [SEEDER] Starting database seeding process...');
@@ -72,6 +75,27 @@ const runSeeders = async () => {
     const sizeStats = await seedSizes();
     console.log(
       `✅ [SEEDER:SIZES] ${sizeStats.totalSizeGroupsSeeded} size groups and ${sizeStats.totalSizesSeeded} sizes seeded across ${sizeStats.totalCompanies} company/companies.`
+    );
+
+    // Step 8: Product Master Colors (All Existing Companies)
+    console.log('\n--- 8. Seeding Product Master Colors for All Companies ---');
+    const colorStats = await seedColors();
+    console.log(
+      `✅ [SEEDER:COLORS] ${colorStats.totalColorsSeeded} colors seeded across ${colorStats.totalCompanies} company/companies.`
+    );
+
+    // Step 9: Product Master Materials (All Existing Companies)
+    console.log('\n--- 9. Seeding Product Master Materials for All Companies ---');
+    const materialStats = await seedMaterials();
+    console.log(
+      `✅ [SEEDER:MATERIALS] ${materialStats.totalMaterialsSeeded} materials seeded across ${materialStats.totalCompanies} company/companies.`
+    );
+
+    // Step 10: Product Master Units (All Existing Companies)
+    console.log('\n--- 10. Seeding Product Master Units for All Companies ---');
+    const unitStats = await seedUnits();
+    console.log(
+      `✅ [SEEDER:UNITS] ${unitStats.totalUnitsSeeded} units seeded across ${unitStats.totalCompanies} company/companies.`
     );
 
     const elapsedMs = Date.now() - startTime;

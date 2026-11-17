@@ -7,8 +7,35 @@ import { sendSuccess, sendCreated } from '../../../shared/utils/response.js';
  */
 export const getAll = async (req, res, next) => {
   try {
-    const { materials, meta } = await materialService.getMaterials(req.query);
+    const { materials, meta } = await materialService.getMaterials(req.query, req.user);
     return sendSuccess(res, materials, 'Materials retrieved successfully', 200, meta);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/product-master/materials/all
+ * List all materials without pagination (for dropdowns / selectors)
+ * Scoped to token-based user's company_id
+ */
+export const getAllUnpaginated = async (req, res, next) => {
+  try {
+    const materials = await materialService.getAllMaterials(req.query, req.user);
+    return sendSuccess(res, materials, 'All materials retrieved successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/product-master/materials/stats
+ * Get material aggregate statistics for token user's company
+ */
+export const getStats = async (req, res, next) => {
+  try {
+    const stats = await materialService.getMaterialStats(req.query, req.user);
+    return sendSuccess(res, stats, 'Material statistics retrieved successfully');
   } catch (error) {
     return next(error);
   }
@@ -20,7 +47,7 @@ export const getAll = async (req, res, next) => {
  */
 export const getById = async (req, res, next) => {
   try {
-    const material = await materialService.getMaterialById(req.params.id);
+    const material = await materialService.getMaterialById(req.params.id, req.user);
     return sendSuccess(res, material, 'Material retrieved successfully');
   } catch (error) {
     return next(error);
@@ -29,13 +56,15 @@ export const getById = async (req, res, next) => {
 
 /**
  * GET /api/product-master/materials/code/:companyId/:materialCode
- * Retrieve material by company ID and code
+ * Retrieve material by company ID and material code
  */
 export const getByCode = async (req, res, next) => {
   try {
+    const companyId = req.params.companyId || req.query.company_id || req.user?.company_id;
     const material = await materialService.getMaterialByCode(
-      req.params.companyId,
-      req.params.materialCode
+      companyId,
+      req.params.materialCode,
+      req.user
     );
     return sendSuccess(res, material, 'Material retrieved successfully');
   } catch (error) {
@@ -53,7 +82,8 @@ export const getByCompanyId = async (req, res, next) => {
       req.params.companyId,
       {
         isActive: req.query.is_active !== undefined ? req.query.is_active === 'true' : null,
-      }
+      },
+      req.user
     );
     return sendSuccess(res, materials, 'Company materials retrieved successfully');
   } catch (error) {
@@ -71,7 +101,7 @@ export const create = async (req, res, next) => {
       ...req.body,
       created_by: req.user?.id || req.body.created_by,
     };
-    const material = await materialService.createMaterial(data);
+    const material = await materialService.createMaterial(data, req.user, req);
     return sendCreated(res, material, 'Material created successfully');
   } catch (error) {
     return next(error);
@@ -88,7 +118,7 @@ export const update = async (req, res, next) => {
       ...req.body,
       updated_by: req.user?.id || req.body.updated_by,
     };
-    const material = await materialService.updateMaterial(req.params.id, data);
+    const material = await materialService.updateMaterial(req.params.id, data, req.user, req);
     return sendSuccess(res, material, 'Material updated successfully');
   } catch (error) {
     return next(error);
@@ -105,7 +135,9 @@ export const updateStatus = async (req, res, next) => {
     const material = await materialService.updateMaterialStatus(
       req.params.id,
       req.body.is_active,
-      updatedBy
+      updatedBy,
+      req.user,
+      req
     );
     return sendSuccess(res, material, 'Material status updated successfully');
   } catch (error) {
@@ -119,7 +151,7 @@ export const updateStatus = async (req, res, next) => {
  */
 export const deleteMaterial = async (req, res, next) => {
   try {
-    const result = await materialService.deleteMaterial(req.params.id);
+    const result = await materialService.deleteMaterial(req.params.id, req.user, req);
     return sendSuccess(res, result, 'Material deleted successfully');
   } catch (error) {
     return next(error);
@@ -127,17 +159,60 @@ export const deleteMaterial = async (req, res, next) => {
 };
 
 /**
- * POST /api/product-master/materials/company/:companyId/seed-defaults
- * Seed standard default materials
+ * POST /api/product-master/materials/seed-defaults
+ * Seed standard default materials for a company
  */
 export const seedDefaults = async (req, res, next) => {
   try {
-    const createdBy = req.user?.id || null;
-    const seeded = await materialService.seedDefaultMaterials(
-      req.params.companyId,
-      createdBy
-    );
+    const companyId = req.body.company_id || req.params.companyId;
+    const seeded = await materialService.seedDefaultMaterials(companyId, req.user, req);
     return sendCreated(res, seeded, 'Default materials seeded successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/product-master/materials/check-name
+ * Check whether a material name already exists for a company
+ */
+export const checkMaterialName = async (req, res, next) => {
+  try {
+    const name = req.query.name || req.query.material_name;
+    const companyId = req.query.company_id || req.query.companyId;
+    const excludeId = req.query.exclude_id || req.query.excludeId;
+
+    const result = await materialService.checkMaterialNameExists({
+      name,
+      companyId,
+      excludeId,
+      user: req.user,
+    });
+
+    return sendSuccess(res, result, result.message);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/product-master/materials/check-code
+ * Check whether a material code already exists for a company
+ */
+export const checkMaterialCode = async (req, res, next) => {
+  try {
+    const code = req.query.code || req.query.material_code;
+    const companyId = req.query.company_id || req.query.companyId;
+    const excludeId = req.query.exclude_id || req.query.excludeId;
+
+    const result = await materialService.checkMaterialCodeExists({
+      code,
+      companyId,
+      excludeId,
+      user: req.user,
+    });
+
+    return sendSuccess(res, result, result.message);
   } catch (error) {
     return next(error);
   }
@@ -145,6 +220,8 @@ export const seedDefaults = async (req, res, next) => {
 
 export default {
   getAll,
+  getAllUnpaginated,
+  getStats,
   getById,
   getByCode,
   getByCompanyId,
@@ -153,4 +230,6 @@ export default {
   updateStatus,
   deleteMaterial,
   seedDefaults,
+  checkMaterialName,
+  checkMaterialCode,
 };

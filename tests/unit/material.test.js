@@ -1,6 +1,9 @@
 import {
   generateMaterialCode,
   DEFAULT_MATERIALS,
+  toSlug,
+  canUserSelectCompany,
+  resolveEffectiveCompanyId,
 } from '../../src/modules/product-master/materials/material.service.js';
 import {
   toMaterialDTO,
@@ -11,15 +14,21 @@ import {
   updateMaterialSchema,
   updateStatusSchema,
   getMaterialsQuerySchema,
+  getAllMaterialsQuerySchema,
+  getMaterialStatsQuerySchema,
   materialIdParamSchema,
   companyIdParamSchema,
   materialCodeParamSchema,
+  checkMaterialNameQuerySchema,
+  checkMaterialCodeQuerySchema,
+  seedDefaultMaterialsSchema,
 } from '../../src/modules/product-master/materials/material.validation.js';
+import ForbiddenError from '../../src/shared/errors/ForbiddenError.js';
 
 describe('Product Master: Materials Unit Tests', () => {
   describe('DEFAULT_MATERIALS', () => {
-    it('should include common textile and apparel fabric materials', () => {
-      expect(DEFAULT_MATERIALS.length).toBeGreaterThanOrEqual(8);
+    it('should include 40 realistic textile and apparel fabric materials', () => {
+      expect(DEFAULT_MATERIALS.length).toBe(40);
       const names = DEFAULT_MATERIALS.map((m) => m.material_name);
       expect(names).toContain('Cotton');
       expect(names).toContain('Polyester');
@@ -27,6 +36,22 @@ describe('Product Master: Materials Unit Tests', () => {
       expect(names).toContain('Linen');
       expect(names).toContain('Denim');
       expect(names).toContain('Rayon');
+      expect(names).toContain('Georgette');
+      expect(names).toContain('Chiffon');
+      expect(names).toContain('Satin');
+      expect(names).toContain('Velvet');
+      expect(names).toContain('Wool');
+      expect(names).toContain('Khadi');
+      expect(names).toContain('Viscose');
+      expect(names).toContain('Net Fabric');
+    });
+
+    it('each default material should have code, name, and description', () => {
+      DEFAULT_MATERIALS.forEach((m) => {
+        expect(m.material_code).toBeTruthy();
+        expect(m.material_name).toBeTruthy();
+        expect(m.description).toBeTruthy();
+      });
     });
   });
 
@@ -41,6 +66,47 @@ describe('Product Master: Materials Unit Tests', () => {
       const longName = 'M'.repeat(75);
       const code = generateMaterialCode(longName);
       expect(code.length).toBeLessThanOrEqual(50);
+    });
+
+    it('should handle empty or null input gracefully', () => {
+      expect(generateMaterialCode(null)).toBe('');
+      expect(generateMaterialCode('')).toBe('');
+      expect(generateMaterialCode(undefined)).toBe('');
+    });
+  });
+
+  describe('Tenant Isolation Utilities', () => {
+    it('canUserSelectCompany returns true for SUPERADMIN', () => {
+      expect(canUserSelectCompany({ role: 'SUPERADMIN' })).toBe(true);
+      expect(canUserSelectCompany({ roleCode: 'superadmin' })).toBe(true);
+    });
+
+    it('canUserSelectCompany returns true for platform ADMIN without companyId', () => {
+      expect(canUserSelectCompany({ role: 'ADMIN' })).toBe(true);
+      expect(canUserSelectCompany({ role: 'ADMIN', companyId: null })).toBe(true);
+    });
+
+    it('canUserSelectCompany returns false for tenant users bound to a company', () => {
+      expect(canUserSelectCompany({ role: 'ADMIN', companyId: 1 })).toBe(false);
+      expect(canUserSelectCompany({ role: 'STAFF', company_id: 2 })).toBe(false);
+      expect(canUserSelectCompany(null)).toBe(false);
+    });
+
+    it('resolveEffectiveCompanyId returns user companyId for tenant users', () => {
+      const tenantUser = { id: 10, role: 'STAFF', companyId: 2 };
+      expect(resolveEffectiveCompanyId(tenantUser, null)).toBe(2);
+      expect(resolveEffectiveCompanyId(tenantUser, 2)).toBe(2);
+    });
+
+    it('resolveEffectiveCompanyId throws ForbiddenError if tenant user tries to access another company', () => {
+      const tenantUser = { id: 10, role: 'STAFF', companyId: 2 };
+      expect(() => resolveEffectiveCompanyId(tenantUser, 5)).toThrow(ForbiddenError);
+    });
+
+    it('resolveEffectiveCompanyId allows superadmin to choose any company', () => {
+      const superadmin = { id: 1, role: 'SUPERADMIN' };
+      expect(resolveEffectiveCompanyId(superadmin, 5)).toBe(5);
+      expect(resolveEffectiveCompanyId(superadmin, null)).toBeNull();
     });
   });
 
@@ -116,10 +182,18 @@ describe('Product Master: Materials Unit Tests', () => {
       expect(parsed.is_active).toBe(true);
     });
 
-    it('should fail createMaterialSchema when required fields are missing', () => {
+    it('should allow omitting company_id and material_code in createMaterialSchema (injected in service)', () => {
+      const parsed = createMaterialSchema.parse({ material_name: 'Silk' });
+      expect(parsed.material_name).toBe('Silk');
+      expect(parsed.company_id).toBeUndefined();
+      expect(parsed.material_code).toBeUndefined();
+    });
+
+    it('should fail createMaterialSchema when material_name is empty or missing', () => {
       expect(() => createMaterialSchema.parse({})).toThrow();
       expect(() => createMaterialSchema.parse({ company_id: 1 })).toThrow();
-      expect(() => createMaterialSchema.parse({ material_name: 'Silk' })).toThrow();
+      expect(() => createMaterialSchema.parse({ material_name: '' })).toThrow();
+      expect(() => createMaterialSchema.parse({ material_name: '   ' })).toThrow();
     });
 
     it('should fail createMaterialSchema when material_code has invalid characters', () => {
@@ -167,6 +241,31 @@ describe('Product Master: Materials Unit Tests', () => {
       expect(parsed.limit).toBe(10);
       expect(parsed.sortBy).toBe('material_name');
       expect(parsed.sortOrder).toBe('asc');
+    });
+
+    it('should validate checkMaterialNameQuerySchema and checkMaterialCodeQuerySchema', () => {
+      const parsedName = checkMaterialNameQuerySchema.parse({ name: 'Chiffon', companyId: '1' });
+      expect(parsedName.name).toBe('Chiffon');
+      expect(parsedName.companyId).toBe(1);
+
+      const parsedCode = checkMaterialCodeQuerySchema.parse({ code: 'CHIFFON', company_id: '1' });
+      expect(parsedCode.code).toBe('CHIFFON');
+      expect(parsedCode.company_id).toBe(1);
+
+      expect(() => checkMaterialNameQuerySchema.parse({ companyId: 1 })).toThrow();
+      expect(() => checkMaterialCodeQuerySchema.parse({ companyId: 1 })).toThrow();
+    });
+
+    it('should validate getAllMaterialsQuerySchema and seedDefaultMaterialsSchema', () => {
+      const parsedAll = getAllMaterialsQuerySchema.parse({ company_id: '2', is_active: 'true' });
+      expect(parsedAll.company_id).toBe(2);
+      expect(parsedAll.is_active).toBe(true);
+
+      const parsedStats = getMaterialStatsQuerySchema.parse({ companyId: '3' });
+      expect(parsedStats.companyId).toBe(3);
+
+      const parsedSeed = seedDefaultMaterialsSchema.parse({ company_id: '1' });
+      expect(parsedSeed.company_id).toBe(1);
     });
   });
 });

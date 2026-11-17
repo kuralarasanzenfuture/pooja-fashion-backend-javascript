@@ -4,13 +4,14 @@ export const createMaterialSchema = z.object({
   company_id: z.coerce
     .number()
     .int('Company ID must be an integer')
-    .positive('Company ID must be a positive number'),
+    .positive('Company ID must be a positive number')
+    .optional(),
   material_code: z
     .string()
     .trim()
     .min(1, 'Material code must be at least 1 character')
     .max(50, 'Material code cannot exceed 50 characters')
-    .regex(/^[A-Za-z0-9_.-]+$/, 'Material code must contain only letters, numbers, hyphens, periods, and underscores')
+    .regex(/^[A-Za-z0-9_-]+$/, 'Material code must contain only letters, numbers, hyphens, and underscores')
     .transform((val) => val.toUpperCase())
     .optional(),
   material_name: z
@@ -18,7 +19,7 @@ export const createMaterialSchema = z.object({
     .trim()
     .min(1, 'Material name is required')
     .max(150, 'Material name cannot exceed 150 characters'),
-  description: z.string().trim().nullable().optional(),
+  description: z.string().trim().max(2000).nullable().optional(),
   is_active: z
     .preprocess((val) => {
       if (val === 'true' || val === true || val === 1 || val === '1') return true;
@@ -36,7 +37,7 @@ export const updateMaterialSchema = z.object({
     .trim()
     .min(1, 'Material code must be at least 1 character')
     .max(50, 'Material code cannot exceed 50 characters')
-    .regex(/^[A-Za-z0-9_.-]+$/, 'Material code must contain only letters, numbers, hyphens, periods, and underscores')
+    .regex(/^[A-Za-z0-9_-]+$/, 'Material code must contain only letters, numbers, hyphens, and underscores')
     .transform((val) => val.toUpperCase())
     .optional(),
   material_name: z
@@ -45,7 +46,7 @@ export const updateMaterialSchema = z.object({
     .min(1, 'Material name must be at least 1 character')
     .max(150, 'Material name cannot exceed 150 characters')
     .optional(),
-  description: z.string().trim().nullable().optional(),
+  description: z.string().trim().max(2000).nullable().optional(),
   is_active: z
     .preprocess((val) => {
       if (val === 'true' || val === true || val === 1 || val === '1') return true;
@@ -76,7 +77,7 @@ export const companyIdParamSchema = z.object({
 });
 
 export const materialCodeParamSchema = z.object({
-  companyId: z.coerce.number().int().positive('Company ID must be a positive integer'),
+  companyId: z.coerce.number().int().positive().optional(),
   materialCode: z.string().trim().min(1, 'Material code is required'),
 });
 
@@ -99,6 +100,59 @@ export const getMaterialsQuerySchema = z.object({
   sortOrder: z.enum(['asc', 'desc', 'ASC', 'DESC']).default('asc'),
 });
 
+export const getAllMaterialsQuerySchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+  is_active: z
+    .preprocess((val) => {
+      if (val === 'true' || val === true || val === 1 || val === '1') return true;
+      if (val === 'false' || val === false || val === 0 || val === '0') return false;
+      return undefined;
+    }, z.boolean().optional())
+    .optional(),
+  search: z.string().trim().optional(),
+  sortBy: z.enum(['id', 'material_code', 'material_name', 'created_at']).default('material_name'),
+  sortOrder: z.enum(['asc', 'desc', 'ASC', 'DESC']).default('asc'),
+});
+
+export const getMaterialStatsQuerySchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+});
+
+export const checkMaterialNameQuerySchema = z
+  .object({
+    company_id: z.coerce.number().int().positive().optional(),
+    companyId: z.coerce.number().int().positive().optional(),
+    name: z.string().trim().optional(),
+    material_name: z.string().trim().optional(),
+    excludeId: z.coerce.number().int().positive().optional(),
+    exclude_id: z.coerce.number().int().positive().optional(),
+  })
+  .refine((data) => (data.name && data.name.length > 0) || (data.material_name && data.material_name.length > 0), {
+    message: 'Material name is required',
+    path: ['name'],
+  });
+
+export const checkMaterialCodeQuerySchema = z
+  .object({
+    company_id: z.coerce.number().int().positive().optional(),
+    companyId: z.coerce.number().int().positive().optional(),
+    code: z.string().trim().optional(),
+    material_code: z.string().trim().optional(),
+    excludeId: z.coerce.number().int().positive().optional(),
+    exclude_id: z.coerce.number().int().positive().optional(),
+  })
+  .refine((data) => (data.code && data.code.length > 0) || (data.material_code && data.material_code.length > 0), {
+    message: 'Material code is required',
+    path: ['code'],
+  });
+
+export const seedDefaultMaterialsSchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+});
+
 export default {
   createMaterialSchema,
   updateMaterialSchema,
@@ -107,4 +161,9 @@ export default {
   companyIdParamSchema,
   materialCodeParamSchema,
   getMaterialsQuerySchema,
+  getAllMaterialsQuerySchema,
+  getMaterialStatsQuerySchema,
+  checkMaterialNameQuerySchema,
+  checkMaterialCodeQuerySchema,
+  seedDefaultMaterialsSchema,
 };
