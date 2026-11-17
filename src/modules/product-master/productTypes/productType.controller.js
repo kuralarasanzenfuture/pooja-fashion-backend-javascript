@@ -7,8 +7,35 @@ import { sendSuccess, sendCreated } from '../../../shared/utils/response.js';
  */
 export const getAll = async (req, res, next) => {
   try {
-    const { productTypes, meta } = await productTypeService.getProductTypes(req.query);
+    const { productTypes, meta } = await productTypeService.getProductTypes(req.query, req.user);
     return sendSuccess(res, productTypes, 'Product types retrieved successfully', 200, meta);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/product-master/product-types/all
+ * List all product types without pagination (for dropdowns / selectors)
+ * Scoped to token-based user's company_id
+ */
+export const getAllUnpaginated = async (req, res, next) => {
+  try {
+    const productTypes = await productTypeService.getAllProductTypes(req.query, req.user);
+    return sendSuccess(res, productTypes, 'All product types retrieved successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/product-master/product-types/stats
+ * Get product type aggregate statistics for token user's company
+ */
+export const getStats = async (req, res, next) => {
+  try {
+    const stats = await productTypeService.getProductTypeStats(req.query, req.user);
+    return sendSuccess(res, stats, 'Product type statistics retrieved successfully');
   } catch (error) {
     return next(error);
   }
@@ -20,7 +47,7 @@ export const getAll = async (req, res, next) => {
  */
 export const getById = async (req, res, next) => {
   try {
-    const productType = await productTypeService.getProductTypeById(req.params.id);
+    const productType = await productTypeService.getProductTypeById(req.params.id, req.user);
     return sendSuccess(res, productType, 'Product type retrieved successfully');
   } catch (error) {
     return next(error);
@@ -33,9 +60,11 @@ export const getById = async (req, res, next) => {
  */
 export const getByCode = async (req, res, next) => {
   try {
+    const companyId = req.params.companyId || req.query.company_id || req.user?.company_id;
     const productType = await productTypeService.getProductTypeByCode(
-      req.params.companyId,
-      req.params.typeCode
+      companyId,
+      req.params.typeCode,
+      req.user
     );
     return sendSuccess(res, productType, 'Product type retrieved successfully');
   } catch (error) {
@@ -53,7 +82,8 @@ export const getByCompanyId = async (req, res, next) => {
       req.params.companyId,
       {
         isActive: req.query.is_active !== undefined ? req.query.is_active === 'true' : null,
-      }
+      },
+      req.user
     );
     return sendSuccess(res, productTypes, 'Company product types retrieved successfully');
   } catch (error) {
@@ -71,7 +101,7 @@ export const create = async (req, res, next) => {
       ...req.body,
       created_by: req.user?.id || req.body.created_by,
     };
-    const productType = await productTypeService.createProductType(data);
+    const productType = await productTypeService.createProductType(data, req.user, req);
     return sendCreated(res, productType, 'Product type created successfully');
   } catch (error) {
     return next(error);
@@ -88,7 +118,7 @@ export const update = async (req, res, next) => {
       ...req.body,
       updated_by: req.user?.id || req.body.updated_by,
     };
-    const productType = await productTypeService.updateProductType(req.params.id, data);
+    const productType = await productTypeService.updateProductType(req.params.id, data, req.user, req);
     return sendSuccess(res, productType, 'Product type updated successfully');
   } catch (error) {
     return next(error);
@@ -105,7 +135,9 @@ export const updateStatus = async (req, res, next) => {
     const productType = await productTypeService.updateProductTypeStatus(
       req.params.id,
       req.body.is_active,
-      updatedBy
+      updatedBy,
+      req.user,
+      req
     );
     return sendSuccess(res, productType, 'Product type status updated successfully');
   } catch (error) {
@@ -119,7 +151,7 @@ export const updateStatus = async (req, res, next) => {
  */
 export const deleteProductType = async (req, res, next) => {
   try {
-    const result = await productTypeService.deleteProductType(req.params.id);
+    const result = await productTypeService.deleteProductType(req.params.id, req.user, req);
     return sendSuccess(res, result, 'Product type deleted successfully');
   } catch (error) {
     return next(error);
@@ -127,17 +159,60 @@ export const deleteProductType = async (req, res, next) => {
 };
 
 /**
- * POST /api/product-master/product-types/company/:companyId/seed-defaults
- * Seed standard default product types
+ * POST /api/product-master/product-types/seed-defaults
+ * Seed standard default product types for a company
  */
 export const seedDefaults = async (req, res, next) => {
   try {
-    const createdBy = req.user?.id || null;
-    const seeded = await productTypeService.seedDefaultProductTypes(
-      req.params.companyId,
-      createdBy
-    );
+    const companyId = req.body.company_id || req.params.companyId;
+    const seeded = await productTypeService.seedDefaultProductTypes(companyId, req.user, req);
     return sendCreated(res, seeded, 'Default product types seeded successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/product-master/product-types/check-name
+ * Check whether a product type name already exists for a company
+ */
+export const checkProductTypeName = async (req, res, next) => {
+  try {
+    const name = req.query.name || req.query.type_name;
+    const companyId = req.query.company_id || req.query.companyId;
+    const excludeId = req.query.exclude_id || req.query.excludeId;
+
+    const result = await productTypeService.checkProductTypeNameExists({
+      name,
+      companyId,
+      excludeId,
+      user: req.user,
+    });
+
+    return sendSuccess(res, result, result.message);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/product-master/product-types/check-code
+ * Check whether a product type code already exists for a company
+ */
+export const checkProductTypeCode = async (req, res, next) => {
+  try {
+    const code = req.query.code || req.query.type_code;
+    const companyId = req.query.company_id || req.query.companyId;
+    const excludeId = req.query.exclude_id || req.query.excludeId;
+
+    const result = await productTypeService.checkProductTypeCodeExists({
+      code,
+      companyId,
+      excludeId,
+      user: req.user,
+    });
+
+    return sendSuccess(res, result, result.message);
   } catch (error) {
     return next(error);
   }
@@ -145,6 +220,8 @@ export const seedDefaults = async (req, res, next) => {
 
 export default {
   getAll,
+  getAllUnpaginated,
+  getStats,
   getById,
   getByCode,
   getByCompanyId,
@@ -153,4 +230,6 @@ export default {
   updateStatus,
   deleteProductType,
   seedDefaults,
+  checkProductTypeName,
+  checkProductTypeCode,
 };

@@ -55,7 +55,7 @@ export const findAll = async ({
 
   if (search) {
     conditions.push(
-      `(pt.type_name ILIKE $${paramIndex} OR pt.type_code ILIKE $${paramIndex} OR pt.description ILIKE $${paramIndex})`
+      `(pt.type_name ILIKE $${paramIndex} OR pt.type_code ILIKE $${paramIndex} OR pt.description ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`
     );
     values.push(`%${search}%`);
     paramIndex++;
@@ -77,6 +77,7 @@ export const findAll = async ({
   const countQuery = `
     SELECT COUNT(*) AS total
     FROM product_types pt
+    JOIN companies c ON c.id = pt.company_id
     ${whereClause}
   `;
 
@@ -102,6 +103,84 @@ export const findAll = async ({
 };
 
 /**
+ * Find all product types for a company without pagination (for dropdowns / selectors)
+ */
+export const findAllByCompany = async (
+  companyId,
+  {
+    isStockItem = null,
+    isSaleable = null,
+    isPurchasable = null,
+    isActive = null,
+    search = null,
+    sortBy = 'type_name',
+    sortOrder = 'ASC',
+  } = {}
+) => {
+  const pool = getPool();
+  const conditions = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (companyId !== null && companyId !== undefined) {
+    conditions.push(`pt.company_id = $${paramIndex++}`);
+    values.push(companyId);
+  }
+
+  if (isStockItem !== null && isStockItem !== undefined) {
+    conditions.push(`pt.is_stock_item = $${paramIndex++}`);
+    values.push(isStockItem);
+  }
+
+  if (isSaleable !== null && isSaleable !== undefined) {
+    conditions.push(`pt.is_saleable = $${paramIndex++}`);
+    values.push(isSaleable);
+  }
+
+  if (isPurchasable !== null && isPurchasable !== undefined) {
+    conditions.push(`pt.is_purchasable = $${paramIndex++}`);
+    values.push(isPurchasable);
+  }
+
+  if (isActive !== null && isActive !== undefined) {
+    conditions.push(`pt.is_active = $${paramIndex++}`);
+    values.push(isActive);
+  }
+
+  if (search) {
+    conditions.push(
+      `(pt.type_name ILIKE $${paramIndex} OR pt.type_code ILIKE $${paramIndex} OR pt.description ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`
+    );
+    values.push(`%${search}%`);
+    paramIndex++;
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const allowedSortColumns = {
+    id: 'pt.id',
+    type_code: 'pt.type_code',
+    type_name: 'pt.type_name',
+    created_at: 'pt.created_at',
+    is_active: 'pt.is_active',
+  };
+  const orderCol = allowedSortColumns[sortBy] || 'pt.type_name';
+  const direction = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+
+  const query = `
+    SELECT 
+      pt.*,
+      c.company_name,
+      c.company_code
+    FROM product_types pt
+    JOIN companies c ON c.id = pt.company_id
+    ${whereClause}
+    ORDER BY ${orderCol} ${direction}, pt.type_name ASC
+  `;
+  const result = await pool.query(query, values);
+  return result.rows;
+};
+
+/**
  * Find single product type by primary key ID
  */
 export const findById = async (id) => {
@@ -120,7 +199,7 @@ export const findById = async (id) => {
 };
 
 /**
- * Find product type by company ID and type code
+ * Find product type by company ID and type code (case-insensitive)
  */
 export const findByCode = async (companyId, typeCode) => {
   const pool = getPool();
@@ -138,7 +217,7 @@ export const findByCode = async (companyId, typeCode) => {
 };
 
 /**
- * Find product type by company ID and type name
+ * Find product type by company ID and type name (case-insensitive)
  */
 export const findByName = async (companyId, typeName) => {
   const pool = getPool();
@@ -180,6 +259,46 @@ export const findByCompanyId = async (companyId, { isActive = null } = {}) => {
   `;
   const result = await pool.query(query, values);
   return result.rows;
+};
+
+/**
+ * Get product type aggregate statistics for a company
+ */
+export const getProductTypeStats = async (companyId = null) => {
+  const pool = getPool();
+  const conditions = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (companyId) {
+    conditions.push(`company_id = $${paramIndex++}`);
+    values.push(companyId);
+  }
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const query = `
+    SELECT 
+      COUNT(*) AS total_types,
+      COUNT(*) FILTER (WHERE is_active = TRUE) AS active_types,
+      COUNT(*) FILTER (WHERE is_active = FALSE) AS inactive_types,
+      COUNT(*) FILTER (WHERE is_stock_item = TRUE) AS stock_item_types,
+      COUNT(*) FILTER (WHERE is_saleable = TRUE) AS saleable_types,
+      COUNT(*) FILTER (WHERE is_purchasable = TRUE) AS purchasable_types
+    FROM product_types
+    ${whereClause}
+  `;
+
+  const res = await pool.query(query, values);
+  const row = res.rows[0] || {};
+
+  return {
+    totalTypes: parseInt(row.total_types || 0, 10),
+    activeTypes: parseInt(row.active_types || 0, 10),
+    inactiveTypes: parseInt(row.inactive_types || 0, 10),
+    stockItemTypes: parseInt(row.stock_item_types || 0, 10),
+    saleableTypes: parseInt(row.saleable_types || 0, 10),
+    purchasableTypes: parseInt(row.purchasable_types || 0, 10),
+  };
 };
 
 /**
@@ -232,7 +351,7 @@ export const countProducts = async (productTypeId) => {
     const result = await pool.query(query, [productTypeId]);
     return parseInt(result.rows[0]?.count || 0, 10);
   } catch (error) {
-    if (error.code === '42P01') {
+    if (error.code === '42P01' || error.code === '42703') {
       return 0;
     }
     throw error;
@@ -355,10 +474,12 @@ export const deleteById = async (id) => {
 
 export default {
   findAll,
+  findAllByCompany,
   findById,
   findByCode,
   findByName,
   findByCompanyId,
+  getProductTypeStats,
   existsByCode,
   existsByName,
   countProducts,

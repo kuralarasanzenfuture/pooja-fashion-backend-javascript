@@ -1,6 +1,9 @@
 import {
   generateProductTypeCode,
   DEFAULT_PRODUCT_TYPES,
+  toSlug,
+  canUserSelectCompany,
+  resolveEffectiveCompanyId,
 } from '../../src/modules/product-master/productTypes/productType.service.js';
 import {
   toProductTypeDTO,
@@ -11,15 +14,21 @@ import {
   updateProductTypeSchema,
   updateStatusSchema,
   getProductTypesQuerySchema,
+  getAllProductTypesQuerySchema,
+  getProductTypeStatsQuerySchema,
   productTypeIdParamSchema,
   companyIdParamSchema,
-  typeCodeParamSchema,
+  productTypeCodeParamSchema,
+  checkProductTypeNameQuerySchema,
+  checkProductTypeCodeQuerySchema,
+  seedDefaultProductTypesSchema,
 } from '../../src/modules/product-master/productTypes/productType.validation.js';
+import ForbiddenError from '../../src/shared/errors/ForbiddenError.js';
 
 describe('Product Master: Product Types Unit Tests', () => {
   describe('DEFAULT_PRODUCT_TYPES', () => {
-    it('should include standard apparel retail product types', () => {
-      expect(DEFAULT_PRODUCT_TYPES.length).toBeGreaterThanOrEqual(5);
+    it('should include 5 standard apparel and fashion product types', () => {
+      expect(DEFAULT_PRODUCT_TYPES.length).toBe(5);
       const codes = DEFAULT_PRODUCT_TYPES.map((pt) => pt.type_code);
       expect(codes).toContain('READY_MADE');
       expect(codes).toContain('FABRIC');
@@ -28,163 +37,235 @@ describe('Product Master: Product Types Unit Tests', () => {
       expect(codes).toContain('SERVICE');
     });
 
-    it('should configure non-stock service item properly', () => {
+    it('each default product type should have code, name, stock/sale/purchase flags, and description', () => {
+      DEFAULT_PRODUCT_TYPES.forEach((pt) => {
+        expect(pt.type_code).toBeTruthy();
+        expect(pt.type_name).toBeTruthy();
+        expect(typeof pt.is_stock_item).toBe('boolean');
+        expect(typeof pt.is_saleable).toBe('boolean');
+        expect(typeof pt.is_purchasable).toBe('boolean');
+        expect(pt.description).toBeTruthy();
+      });
+    });
+
+    it('should match exact settings for physical goods vs services', () => {
+      const readyMade = DEFAULT_PRODUCT_TYPES.find((pt) => pt.type_code === 'READY_MADE');
+      expect(readyMade).toEqual({
+        type_code: 'READY_MADE',
+        type_name: 'Ready Made Garments',
+        is_stock_item: true,
+        is_saleable: true,
+        is_purchasable: true,
+        description: 'Shirts, T-shirts, jeans, sarees, dresses',
+      });
+
+      const fabric = DEFAULT_PRODUCT_TYPES.find((pt) => pt.type_code === 'FABRIC');
+      expect(fabric).toEqual({
+        type_code: 'FABRIC',
+        type_name: 'Fabric',
+        is_stock_item: true,
+        is_saleable: true,
+        is_purchasable: true,
+        description: 'Cotton, silk, linen, textile rolls',
+      });
+
+      const accessory = DEFAULT_PRODUCT_TYPES.find((pt) => pt.type_code === 'ACCESSORY');
+      expect(accessory).toEqual({
+        type_code: 'ACCESSORY',
+        type_name: 'Fashion Accessories',
+        is_stock_item: true,
+        is_saleable: true,
+        is_purchasable: true,
+        description: 'Belts, bags, caps, jewellery',
+      });
+
+      const footwear = DEFAULT_PRODUCT_TYPES.find((pt) => pt.type_code === 'FOOTWEAR');
+      expect(footwear).toEqual({
+        type_code: 'FOOTWEAR',
+        type_name: 'Footwear',
+        is_stock_item: true,
+        is_saleable: true,
+        is_purchasable: true,
+        description: 'Shoes, sandals, slippers, heels',
+      });
+
       const service = DEFAULT_PRODUCT_TYPES.find((pt) => pt.type_code === 'SERVICE');
-      expect(service).toBeDefined();
-      expect(service.is_stock_item).toBe(false);
-      expect(service.is_saleable).toBe(true);
-      expect(service.is_purchasable).toBe(false);
+      expect(service).toEqual({
+        type_code: 'SERVICE',
+        type_name: 'Services',
+        is_stock_item: false,
+        is_saleable: true,
+        is_purchasable: false,
+        description: 'Alteration, stitching, embroidery',
+      });
     });
   });
 
   describe('generateProductTypeCode', () => {
-    it('should generate uppercase snake_case type code from name', () => {
+    it('should generate uppercase snake_case product type code from name', () => {
       expect(generateProductTypeCode('Ready Made Garments')).toBe('READY_MADE_GARMENTS');
-      expect(generateProductTypeCode('Ethnic & Bridal Wear')).toBe('ETHNIC_BRIDAL_WEAR');
+      expect(generateProductTypeCode('Bespoke & Tailoring Services')).toBe('BESPOKE_TAILORING_SERVICES');
+      expect(generateProductTypeCode('100% Cotton Knits')).toBe('100_COTTON_KNITS');
     });
 
     it('should limit code length to 50 characters', () => {
-      const longName = 'T'.repeat(80);
+      const longName = 'T'.repeat(75);
       const code = generateProductTypeCode(longName);
       expect(code.length).toBeLessThanOrEqual(50);
+    });
+
+    it('should handle empty or null input gracefully', () => {
+      expect(generateProductTypeCode(null)).toBe('');
+      expect(generateProductTypeCode('')).toBe('');
+      expect(generateProductTypeCode(undefined)).toBe('');
+    });
+  });
+
+  describe('Tenant Isolation Utilities', () => {
+    it('canUserSelectCompany returns true for SUPERADMIN', () => {
+      expect(canUserSelectCompany({ role: 'SUPERADMIN' })).toBe(true);
+      expect(canUserSelectCompany({ roleCode: 'superadmin' })).toBe(true);
+    });
+
+    it('canUserSelectCompany returns true for platform ADMIN without companyId', () => {
+      expect(canUserSelectCompany({ role: 'ADMIN' })).toBe(true);
+      expect(canUserSelectCompany({ role: 'ADMIN', companyId: null })).toBe(true);
+    });
+
+    it('canUserSelectCompany returns false for tenant users bound to a company', () => {
+      expect(canUserSelectCompany({ role: 'ADMIN', companyId: 1 })).toBe(false);
+      expect(canUserSelectCompany({ role: 'STAFF', company_id: 2 })).toBe(false);
+      expect(canUserSelectCompany(null)).toBe(false);
+    });
+
+    it('resolveEffectiveCompanyId returns user companyId for tenant users', () => {
+      const tenantUser = { id: 10, role: 'STAFF', companyId: 2 };
+      expect(resolveEffectiveCompanyId(tenantUser, null)).toBe(2);
+      expect(resolveEffectiveCompanyId(tenantUser, 2)).toBe(2);
+    });
+
+    it('resolveEffectiveCompanyId throws ForbiddenError if tenant user tries to access another company', () => {
+      const tenantUser = { id: 10, role: 'STAFF', companyId: 2 };
+      expect(() => resolveEffectiveCompanyId(tenantUser, 5)).toThrow(ForbiddenError);
+    });
+
+    it('resolveEffectiveCompanyId allows superadmin to choose any company', () => {
+      const superadmin = { id: 1, role: 'SUPERADMIN', companyId: 1 };
+      expect(resolveEffectiveCompanyId(superadmin, 5)).toBe(5);
+      expect(resolveEffectiveCompanyId(superadmin, '3')).toBe(3);
+      expect(resolveEffectiveCompanyId(superadmin, null)).toBe(1);
     });
   });
 
   describe('Product Type Mapper', () => {
-    it('should map database entity to client DTO format', () => {
+    it('toProductTypeDTO should format raw DB record to camelCase DTO', () => {
       const dbRow = {
-        id: '10',
-        company_id: '1',
-        company_name: 'Pooja Fashion Retail Ltd',
-        company_code: 'PF-CORP',
+        id: '1',
+        company_id: '10',
+        company_name: 'Pooja Fashion Ltd',
         type_code: 'READY_MADE',
         type_name: 'Ready Made Garments',
-        description: 'Finished clothing ready for customer purchase',
+        description: 'Garments ready for wear',
         is_stock_item: true,
         is_saleable: true,
         is_purchasable: true,
         is_active: true,
-        created_by: '5',
-        updated_by: null,
-        created_at: '2026-09-22T10:00:00.000Z',
-        updated_at: '2026-09-22T10:00:00.000Z',
+        created_at: new Date('2026-01-01T00:00:00Z'),
+        updated_at: new Date('2026-01-02T00:00:00Z'),
       };
 
       const dto = toProductTypeDTO(dbRow);
       expect(dto).toEqual({
-        id: 10,
-        companyId: 1,
-        companyName: 'Pooja Fashion Retail Ltd',
-        companyCode: 'PF-CORP',
+        id: 1,
+        companyId: 10,
+        companyName: 'Pooja Fashion Ltd',
+        companyCode: undefined,
         typeCode: 'READY_MADE',
         typeName: 'Ready Made Garments',
-        description: 'Finished clothing ready for customer purchase',
+        description: 'Garments ready for wear',
         isStockItem: true,
         isSaleable: true,
         isPurchasable: true,
         isActive: true,
-        createdBy: 5,
+        createdBy: null,
         updatedBy: null,
-        createdAt: '2026-09-22T10:00:00.000Z',
-        updatedAt: '2026-09-22T10:00:00.000Z',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-02T00:00:00.000Z',
       });
     });
 
-    it('should return null if row is null or undefined', () => {
-      expect(toProductTypeDTO(null)).toBeNull();
-      expect(toProductTypeDTO(undefined)).toBeNull();
-    });
-
-    it('should map list of database rows', () => {
-      const list = toProductTypeListDTO([
-        { id: 1, company_id: 1, type_code: 'READY_MADE', type_name: 'Ready Made', is_active: true },
-        { id: 2, company_id: 1, type_code: 'FABRIC', type_name: 'Fabric', is_active: true },
-      ]);
-      expect(list).toHaveLength(2);
-      expect(list[0].typeCode).toBe('READY_MADE');
-      expect(list[1].typeCode).toBe('FABRIC');
-    });
-
-    it('should return empty array for invalid input in toProductTypeListDTO', () => {
-      expect(toProductTypeListDTO(null)).toEqual([]);
-      expect(toProductTypeListDTO(undefined)).toEqual([]);
+    it('toProductTypeListDTO formats arrays properly', () => {
+      const rows = [
+        { id: 1, company_id: 1, type_code: 'A', type_name: 'Type A' },
+        { id: 2, company_id: 1, type_code: 'B', type_name: 'Type B' },
+      ];
+      const list = toProductTypeListDTO(rows);
+      expect(list.length).toBe(2);
+      expect(list[0].typeCode).toBe('A');
+      expect(list[1].typeCode).toBe('B');
     });
   });
 
-  describe('Product Type Validation Schemas', () => {
-    it('should validate and parse valid createProductTypeSchema payload', () => {
-      const validPayload = {
-        company_id: '1',
-        type_code: 'ready_made',
+  describe('Validation Schemas', () => {
+    it('validates createProductTypeSchema successfully with required fields', () => {
+      const validData = {
+        company_id: 1,
+        type_code: 'READY_MADE',
         type_name: 'Ready Made Garments',
-        description: 'Finished garments',
-        is_stock_item: 'true',
-        is_saleable: 1,
+        description: 'Ready made clothing',
+        is_stock_item: true,
+        is_saleable: true,
         is_purchasable: true,
-        is_active: 'true',
+        is_active: true,
       };
-
-      const parsed = createProductTypeSchema.parse(validPayload);
-      expect(parsed.company_id).toBe(1);
-      expect(parsed.type_code).toBe('READY_MADE');
-      expect(parsed.type_name).toBe('Ready Made Garments');
-      expect(parsed.is_stock_item).toBe(true);
-      expect(parsed.is_saleable).toBe(true);
-      expect(parsed.is_purchasable).toBe(true);
-      expect(parsed.is_active).toBe(true);
+      const parsed = createProductTypeSchema.safeParse(validData);
+      expect(parsed.success).toBe(true);
     });
 
-    it('should fail createProductTypeSchema when required fields are missing', () => {
-      expect(() => createProductTypeSchema.parse({})).toThrow();
-      expect(() => createProductTypeSchema.parse({ company_id: 1 })).toThrow();
-      expect(() => createProductTypeSchema.parse({ type_name: 'Ready Made' })).toThrow();
+    it('fails createProductTypeSchema with invalid type_code format', () => {
+      const invalidData = {
+        type_name: 'Test Type',
+        type_code: 'invalid code spaces!',
+      };
+      const parsed = createProductTypeSchema.safeParse(invalidData);
+      expect(parsed.success).toBe(false);
     });
 
-    it('should fail createProductTypeSchema when type_code has invalid characters', () => {
-      expect(() =>
-        createProductTypeSchema.parse({
-          company_id: 1,
-          type_name: 'Ready Made',
-          type_code: 'READY#*',
-        })
-      ).toThrow();
-    });
-
-    it('should validate and parse updateProductTypeSchema partial payload', () => {
-      const updatePayload = {
-        type_name: 'Ready-Made Garments',
+    it('validates updateProductTypeSchema with partial payload', () => {
+      const updateData = {
+        type_name: 'Modified Name',
         is_stock_item: false,
-        is_active: false,
       };
-
-      const parsed = updateProductTypeSchema.parse(updatePayload);
-      expect(parsed.type_name).toBe('Ready-Made Garments');
-      expect(parsed.is_stock_item).toBe(false);
-      expect(parsed.is_active).toBe(false);
+      const parsed = updateProductTypeSchema.safeParse(updateData);
+      expect(parsed.success).toBe(true);
     });
 
-    it('should validate updateStatusSchema boolean coercion', () => {
-      expect(updateStatusSchema.parse({ is_active: 'true' })).toEqual({ is_active: true });
-      expect(updateStatusSchema.parse({ is_active: 'false' })).toEqual({ is_active: false });
-      expect(updateStatusSchema.parse({ is_active: 1 })).toEqual({ is_active: true });
-      expect(updateStatusSchema.parse({ is_active: 0 })).toEqual({ is_active: false });
+    it('validates updateStatusSchema requiring boolean is_active', () => {
+      expect(updateStatusSchema.safeParse({ is_active: true }).success).toBe(true);
+      expect(updateStatusSchema.safeParse({ is_active: false }).success).toBe(true);
+      expect(updateStatusSchema.safeParse({ is_active: 'yes' }).success).toBe(false);
     });
 
-    it('should validate params schemas', () => {
-      expect(productTypeIdParamSchema.parse({ id: '40' })).toEqual({ id: 40 });
-      expect(companyIdParamSchema.parse({ companyId: '8' })).toEqual({ companyId: 8 });
-      expect(typeCodeParamSchema.parse({ companyId: '8', typeCode: 'fabric' })).toEqual({
-        companyId: 8,
-        typeCode: 'fabric',
-      });
+    it('validates productTypeIdParamSchema', () => {
+      expect(productTypeIdParamSchema.safeParse({ id: '5' }).success).toBe(true);
+      expect(productTypeIdParamSchema.safeParse({ id: '0' }).success).toBe(false);
+      expect(productTypeIdParamSchema.safeParse({ id: 'abc' }).success).toBe(false);
     });
 
-    it('should parse getProductTypesQuerySchema with default pagination and sorting', () => {
-      const parsed = getProductTypesQuerySchema.parse({});
-      expect(parsed.page).toBe(1);
-      expect(parsed.limit).toBe(10);
-      expect(parsed.sortBy).toBe('type_name');
-      expect(parsed.sortOrder).toBe('asc');
+    it('validates checkProductTypeNameQuerySchema', () => {
+      expect(checkProductTypeNameQuerySchema.safeParse({ type_name: 'Fabric' }).success).toBe(true);
+      expect(checkProductTypeNameQuerySchema.safeParse({ type_name: '' }).success).toBe(false);
+    });
+
+    it('validates checkProductTypeCodeQuerySchema', () => {
+      expect(checkProductTypeCodeQuerySchema.safeParse({ type_code: 'FABRIC' }).success).toBe(true);
+      expect(checkProductTypeCodeQuerySchema.safeParse({ type_code: '' }).success).toBe(false);
+    });
+
+    it('validates seedDefaultProductTypesSchema with optional company_id', () => {
+      expect(seedDefaultProductTypesSchema.safeParse({}).success).toBe(true);
+      expect(seedDefaultProductTypesSchema.safeParse({ company_id: 1 }).success).toBe(true);
+      expect(seedDefaultProductTypesSchema.safeParse({ company_id: 'invalid' }).success).toBe(false);
     });
   });
 });

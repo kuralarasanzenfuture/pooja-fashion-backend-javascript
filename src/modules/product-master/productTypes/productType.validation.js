@@ -16,7 +16,8 @@ export const createProductTypeSchema = z.object({
   company_id: z.coerce
     .number()
     .int('Company ID must be an integer')
-    .positive('Company ID must be a positive number'),
+    .positive('Company ID must be a positive number')
+    .optional(),
   type_code: z
     .string()
     .trim()
@@ -78,9 +79,11 @@ export const companyIdParamSchema = z.object({
 });
 
 export const typeCodeParamSchema = z.object({
-  companyId: z.coerce.number().int().positive('Company ID must be a positive integer'),
+  companyId: z.coerce.number().int().positive().optional(),
   typeCode: z.string().trim().min(1, 'Type code is required'),
 });
+
+export const productTypeCodeParamSchema = typeCodeParamSchema;
 
 export const getProductTypesQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -98,6 +101,56 @@ export const getProductTypesQuerySchema = z.object({
   sortOrder: z.enum(['asc', 'desc', 'ASC', 'DESC']).default('asc'),
 });
 
+export const getAllProductTypesQuerySchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+  is_stock_item: z.preprocess(optionalBooleanPreprocess, z.boolean().optional()).optional(),
+  is_saleable: z.preprocess(optionalBooleanPreprocess, z.boolean().optional()).optional(),
+  is_purchasable: z.preprocess(optionalBooleanPreprocess, z.boolean().optional()).optional(),
+  is_active: z.preprocess(optionalBooleanPreprocess, z.boolean().optional()).optional(),
+  search: z.string().trim().optional(),
+  sortBy: z.enum(['id', 'type_code', 'type_name', 'created_at']).default('type_name'),
+  sortOrder: z.enum(['asc', 'desc', 'ASC', 'DESC']).default('asc'),
+});
+
+export const getProductTypeStatsQuerySchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+});
+
+export const checkProductTypeNameQuerySchema = z
+  .object({
+    company_id: z.coerce.number().int().positive().optional(),
+    companyId: z.coerce.number().int().positive().optional(),
+    name: z.string().trim().optional(),
+    type_name: z.string().trim().optional(),
+    excludeId: z.coerce.number().int().positive().optional(),
+    exclude_id: z.coerce.number().int().positive().optional(),
+  })
+  .refine((data) => (data.name && data.name.length > 0) || (data.type_name && data.type_name.length > 0), {
+    message: 'Product type name is required',
+    path: ['name'],
+  });
+
+export const checkProductTypeCodeQuerySchema = z
+  .object({
+    company_id: z.coerce.number().int().positive().optional(),
+    companyId: z.coerce.number().int().positive().optional(),
+    code: z.string().trim().optional(),
+    type_code: z.string().trim().optional(),
+    excludeId: z.coerce.number().int().positive().optional(),
+    exclude_id: z.coerce.number().int().positive().optional(),
+  })
+  .refine((data) => (data.code && data.code.length > 0) || (data.type_code && data.type_code.length > 0), {
+    message: 'Product type code is required',
+    path: ['code'],
+  });
+
+export const seedDefaultProductTypesSchema = z.object({
+  company_id: z.coerce.number().int().positive().optional(),
+  companyId: z.coerce.number().int().positive().optional(),
+});
+
 export default {
   createProductTypeSchema,
   updateProductTypeSchema,
@@ -106,4 +159,9 @@ export default {
   companyIdParamSchema,
   typeCodeParamSchema,
   getProductTypesQuerySchema,
+  getAllProductTypesQuerySchema,
+  getProductTypeStatsQuerySchema,
+  checkProductTypeNameQuerySchema,
+  checkProductTypeCodeQuerySchema,
+  seedDefaultProductTypesSchema,
 };

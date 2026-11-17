@@ -12,6 +12,7 @@ import { seedSizes } from './seeders/size.seeder.js';
 import { seedColors } from './seeders/color.seeder.js';
 import { seedMaterials } from './seeders/material.seeder.js';
 import { seedUnits } from './seeders/unit.seeder.js';
+import { seedProductTypes } from './seeders/productType.seeder.js';
 
 const runSeeders = async () => {
   console.log('🌱 [SEEDER] Starting database seeding process...');
@@ -96,6 +97,13 @@ const runSeeders = async () => {
     const unitStats = await seedUnits();
     console.log(
       `✅ [SEEDER:UNITS] ${unitStats.totalUnitsSeeded} units seeded across ${unitStats.totalCompanies} company/companies.`
+    );
+
+    // Step 11: Product Master Product Types (All Existing Companies)
+    console.log('\n--- 11. Seeding Product Master Product Types for All Companies ---');
+    const productTypeStats = await seedProductTypes();
+    console.log(
+      `✅ [SEEDER:PRODUCT_TYPES] ${productTypeStats.totalProductTypesSeeded} product types seeded across ${productTypeStats.totalCompanies} company/companies.`
     );
 
     const elapsedMs = Date.now() - startTime;
