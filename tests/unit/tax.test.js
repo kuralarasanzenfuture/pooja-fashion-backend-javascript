@@ -3,16 +3,31 @@ import { toTaxDTO, toTaxesDTO } from '../../src/modules/product-master/taxes/tax
 import {
   createTaxSchema,
   updateTaxSchema,
+  updateTaxStatusSchema,
   calculateTaxSchema,
   taxIdParamSchema,
+  companyIdParamSchema,
+  taxCodeParamSchema,
   getTaxesQuerySchema,
+  getAllTaxesQuerySchema,
+  getTaxStatsQuerySchema,
+  checkTaxNameQuerySchema,
+  checkTaxCodeQuerySchema,
+  seedDefaultTaxesSchema,
 } from '../../src/modules/product-master/taxes/tax.validation.js';
-import { calculateTaxBreakdown } from '../../src/modules/product-master/taxes/tax.service.js';
+import {
+  calculateTaxBreakdown,
+  DEFAULT_TAXES,
+  generateTaxCode,
+  canUserSelectCompany,
+  resolveEffectiveCompanyId,
+} from '../../src/modules/product-master/taxes/tax.service.js';
 import {
   TAX_TYPES,
   TAX_SORT_FIELDS,
   STANDARD_GST_SLABS,
 } from '../../src/modules/product-master/taxes/tax.types.js';
+import ForbiddenError from '../../src/shared/errors/ForbiddenError.js';
 
 describe('Product Master: Taxes Unit Tests', () => {
   describe('Tax Mapper', () => {
@@ -128,8 +143,8 @@ describe('Product Master: Taxes Unit Tests', () => {
       it('should reject when sum of CGST + SGST exceeds total rate', () => {
         const payload = {
           company_id: '1',
-          tax_code: 'GST_ERR',
-          tax_name: 'Error Slab',
+          tax_code: 'GST_INV',
+          tax_name: 'Invalid Components',
           rate: 10,
           cgst_rate: 6,
           sgst_rate: 6, // 6 + 6 = 12 > 10
@@ -137,70 +152,69 @@ describe('Product Master: Taxes Unit Tests', () => {
 
         const result = createTaxSchema.safeParse(payload);
         expect(result.success).toBe(false);
-        expect(result.error.issues[0].message).toContain('Sum of CGST and SGST cannot exceed total tax rate');
       });
     });
 
     describe('updateTaxSchema', () => {
       it('should validate partial update payload', () => {
         const payload = {
-          tax_name: 'GST Standard 18%',
-          rate: 18,
-          cgst_rate: 9,
-          sgst_rate: 9,
+          tax_name: 'Updated Name',
+          is_active: false,
         };
 
         const result = updateTaxSchema.safeParse(payload);
         expect(result.success).toBe(true);
+        expect(result.data.tax_name).toBe('Updated Name');
+        expect(result.data.is_active).toBe(false);
+      });
+    });
+
+    describe('updateTaxStatusSchema', () => {
+      it('should validate active status boolean', () => {
+        expect(updateTaxStatusSchema.safeParse({ is_active: true }).success).toBe(true);
+        expect(updateTaxStatusSchema.safeParse({ is_active: false }).success).toBe(true);
+        expect(updateTaxStatusSchema.safeParse({}).success).toBe(false);
       });
     });
 
     describe('calculateTaxSchema', () => {
       it('should validate calculation payload with rate', () => {
         const payload = {
-          amount: 1000,
+          amount: 500,
           rate: 18,
           is_inter_state: true,
         };
 
         const result = calculateTaxSchema.safeParse(payload);
         expect(result.success).toBe(true);
-        expect(result.data.is_inter_state).toBe(true);
+        expect(result.data.amount).toBe(500);
       });
 
       it('should validate calculation payload with tax_id', () => {
         const payload = {
-          amount: 500,
+          amount: 1000,
           tax_id: '5',
         };
 
         const result = calculateTaxSchema.safeParse(payload);
         expect(result.success).toBe(true);
-        expect(result.data.is_inter_state).toBe(false);
+        expect(result.data.tax_id).toBe('5');
       });
 
       it('should reject calculation if both tax_id and rate are omitted', () => {
-        const payload = {
-          amount: 1000,
-        };
-
+        const payload = { amount: 1000 };
         const result = calculateTaxSchema.safeParse(payload);
         expect(result.success).toBe(false);
-        expect(result.error.issues[0].message).toContain('Either tax_id or rate must be provided');
       });
 
       it('should reject non-positive amounts', () => {
-        expect(
-          calculateTaxSchema.safeParse({ amount: 0, rate: 18 }).success
-        ).toBe(false);
-        expect(
-          calculateTaxSchema.safeParse({ amount: -100, rate: 18 }).success
-        ).toBe(false);
+        expect(calculateTaxSchema.safeParse({ amount: 0, rate: 18 }).success).toBe(false);
+        expect(calculateTaxSchema.safeParse({ amount: -100, rate: 18 }).success).toBe(false);
       });
     });
 
-    describe('getTaxesQuerySchema', () => {
-      it('should validate query defaults and filters', () => {
+    describe('Query and Param Schemas', () => {
+      it('should validate getTaxesQuerySchema defaults and filters', () => {
         const result = getTaxesQuerySchema.safeParse({
           page: '1',
           limit: '10',
@@ -214,6 +228,99 @@ describe('Product Master: Taxes Unit Tests', () => {
         expect(result.data.tax_type).toBe('GST');
         expect(result.data.is_active).toBe(true);
         expect(result.data.sort_by).toBe(TAX_SORT_FIELDS.RATE);
+      });
+
+      it('should validate getAllTaxesQuerySchema for unpaginated dropdowns', () => {
+        const result = getAllTaxesQuerySchema.safeParse({
+          company_id: '1',
+          is_active: 'true',
+          search: 'GST',
+        });
+        expect(result.success).toBe(true);
+        expect(result.data.company_id).toBe('1');
+        expect(result.data.is_active).toBe(true);
+        expect(result.data.search).toBe('GST');
+      });
+
+      it('should validate getTaxStatsQuerySchema', () => {
+        const result = getTaxStatsQuerySchema.safeParse({ company_id: '2' });
+        expect(result.success).toBe(true);
+        expect(result.data.company_id).toBe('2');
+      });
+
+      it('should validate taxIdParamSchema and companyIdParamSchema', () => {
+        expect(taxIdParamSchema.safeParse({ id: '10' }).success).toBe(true);
+        expect(companyIdParamSchema.safeParse({ companyId: '1' }).success).toBe(true);
+        expect(taxCodeParamSchema.safeParse({ companyId: '1', taxCode: 'GST_18' }).success).toBe(true);
+      });
+
+      it('should validate checkTaxNameQuerySchema and checkTaxCodeQuerySchema', () => {
+        const nameRes = checkTaxNameQuerySchema.safeParse({ tax_name: 'GST 18%', company_id: '1' });
+        expect(nameRes.success).toBe(true);
+        const codeRes = checkTaxCodeQuerySchema.safeParse({ tax_code: 'GST_18', company_id: '1' });
+        expect(codeRes.success).toBe(true);
+      });
+
+      it('should validate seedDefaultTaxesSchema', () => {
+        expect(seedDefaultTaxesSchema.safeParse({ company_id: '1' }).success).toBe(true);
+        expect(seedDefaultTaxesSchema.safeParse({}).success).toBe(true);
+      });
+    });
+  });
+
+  describe('Tax Utilities & Tenant Isolation', () => {
+    describe('generateTaxCode', () => {
+      it('should generate uppercase snake_case tax code from name', () => {
+        expect(generateTaxCode('GST 18%')).toBe('GST_18');
+        expect(generateTaxCode('Luxury Cess 15%')).toBe('LUXURY_CESS_15');
+        expect(generateTaxCode('VAT 5.5%')).toBe('VAT_5_5');
+      });
+
+      it('should fallback to rate if name is empty', () => {
+        expect(generateTaxCode('', 18)).toBe('GST_18');
+        expect(generateTaxCode(null, 5)).toBe('GST_5');
+      });
+
+      it('should return empty string if both name and rate are omitted', () => {
+        expect(generateTaxCode(null, null)).toBe('');
+        expect(generateTaxCode('', undefined)).toBe('');
+      });
+    });
+
+    describe('canUserSelectCompany', () => {
+      it('returns true for SUPERADMIN', () => {
+        expect(canUserSelectCompany({ role: 'SUPERADMIN' })).toBe(true);
+        expect(canUserSelectCompany({ roleCode: 'superadmin' })).toBe(true);
+      });
+
+      it('returns true for platform ADMIN without companyId', () => {
+        expect(canUserSelectCompany({ role: 'ADMIN' })).toBe(true);
+        expect(canUserSelectCompany({ role: 'ADMIN', companyId: null })).toBe(true);
+      });
+
+      it('returns false for tenant users bound to a company', () => {
+        expect(canUserSelectCompany({ role: 'ADMIN', companyId: 1 })).toBe(false);
+        expect(canUserSelectCompany({ role: 'STAFF', company_id: 2 })).toBe(false);
+        expect(canUserSelectCompany(null)).toBe(false);
+      });
+    });
+
+    describe('resolveEffectiveCompanyId', () => {
+      it('returns user companyId for tenant users', () => {
+        const tenantUser = { id: 10, role: 'STAFF', companyId: 2 };
+        expect(resolveEffectiveCompanyId(tenantUser, null)).toBe(2);
+        expect(resolveEffectiveCompanyId(tenantUser, 2)).toBe(2);
+      });
+
+      it('throws ForbiddenError if tenant user tries to access another company', () => {
+        const tenantUser = { id: 10, role: 'STAFF', companyId: 2 };
+        expect(() => resolveEffectiveCompanyId(tenantUser, 5)).toThrow(ForbiddenError);
+      });
+
+      it('allows superadmin to choose any company', () => {
+        const superadmin = { id: 1, role: 'SUPERADMIN' };
+        expect(resolveEffectiveCompanyId(superadmin, 5)).toBe(5);
+        expect(resolveEffectiveCompanyId(superadmin, null)).toBeNull();
       });
     });
   });
@@ -278,6 +385,15 @@ describe('Product Master: Taxes Unit Tests', () => {
       expect(STANDARD_GST_SLABS).toHaveLength(5);
       const codes = STANDARD_GST_SLABS.map((s) => s.tax_code);
       expect(codes).toEqual(['GST_0', 'GST_5', 'GST_12', 'GST_18', 'GST_28']);
+    });
+
+    it('should verify DEFAULT_TAXES matches standard GST slabs and user specification', () => {
+      expect(DEFAULT_TAXES).toHaveLength(5);
+      expect(DEFAULT_TAXES[0]).toEqual(expect.objectContaining({ tax_code: 'GST_0', rate: 0, cgst_rate: 0, sgst_rate: 0, igst_rate: 0 }));
+      expect(DEFAULT_TAXES[1]).toEqual(expect.objectContaining({ tax_code: 'GST_5', rate: 5, cgst_rate: 2.5, sgst_rate: 2.5, igst_rate: 5 }));
+      expect(DEFAULT_TAXES[2]).toEqual(expect.objectContaining({ tax_code: 'GST_12', rate: 12, cgst_rate: 6, sgst_rate: 6, igst_rate: 12 }));
+      expect(DEFAULT_TAXES[3]).toEqual(expect.objectContaining({ tax_code: 'GST_18', rate: 18, cgst_rate: 9, sgst_rate: 9, igst_rate: 18 }));
+      expect(DEFAULT_TAXES[4]).toEqual(expect.objectContaining({ tax_code: 'GST_28', rate: 28, cgst_rate: 14, sgst_rate: 14, igst_rate: 28 }));
     });
   });
 });

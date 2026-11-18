@@ -96,6 +96,11 @@ export const createTax = async (taxData, client = null) => {
 };
 
 /**
+ * Alias for createTax
+ */
+export const create = createTax;
+
+/**
  * Finds a tax by ID
  */
 export const findTaxById = async (id, client = null) => {
@@ -104,6 +109,11 @@ export const findTaxById = async (id, client = null) => {
   const result = await db.query(query, [id]);
   return result.rows[0] || null;
 };
+
+/**
+ * Alias for findTaxById
+ */
+export const findById = findTaxById;
 
 /**
  * Finds a tax by unique code within company
@@ -121,6 +131,11 @@ export const findTaxByCode = async (companyId, taxCode, excludeId = null, client
 };
 
 /**
+ * Alias for findTaxByCode
+ */
+export const findByCode = findTaxByCode;
+
+/**
  * Finds a tax by unique name within company
  */
 export const findTaxByName = async (companyId, taxName, excludeId = null, client = null) => {
@@ -133,6 +148,46 @@ export const findTaxByName = async (companyId, taxName, excludeId = null, client
   `;
   const result = await db.query(query, [companyId, taxName, excludeId]);
   return result.rows[0] || null;
+};
+
+/**
+ * Checks if tax code already exists for company
+ */
+export const existsByCode = async (companyId, taxCode, excludeId = null, client = null) => {
+  const db = client || getPool();
+  let query = `
+    SELECT 1 FROM taxes 
+    WHERE company_id = $1 AND LOWER(tax_code) = LOWER($2)
+  `;
+  const values = [companyId, taxCode];
+
+  if (excludeId) {
+    query += ' AND id <> $3';
+    values.push(excludeId);
+  }
+
+  const result = await db.query(query, values);
+  return result.rowCount > 0;
+};
+
+/**
+ * Checks if tax name already exists for company
+ */
+export const existsByName = async (companyId, taxName, excludeId = null, client = null) => {
+  const db = client || getPool();
+  let query = `
+    SELECT 1 FROM taxes 
+    WHERE company_id = $1 AND LOWER(tax_name) = LOWER($2)
+  `;
+  const values = [companyId, taxName];
+
+  if (excludeId) {
+    query += ' AND id <> $3';
+    values.push(excludeId);
+  }
+
+  const result = await db.query(query, values);
+  return result.rowCount > 0;
 };
 
 /**
@@ -183,12 +238,12 @@ export const findTaxes = async (filters = {}) => {
     values.push(tax_type);
   }
 
-  if (is_active !== undefined) {
+  if (is_active !== undefined && is_active !== null) {
     conditions.push(`t.is_active = $${paramIndex++}`);
     values.push(is_active);
   }
 
-  if (is_inclusive !== undefined) {
+  if (is_inclusive !== undefined && is_inclusive !== null) {
     conditions.push(`t.is_inclusive = $${paramIndex++}`);
     values.push(is_inclusive);
   }
@@ -259,11 +314,134 @@ export const findTaxes = async (filters = {}) => {
 };
 
 /**
+ * Finds all taxes without pagination (for dropdowns / selectors)
+ */
+export const findAllUnpaginated = async ({
+  companyId = null,
+  isActive = null,
+  taxType = null,
+  search = null,
+  sortBy = 'rate',
+  sortOrder = 'ASC',
+} = {}) => {
+  const pool = getPool();
+  const conditions = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (companyId !== null && companyId !== undefined) {
+    conditions.push(`t.company_id = $${paramIndex++}`);
+    values.push(companyId);
+  }
+
+  if (isActive !== null && isActive !== undefined) {
+    conditions.push(`t.is_active = $${paramIndex++}`);
+    values.push(isActive);
+  }
+
+  if (taxType) {
+    conditions.push(`t.tax_type = $${paramIndex++}`);
+    values.push(taxType);
+  }
+
+  if (search) {
+    conditions.push(
+      `(t.tax_code ILIKE $${paramIndex} OR t.tax_name ILIKE $${paramIndex} OR t.tax_type ILIKE $${paramIndex})`
+    );
+    values.push(`%${search}%`);
+    paramIndex++;
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const validSortColumns = {
+    [TAX_SORT_FIELDS.ID]: 't.id',
+    [TAX_SORT_FIELDS.TAX_CODE]: 't.tax_code',
+    [TAX_SORT_FIELDS.TAX_NAME]: 't.tax_name',
+    [TAX_SORT_FIELDS.RATE]: 't.rate',
+    [TAX_SORT_FIELDS.CREATED_AT]: 't.created_at',
+  };
+  const sortColumn = validSortColumns[sortBy] || 't.rate';
+  const order = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+
+  const query = `
+    ${SELECT_TAX_BASE}
+    ${whereClause}
+    ORDER BY ${sortColumn} ${order}, t.tax_name ASC
+  `;
+
+  const result = await pool.query(query, values);
+  return result.rows;
+};
+
+/**
+ * Alias for findAllUnpaginated scoped to company
+ */
+export const findAllByCompany = async (companyId, options = {}) => {
+  return findAllUnpaginated({
+    companyId,
+    isActive: options.isActive,
+    taxType: options.taxType,
+    search: options.search,
+    sortBy: options.sortBy,
+    sortOrder: options.sortOrder,
+  });
+};
+
+/**
+ * Finds all taxes for a company
+ */
+export const findByCompanyId = async (companyId, options = {}) => {
+  return findAllByCompany(companyId, options);
+};
+
+/**
+ * Gets aggregate statistics for taxes for a company
+ */
+export const getTaxStats = async (companyId = null) => {
+  const pool = getPool();
+  const conditions = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (companyId !== null && companyId !== undefined) {
+    conditions.push(`company_id = $${paramIndex++}`);
+    values.push(companyId);
+  }
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const query = `
+    SELECT 
+      COUNT(*) AS total_taxes,
+      COUNT(*) FILTER (WHERE is_active = TRUE) AS active_taxes,
+      COUNT(*) FILTER (WHERE is_active = FALSE) AS inactive_taxes,
+      COUNT(*) FILTER (WHERE tax_type = 'GST') AS gst_taxes,
+      COUNT(*) FILTER (WHERE is_inclusive = TRUE) AS inclusive_taxes,
+      COALESCE(AVG(rate), 0) AS average_rate
+    FROM taxes
+    ${whereClause}
+  `;
+
+  const res = await pool.query(query, values);
+  const row = res.rows[0] || {};
+
+  return {
+    totalTaxes: parseInt(row.total_taxes || 0, 10),
+    activeTaxes: parseInt(row.active_taxes || 0, 10),
+    inactiveTaxes: parseInt(row.inactive_taxes || 0, 10),
+    gstTaxes: parseInt(row.gst_taxes || 0, 10),
+    inclusiveTaxes: parseInt(row.inclusive_taxes || 0, 10),
+    averageRate: parseFloat(Number(row.average_rate || 0).toFixed(2)),
+  };
+};
+
+/**
  * Updates an existing tax record
  */
 export const updateTax = async (id, updateData, client = null) => {
   const db = client || getPool();
   const allowedFields = [
+    'company_id',
     'tax_code',
     'tax_name',
     'tax_type',
@@ -307,6 +485,11 @@ export const updateTax = async (id, updateData, client = null) => {
 
   return findTaxById(id, db);
 };
+
+/**
+ * Alias for updateTax
+ */
+export const update = updateTax;
 
 /**
  * Deletes a tax record

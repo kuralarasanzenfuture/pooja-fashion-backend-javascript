@@ -13,6 +13,7 @@ import { seedColors } from './seeders/color.seeder.js';
 import { seedMaterials } from './seeders/material.seeder.js';
 import { seedUnits } from './seeders/unit.seeder.js';
 import { seedProductTypes } from './seeders/productType.seeder.js';
+import { seedTaxes } from './seeders/tax.seeder.js';
 
 const runSeeders = async () => {
   console.log('🌱 [SEEDER] Starting database seeding process...');
@@ -104,6 +105,13 @@ const runSeeders = async () => {
     const productTypeStats = await seedProductTypes();
     console.log(
       `✅ [SEEDER:PRODUCT_TYPES] ${productTypeStats.totalProductTypesSeeded} product types seeded across ${productTypeStats.totalCompanies} company/companies.`
+    );
+
+    // Step 12: Product Master Taxes (All Existing Companies)
+    console.log('\n--- 12. Seeding Product Master Taxes for All Companies ---');
+    const taxStats = await seedTaxes();
+    console.log(
+      `✅ [SEEDER:TAXES] ${taxStats.totalTaxesSeeded} taxes seeded across ${taxStats.totalCompanies} company/companies.`
     );
 
     const elapsedMs = Date.now() - startTime;

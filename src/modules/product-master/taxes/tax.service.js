@@ -4,6 +4,88 @@ import { toTaxDTO, toTaxesDTO } from './tax.mapper.js';
 import { STANDARD_GST_SLABS } from './tax.types.js';
 import NotFoundError from '../../../shared/errors/NotFoundError.js';
 import BadRequestError from '../../../shared/errors/BadRequestError.js';
+import ForbiddenError from '../../../shared/errors/ForbiddenError.js';
+import { getPaginationParams, formatPaginationMeta } from '../../../shared/utils/pagination.js';
+import { recordAuditLog } from '../../auditLogs/auditLog.service.js';
+import {
+  generateTaxCode,
+  toSlug,
+  canUserSelectCompany,
+  resolveEffectiveCompanyId,
+} from './utils/index.js';
+
+export {
+  generateTaxCode,
+  toSlug,
+  canUserSelectCompany,
+  resolveEffectiveCompanyId,
+};
+
+/**
+ * Standard default Indian GST slabs (0%, 5%, 12%, 18%, 28%)
+ */
+export const DEFAULT_TAXES = [
+  {
+    tax_code: 'GST_0',
+    tax_name: 'GST 0%',
+    tax_type: 'GST',
+    rate: 0,
+    cgst_rate: 0,
+    sgst_rate: 0,
+    igst_rate: 0,
+    cess_rate: 0,
+    is_inclusive: false,
+    is_active: true,
+  },
+  {
+    tax_code: 'GST_5',
+    tax_name: 'GST 5%',
+    tax_type: 'GST',
+    rate: 5.0,
+    cgst_rate: 2.5,
+    sgst_rate: 2.5,
+    igst_rate: 5.0,
+    cess_rate: 0,
+    is_inclusive: false,
+    is_active: true,
+  },
+  {
+    tax_code: 'GST_12',
+    tax_name: 'GST 12%',
+    tax_type: 'GST',
+    rate: 12.0,
+    cgst_rate: 6.0,
+    sgst_rate: 6.0,
+    igst_rate: 12.0,
+    cess_rate: 0,
+    is_inclusive: false,
+    is_active: true,
+  },
+  {
+    tax_code: 'GST_18',
+    tax_name: 'GST 18%',
+    tax_type: 'GST',
+    rate: 18.0,
+    cgst_rate: 9.0,
+    sgst_rate: 9.0,
+    igst_rate: 18.0,
+    cess_rate: 0,
+    is_inclusive: false,
+    is_active: true,
+  },
+  {
+    tax_code: 'GST_28',
+    tax_name: 'GST 28%',
+    tax_type: 'GST',
+    rate: 28.0,
+    cgst_rate: 14.0,
+    sgst_rate: 14.0,
+    igst_rate: 28.0,
+    cess_rate: 0,
+    is_inclusive: false,
+    is_active: true,
+  },
+];
 
 /**
  * Normalizes and computes component tax rates for GST
@@ -31,11 +113,24 @@ const resolveGstComponentRates = (rate, cgstRate, sgstRate, igstRate, taxType = 
 /**
  * Creates a new tax record
  */
-export const createTax = async (data, userId = null) => {
+export const createTax = async (data, user = null, requestContext = null) => {
+  const effectiveCompanyId = resolveEffectiveCompanyId(user, data.company_id || data.companyId);
+  if (!effectiveCompanyId) {
+    throw new BadRequestError('Company ID is required to create a tax');
+  }
+
   // Check if company exists
-  const company = await companyRepo.findById(data.company_id);
+  const company = await companyRepo.findById(effectiveCompanyId);
   if (!company) {
-    throw new NotFoundError(`Company with ID ${data.company_id} not found`);
+    throw new NotFoundError(`Company with ID ${effectiveCompanyId} not found`);
+  }
+
+  data.company_id = effectiveCompanyId;
+
+  if (!data.tax_code || !String(data.tax_code).trim()) {
+    data.tax_code = generateTaxCode(data.tax_name, data.rate);
+  } else {
+    data.tax_code = String(data.tax_code).trim().toUpperCase();
   }
 
   // Check code uniqueness
@@ -58,6 +153,8 @@ export const createTax = async (data, userId = null) => {
     data.tax_type
   );
 
+  const userId = user?.id || data.created_by || null;
+
   const created = await taxRepo.createTax({
     ...data,
     cgst_rate,
@@ -66,49 +163,224 @@ export const createTax = async (data, userId = null) => {
     created_by: userId,
   });
 
-  return toTaxDTO(created);
+  const dto = toTaxDTO(created);
+
+  await recordAuditLog({
+    action: 'CREATE',
+    module: 'taxes',
+    entityType: 'Tax',
+    entityId: created.id,
+    entityName: created.tax_name,
+    companyId: created.company_id,
+    userId,
+    description: `Tax "${created.tax_name}" (Code: ${created.tax_code}, Rate: ${created.rate}%) created`,
+    oldData: null,
+    newData: created,
+    requestContext,
+  });
+
+  return dto;
 };
 
 /**
- * Gets taxes with filters and pagination
+ * Gets taxes with filters, pagination, and multi-tenant isolation
  */
-export const getTaxes = async (filters) => {
+export const getTaxes = async (query = {}, user = null) => {
+  const { page, limit, sortBy, sortOrder, search } = getPaginationParams(query);
+  const companyId = resolveEffectiveCompanyId(user, query.company_id || query.companyId);
+
+  const filters = {
+    ...query,
+    page,
+    limit,
+    sort_by: sortBy || query.sort_by,
+    sort_order: sortOrder || query.sort_order,
+    search: search || query.search,
+    company_id: companyId,
+  };
+
   const result = await taxRepo.findTaxes(filters);
+  const meta = formatPaginationMeta(result.pagination.total, page, limit);
+
   return {
     taxes: toTaxesDTO(result.taxes),
     pagination: result.pagination,
+    meta,
   };
 };
 
 /**
- * Gets a single tax by ID
+ * Gets all taxes without pagination (for dropdowns / selectors)
  */
-export const getTaxById = async (id) => {
+export const getAllTaxes = async (query = {}, user = null) => {
+  const companyId = resolveEffectiveCompanyId(user, query.company_id || query.companyId);
+  const isActive = query.is_active !== undefined ? query.is_active : null;
+  const taxType = query.tax_type ? String(query.tax_type).trim().toUpperCase() : null;
+  const search = query.search ? String(query.search).trim() : null;
+  const sortBy = query.sort_by || query.sortBy || 'rate';
+  const sortOrder = query.sort_order || query.sortOrder || 'asc';
+
+  const rows = await taxRepo.findAllUnpaginated({
+    companyId,
+    isActive,
+    taxType,
+    search,
+    sortBy,
+    sortOrder,
+  });
+
+  return toTaxesDTO(rows);
+};
+
+/**
+ * Alias for getAllTaxes
+ */
+export const getAllUnpaginated = getAllTaxes;
+
+/**
+ * Gets tax aggregate statistics for a company
+ */
+export const getTaxStats = async (query = {}, user = null) => {
+  const companyId = resolveEffectiveCompanyId(user, query.company_id || query.companyId);
+  return taxRepo.getTaxStats(companyId);
+};
+
+/**
+ * Gets a single tax by ID with tenant isolation check
+ */
+export const getTaxById = async (id, user = null) => {
   const tax = await taxRepo.findTaxById(id);
   if (!tax) {
     throw new NotFoundError('Tax not found');
+  }
+
+  if (!canUserSelectCompany(user) && user) {
+    const userCompId = user.companyId || user.company_id;
+    if (userCompId && Number(tax.company_id) !== Number(userCompId)) {
+      throw new ForbiddenError('You do not have permission to view taxes for another company');
+    }
+  }
+
+  return toTaxDTO(tax);
+};
+
+/**
+ * Gets a tax by company ID and tax code
+ */
+export const getTaxByCode = async (companyId, taxCode, user = null) => {
+  const effectiveCompanyId = resolveEffectiveCompanyId(user, companyId);
+  const tax = await taxRepo.findTaxByCode(effectiveCompanyId, taxCode);
+  if (!tax) {
+    throw new NotFoundError(
+      `Tax with code '${taxCode}' not found for company ${effectiveCompanyId}`
+    );
   }
   return toTaxDTO(tax);
 };
 
 /**
+ * Gets all taxes for a specific company
+ */
+export const getTaxesByCompanyId = async (companyId, options = {}, user = null) => {
+  const effectiveCompanyId = resolveEffectiveCompanyId(user, companyId);
+  const company = await companyRepo.findById(effectiveCompanyId);
+  if (!company) {
+    throw new NotFoundError(`Company with ID ${effectiveCompanyId} not found`);
+  }
+
+  const rows = await taxRepo.findByCompanyId(effectiveCompanyId, options);
+  return toTaxesDTO(rows);
+};
+
+/**
+ * Checks whether a tax name already exists for a company
+ */
+export const checkTaxNameExists = async ({ name, tax_name = null, companyId = null, excludeId = null, user = null }) => {
+  const effectiveCompanyId = resolveEffectiveCompanyId(user, companyId);
+  if (!effectiveCompanyId) {
+    throw new BadRequestError('Company ID is required to check tax name');
+  }
+
+  const rawName = name || tax_name;
+  const trimmedName = String(rawName || '').trim();
+  if (!trimmedName) {
+    throw new BadRequestError('Tax name is required');
+  }
+
+  const exists = await taxRepo.existsByName(effectiveCompanyId, trimmedName, excludeId);
+  return {
+    exists,
+    message: exists
+      ? `Tax name '${trimmedName}' is already taken`
+      : `Tax name '${trimmedName}' is available`,
+    name: trimmedName,
+    companyId: effectiveCompanyId,
+  };
+};
+
+/**
+ * Checks whether a tax code already exists for a company
+ */
+export const checkTaxCodeExists = async ({ code, tax_code = null, companyId = null, excludeId = null, user = null }) => {
+  const effectiveCompanyId = resolveEffectiveCompanyId(user, companyId);
+  if (!effectiveCompanyId) {
+    throw new BadRequestError('Company ID is required to check tax code');
+  }
+
+  const rawCode = code || tax_code;
+  const trimmedCode = String(rawCode || '').trim().toUpperCase();
+  if (!trimmedCode) {
+    throw new BadRequestError('Tax code is required');
+  }
+
+  const exists = await taxRepo.existsByCode(effectiveCompanyId, trimmedCode, excludeId);
+  return {
+    exists,
+    message: exists
+      ? `Tax code '${trimmedCode}' is already taken`
+      : `Tax code '${trimmedCode}' is available`,
+    code: trimmedCode,
+    companyId: effectiveCompanyId,
+  };
+};
+
+/**
  * Updates an existing tax record
  */
-export const updateTax = async (id, data, userId = null) => {
+export const updateTax = async (id, data, user = null, requestContext = null) => {
   const existing = await taxRepo.findTaxById(id);
   if (!existing) {
     throw new NotFoundError('Tax not found');
   }
 
+  if (!canUserSelectCompany(user) && user) {
+    const userCompId = user.companyId || user.company_id;
+    if (userCompId && Number(existing.company_id) !== Number(userCompId)) {
+      throw new ForbiddenError('You do not have permission to update taxes for another company');
+    }
+  }
+
+  let targetCompanyId = Number(existing.company_id);
+  if (data.company_id && Number(data.company_id) !== Number(existing.company_id)) {
+    if (!canUserSelectCompany(user)) {
+      throw new ForbiddenError('You cannot reassign tax to another company');
+    }
+    const targetCompany = await companyRepo.findById(data.company_id);
+    if (!targetCompany) {
+      throw new NotFoundError(`Company with ID ${data.company_id} not found`);
+    }
+    targetCompanyId = Number(data.company_id);
+  }
+
   if (data.tax_code) {
-    const duplicateCode = await taxRepo.findTaxByCode(existing.company_id, data.tax_code, id);
+    const duplicateCode = await taxRepo.findTaxByCode(targetCompanyId, data.tax_code, id);
     if (duplicateCode) {
       throw new BadRequestError(`Tax with code '${data.tax_code}' already exists for this company`);
     }
   }
 
   if (data.tax_name) {
-    const duplicateName = await taxRepo.findTaxByName(existing.company_id, data.tax_name, id);
+    const duplicateName = await taxRepo.findTaxByName(targetCompanyId, data.tax_name, id);
     if (duplicateName) {
       throw new BadRequestError(`Tax with name '${data.tax_name}' already exists for this company`);
     }
@@ -128,39 +400,90 @@ export const updateTax = async (id, data, userId = null) => {
     );
   }
 
+  const userId = user?.id || data.updated_by || null;
+
   const updated = await taxRepo.updateTax(id, {
     ...data,
+    company_id: targetCompanyId,
     ...componentRates,
     updated_by: userId,
   });
 
-  return toTaxDTO(updated);
+  const dto = toTaxDTO(updated);
+
+  await recordAuditLog({
+    action: 'UPDATE',
+    module: 'taxes',
+    entityType: 'Tax',
+    entityId: id,
+    entityName: updated.tax_name,
+    companyId: updated.company_id,
+    userId,
+    description: `Tax "${updated.tax_name}" (Code: ${updated.tax_code}) updated`,
+    oldData: existing,
+    newData: updated,
+    requestContext,
+  });
+
+  return dto;
 };
 
 /**
  * Toggles active status of a tax
  */
-export const updateTaxStatus = async (id, isActive, userId = null) => {
+export const updateTaxStatus = async (id, isActive, user = null, requestContext = null) => {
   const existing = await taxRepo.findTaxById(id);
   if (!existing) {
     throw new NotFoundError('Tax not found');
   }
+
+  if (!canUserSelectCompany(user) && user) {
+    const userCompId = user.companyId || user.company_id;
+    if (userCompId && Number(existing.company_id) !== Number(userCompId)) {
+      throw new ForbiddenError('You do not have permission to update taxes for another company');
+    }
+  }
+
+  const userId = user?.id || null;
 
   const updated = await taxRepo.updateTax(id, {
     is_active: isActive,
     updated_by: userId,
   });
 
-  return toTaxDTO(updated);
+  const dto = toTaxDTO(updated);
+
+  await recordAuditLog({
+    action: 'STATUS_CHANGE',
+    module: 'taxes',
+    entityType: 'Tax',
+    entityId: id,
+    entityName: updated.tax_name,
+    companyId: updated.company_id,
+    userId,
+    description: `Tax "${updated.tax_name}" status changed to ${isActive ? 'Active' : 'Inactive'}`,
+    oldData: existing,
+    newData: updated,
+    requestContext,
+  });
+
+  return dto;
 };
 
 /**
  * Deletes a tax record if not in use
  */
-export const deleteTax = async (id) => {
+export const deleteTax = async (id, user = null, requestContext = null) => {
   const existing = await taxRepo.findTaxById(id);
   if (!existing) {
     throw new NotFoundError('Tax not found');
+  }
+
+  if (!canUserSelectCompany(user) && user) {
+    const userCompId = user.companyId || user.company_id;
+    if (userCompId && Number(existing.company_id) !== Number(userCompId)) {
+      throw new ForbiddenError('You do not have permission to delete taxes for another company');
+    }
   }
 
   const inUse = await taxRepo.isTaxInUse(id);
@@ -169,29 +492,67 @@ export const deleteTax = async (id) => {
   }
 
   await taxRepo.deleteTax(id);
+
+  await recordAuditLog({
+    action: 'DELETE',
+    module: 'taxes',
+    entityType: 'Tax',
+    entityId: id,
+    entityName: existing.tax_name,
+    companyId: existing.company_id,
+    userId: user?.id || null,
+    description: `Tax "${existing.tax_name}" (Code: ${existing.tax_code}) deleted`,
+    oldData: existing,
+    newData: null,
+    requestContext,
+  });
+
   return true;
 };
 
 /**
  * Seeds standard Indian GST slabs (0%, 5%, 12%, 18%, 28%) for a company
  */
-export const seedDefaultTaxes = async (companyId, userId = null) => {
-  const company = await companyRepo.findById(companyId);
-  if (!company) {
-    throw new NotFoundError(`Company with ID ${companyId} not found`);
+export const seedDefaultTaxes = async (companyId = null, user = null, requestContext = null) => {
+  const effectiveCompanyId = resolveEffectiveCompanyId(user, companyId);
+  if (!effectiveCompanyId) {
+    throw new BadRequestError('Company ID is required to seed taxes');
   }
 
+  const company = await companyRepo.findById(effectiveCompanyId);
+  if (!company) {
+    throw new NotFoundError(`Company with ID ${effectiveCompanyId} not found`);
+  }
+
+  const userId = user?.id || null;
   const seeded = [];
-  for (const slab of STANDARD_GST_SLABS) {
-    const existing = await taxRepo.findTaxByCode(companyId, slab.tax_code);
+
+  for (const slab of DEFAULT_TAXES) {
+    const existing = await taxRepo.findTaxByCode(effectiveCompanyId, slab.tax_code);
     if (!existing) {
       const created = await taxRepo.createTax({
         ...slab,
-        company_id: companyId,
+        company_id: effectiveCompanyId,
         created_by: userId,
       });
       seeded.push(toTaxDTO(created));
     }
+  }
+
+  if (seeded.length > 0) {
+    await recordAuditLog({
+      action: 'SEED',
+      module: 'taxes',
+      entityType: 'Tax',
+      entityId: effectiveCompanyId,
+      entityName: `Default GST Slabs for Company ${effectiveCompanyId}`,
+      companyId: effectiveCompanyId,
+      userId,
+      description: `Seeded ${seeded.length} standard GST taxes for company ${effectiveCompanyId}`,
+      oldData: null,
+      newData: seeded,
+      requestContext,
+    });
   }
 
   return {

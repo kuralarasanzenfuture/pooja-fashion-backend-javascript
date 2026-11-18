@@ -18,9 +18,14 @@ export const companyIdParamSchema = z.object({
   companyId: idSchema,
 });
 
+export const taxCodeParamSchema = z.object({
+  companyId: idSchema.optional(),
+  taxCode: z.string().trim().min(1, 'Tax code is required'),
+});
+
 export const createTaxSchema = z
   .object({
-    company_id: idSchema,
+    company_id: idSchema.optional(),
     tax_code: z
       .string()
       .trim()
@@ -61,6 +66,7 @@ export const createTaxSchema = z
 
 export const updateTaxSchema = z
   .object({
+    company_id: idSchema.optional(),
     tax_code: z
       .string()
       .trim()
@@ -142,4 +148,38 @@ export const getTaxesQuerySchema = z.object({
     .optional(),
   min_rate: rateSchema.optional(),
   max_rate: rateSchema.optional(),
+});
+
+export const getAllTaxesQuerySchema = z.object({
+  company_id: idSchema.optional(),
+  is_active: z
+    .enum(['true', 'false', 'TRUE', 'FALSE'])
+    .transform((val) => val.toLowerCase() === 'true')
+    .optional(),
+  tax_type: z.string().trim().toUpperCase().optional(),
+  search: z.string().trim().optional(),
+  sort_by: z.enum(Object.values(TAX_SORT_FIELDS)).default(TAX_SORT_FIELDS.RATE),
+  sort_order: z.enum(['asc', 'desc', 'ASC', 'DESC']).default('asc'),
+});
+
+export const getTaxStatsQuerySchema = z.object({
+  company_id: idSchema.optional(),
+});
+
+export const checkTaxNameQuerySchema = z.object({
+  name: z.string().trim().min(1).optional(),
+  tax_name: z.string().trim().min(1).optional(),
+  company_id: idSchema.optional(),
+  exclude_id: idSchema.optional(),
+});
+
+export const checkTaxCodeQuerySchema = z.object({
+  code: z.string().trim().min(1).optional(),
+  tax_code: z.string().trim().min(1).optional(),
+  company_id: idSchema.optional(),
+  exclude_id: idSchema.optional(),
+});
+
+export const seedDefaultTaxesSchema = z.object({
+  company_id: idSchema.optional(),
 });
